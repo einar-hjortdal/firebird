@@ -16,5 +16,12 @@
 
 ## Low priority
 
-- support more charsets
+**I do not use these features and will not support them, pull requests are welcome.**
+
+- decfloat
+- int128
 - events
+- different charsets
+- OS other than EuroLinux >9
+- older Firebird versions
+- legacy authentication 

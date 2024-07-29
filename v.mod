@@ -1,7 +1,7 @@
 Module {
 	name: 'firebird'
-	description: 'firebird client'
+	description: 'firebird client for the V language'
 	version: '3.0.0'
-	license: 'NSCA'
+	license: 'NCSA'
 	dependencies: []
 }
