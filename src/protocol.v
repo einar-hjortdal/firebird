@@ -2,12 +2,56 @@ module firebird
 
 import arrays
 import os
+import io
 import math.big
+import crypto.cipher
+import x.crypto.chacha20
+import crypto.sha256
+import net
 
-const plugin_list = 'Srp256,Srp,Legacy_Auth'
+const plugin_list = 'Srp256,Srp' // LegacyAuth not supported
 const buffer_len = 1024
 const max_char_length = 32767
 const blob_segment_size = 32000
+
+struct WireChannel {
+mut:
+	conn   net.TcpConn
+	reader &io.BufferedReader
+	// writer         &io.BufferedWriter
+	plugin        string
+	crypto_reader &cipher.Stream
+	crypto_writer &cipher.Stream
+}
+
+fn new_wire_channel(conn net.TcpConn) &WireChannel {
+	new_reader := io.new_buffered_reader(reader: conn)
+	// new_writer :=
+	wire_channel := &WireChannel{
+		conn: conn
+		reader: new_reader
+		// writer: new_writer
+		crypto_reader: unsafe { nil }
+		crypto_writer: unsafe { nil }
+	}
+	return wire_channel
+}
+
+fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8) ! {
+	c.plugin = plugin
+	if plugin == 'ChaCha' {
+		mut digest := sha256.new()
+		digest.write(session_key)!
+		key := digest.sum([]u8{})
+		c.crypto_reader = chacha20.new_cipher(key, nonce)! // https://github.com/vlang/v/issues/21973
+		c.crypto_writer = chacha20.new_cipher(key, nonce)!
+	} else if plugin == 'Arc4' {
+		return error('Arc4 wire encryption plugin is not supported: https://github.com/Coachonko/firebird/blob/pending/TODO.md#low-priority')
+	} else {
+		return error('Unknown wire encryption plugin name: ${plugin}')
+	}
+	return
+}
 
 fn user_identification(user string, auth_plugin_name string, wire_crypt bool, client_public big.Integer) []u8 {
 	get_system_user := fn () []u8 {

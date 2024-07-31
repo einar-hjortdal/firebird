@@ -1,5 +1,6 @@
 module firebird
 
+import encoding.hex
 import math.big
 import arrays
 import net
@@ -20,6 +21,12 @@ fn identify() []u8 {
 }
 
 fn test_conn() {
+	hex_bytes := hex.decode('E67D2E994B2F900C3F41F08F5BB2627ED0D49EE1FE767A52EFCD565CD6E768812C3E1E9CE8F0A8BEA6CB13CD29DDEBF7A96D4A93B55D488DF099A15C89DCB0640738EB2CBDD9A8F7BAB561AB1B0DC1C6CDABF303264A08D1BCA932D1F1EE428B619D970F342ABA9A65793B8B2F041AE5364350C16F735F56ECBCA87BD57B29E7') or {
+		panic(err)
+	}
+	hex_string := hex_bytes.bytestr()
+	println(hex_string)
+
 	mut conn := net.dial_tcp('localhost:3050') or { panic(err) }
 
 	identify_data := identify()
