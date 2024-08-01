@@ -1,7 +1,7 @@
 module firebird
 
 import io
-// import crypto.cipher
+import crypto.cipher
 import x.crypto.chacha20
 import crypto.sha256
 import net
@@ -24,14 +24,9 @@ mut:
 	// io.BufferedWriter doesn't exist
 	// https://github.com/vlang/v/issues/21975
 	// writer         &io.BufferedWriter
-	plugin string
-	// crypto_reader and crypto_writer should implement cipher.Stream
-	// This allows to use any supported stream cipher
-	// chacha20.Cipher and rc4.Cipher implement the cipher.Stream interface wrong.
-	// https://github.com/vlang/v/issues/21973
-	// https://github.com/vlang/v/pull/21974
-	crypto_reader &chacha20.Cipher // &cipher.Stream
-	crypto_writer &chacha20.Cipher // &cipher.Stream
+	plugin        string
+	crypto_reader &cipher.Stream
+	crypto_writer &cipher.Stream
 }
 
 fn new_wire_channel(conn net.TcpConn) &WireChannel {
