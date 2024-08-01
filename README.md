@@ -2,11 +2,8 @@
 
 Firebird database connector for the V language
 
-## Notes
+## Work in progress
 
-- Firebird >5.0.0
-- Protocol version >18
-- Wire encryption with chacha20
-- `Secure Remote Password` authentication only
+Please help me.
 
 Refer to [TODO.md](./TODO.md) for more information.
