@@ -1,123 +1,14 @@
 module firebird
 
 import arrays
-import os
-import io
+import encoding.binary
 import math.big
-// import crypto.cipher
-import x.crypto.chacha20
-import crypto.sha256
 import net
-
-const plugin_list = 'Srp256,Srp'
-const buffer_len = 1024
-const max_char_length = 32767
-const blob_segment_size = 32000
-
-const low_priority_todo = 'https://github.com/Coachonko/firebird/blob/pending/TODO.md#low-priority'
-const legacy_auth_error = 'LegacyAuth is not supported: ${low_priority_todo}'
-const arc4_error = 'Arc4 wire encryption plugin is not supported: ${low_priority_todo}'
-
-struct WireChannel {
-mut:
-	conn   net.TcpConn
-	reader &io.BufferedReader
-	// The firebird protocol expects that we are in control of when the writing is flushed.
-	// In some situations it is required that flushing is deferred.
-	// io.BufferedWriter doesn't exist
-	// https://github.com/vlang/v/issues/21975
-	// writer         &io.BufferedWriter
-	plugin string
-	// crypto_reader and crypto_writer should implement cipher.Stream
-	// This allows to use any supported stream cipher
-	// chacha20.Cipher and rc4.Cipher implement the cipher.Stream interface wrong.
-	// https://github.com/vlang/v/issues/21973
-	crypto_reader &chacha20.Cipher // &cipher.Stream
-	crypto_writer &chacha20.Cipher // &cipher.Stream
-}
-
-fn new_wire_channel(conn net.TcpConn) &WireChannel {
-	new_reader := io.new_buffered_reader(reader: conn)
-	// new_writer :=
-	wire_channel := &WireChannel{
-		conn: conn
-		reader: new_reader
-		// writer: new_writer
-		crypto_reader: unsafe { nil }
-		crypto_writer: unsafe { nil }
-	}
-	return wire_channel
-}
-
-fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8) ! {
-	c.plugin = plugin
-	if plugin == 'Arc4' {
-		return error(firebird.arc4_error)
-	}
-
-	if plugin == 'ChaCha' {
-		mut digest := sha256.new()
-		digest.write(session_key)!
-		key := digest.sum([]u8{})
-		c.crypto_reader = chacha20.new_cipher(key, nonce)!
-		c.crypto_writer = chacha20.new_cipher(key, nonce)!
-	}
-
-	return error('Unknown wire encryption plugin name: ${plugin}')
-}
-
-fn (mut c WireChannel) read(mut buf []u8) !int {
-	if c.plugin != '' {
-		mut src := []u8{}
-		n := c.reader.read(mut src)!
-		if c.plugin == 'Arc4' {
-			return error(firebird.arc4_error)
-		}
-
-		if c.plugin == 'ChaCha' {
-			c.crypto_reader.xor_key_stream(mut buf, src[0..n])
-		}
-
-		return n
-	}
-
-	return c.reader.read(mut buf)
-}
-
-fn (mut c WireChannel) write(buf []u8) !int {
-	return c.conn.write(buf)!
-}
-
-// fn (mut c WireChannel) write(buf []u8) !int {
-// 	if c.plugin != '' {
-// 		mut dst := []u8{}
-// 		if c.plugin == 'Arc4' {
-// 			return error(firebird.arc4_error)
-// 		}
-
-// 		if c.plugin == 'ChaCha' {
-// 			c.crypto_writer.xor_key_stream(mut dst, buf)
-// 		}
-
-// 		mut written := 0
-// 		for written < buf.len {
-// 			written += c.writer.write(dst[written..])!
-// 		}
-// 		return written
-// 	}
-
-// 	return c.writer.write(mut buf)
-// }
-
-// fn (mut c WireChannel) flush() ! {
-// 	c.writer.flush()!
-// }
-
-fn (mut c WireChannel) close() ! {
-	c.conn.close()!
-}
+import os
+import strings
 
 struct WireProtocol {
+mut:
 	buf []u8
 
 	conn      WireChannel
@@ -152,7 +43,26 @@ fn new_wire_protocol(addr string, timezone string) !&WireProtocol {
 	}
 }
 
-fn user_identification(user string, auth_plugin_name string, wire_crypt bool, client_public big.Integer) []u8 {
+fn (mut p WireProtocol) pack_i32(i i32) {
+	i32_bytes := marshal_i32(i)
+	p.buf = arrays.append(p.buf, i32_bytes)
+}
+
+fn (mut p WireProtocol) pack_array_u8(au []u8) {
+	array_u8_bytes := marshal_array_u8(au)
+	p.buf = arrays.append(p.buf, array_u8_bytes)
+}
+
+fn (mut p WireProtocol) pack_string(s string) {
+	string_bytes := marshal_array_u8(s.bytes())
+	p.buf = arrays.append(p.buf, string_bytes)
+}
+
+fn (mut p WireProtocol) append_array_u8(au []u8) {
+	p.buf = arrays.append(p.buf, au)
+}
+
+fn (mut p WireProtocol) user_identification(user string, auth_plugin_name string, wire_crypt bool, client_public big.Integer) []u8 {
 	get_system_user := fn () []u8 {
 		system_user := os.getenv('USER')
 		if system_user == '' {
@@ -193,7 +103,7 @@ fn user_identification(user string, auth_plugin_name string, wire_crypt bool, cl
 		}
 
 		if auth_plugin_name == 'Legacy_Auth' {
-			panic(firebird.legacy_auth_error)
+			panic(legacy_auth_error)
 		}
 		panic('Unknown plugin name: ${auth_plugin_name}')
 	}
@@ -204,7 +114,7 @@ fn user_identification(user string, auth_plugin_name string, wire_crypt bool, cl
 	plugin_name_bytes := auth_plugin_name.bytes()
 	plugin_name := arrays.append([u8(cnct_plugin_name), u8(plugin_name_bytes.len)], plugin_name_bytes)
 
-	plugins_bytes := firebird.plugin_list.bytes()
+	plugins_bytes := plugin_list.bytes()
 	plugins := arrays.append([u8(cnct_plugin_list), u8(plugins_bytes.len)], plugins_bytes)
 
 	specific_data := get_specific_data()
@@ -228,4 +138,55 @@ fn user_identification(user string, auth_plugin_name string, wire_crypt bool, cl
 	res = arrays.append(res, hostname)
 	res = arrays.append(res, verification)
 	return res
+}
+
+fn (mut p WireProtocol) clear_buffer() {
+	p.buf = []u8{}
+}
+
+fn (mut p WireProtocol) send_packets() !int {
+	mut written := 0
+	mut n := 0
+	for written < p.buf.len {
+		n = p.conn.write(p.buf[written..]) or { break }
+		written += n
+	}
+	// p.conn.writer.flush()
+	p.clear_buffer()
+	return written
+}
+
+fn (mut p WireProtocol) suspend_buffer() []u8 {
+	buf := p.buf
+	p.clear_buffer()
+	return buf
+}
+
+fn (mut p WireProtocol) resume_buffer(buf []u8) {
+	p.buf = buf
+}
+
+fn (mut p WireProtocol) receive_packets(n int) ![]u8 {
+	mut buf := []u8{}
+	mut read := 0
+	mut total_read := 0
+	for total_read < n {
+		read = p.conn.read(mut buf[total_read..n])!
+		total_read += read
+	}
+	return buf
+}
+
+fn (mut p WireProtocol) receive_packets_alignment(n int) ![]u8 {
+	get_padding := fn [n] () int {
+		padding := n % 4
+		if padding > 0 {
+			return 4 - padding
+		}
+		return 0
+	}
+	padding := get_padding()
+
+	buf := p.receive_packets(n + padding)!
+	return buf[0..n]
 }
