@@ -1,6 +1,8 @@
 module firebird
 
 import arrays
+import math.big
+import crypto.sha1
 
 fn marshal_i32(n i32) []u8 {
 	return [
@@ -32,4 +34,12 @@ fn marshal_array_u8(au []u8) []u8 {
 	marshalled_len := marshal_i32(len)
 	intermediate := arrays.append(marshalled_len, au)
 	return arrays.append(intermediate, padding)
+}
+
+fn big_int_to_sha1(n big.Integer) []u8 {
+	mut digest := sha1.new()
+	n_bytes, _ := n.bytes()
+	digest.write(n_bytes) or { panic(err) }
+
+	return sha1.sum([]u8{})
 }

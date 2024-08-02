@@ -20,6 +20,7 @@
 
 **I do not use these features and will not support them, pull requests are welcome.**
 
+- embedded
 - decfloat
 - int128
 - events
