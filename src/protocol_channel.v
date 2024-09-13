@@ -33,7 +33,7 @@ fn new_wire_channel(conn net.TcpConn) &WireChannel {
 	new_reader := io.new_buffered_reader(reader: conn)
 	// new_writer :=
 	wire_channel := &WireChannel{
-		conn: conn
+		conn:   conn
 		reader: new_reader
 		// writer: new_writer
 		crypto_reader: unsafe { nil }
@@ -45,7 +45,7 @@ fn new_wire_channel(conn net.TcpConn) &WireChannel {
 fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8) ! {
 	c.plugin = plugin
 	if plugin == 'Arc4' {
-		return error(firebird.arc4_error)
+		return error(arc4_error)
 	}
 
 	if plugin == 'ChaCha' {
@@ -64,7 +64,7 @@ fn (mut c WireChannel) read(mut buf []u8) !int {
 		mut src := []u8{}
 		n := c.reader.read(mut src)!
 		if c.plugin == 'Arc4' {
-			return error(firebird.arc4_error)
+			return error(arc4_error)
 		}
 
 		if c.plugin == 'ChaCha' {
@@ -78,29 +78,27 @@ fn (mut c WireChannel) read(mut buf []u8) !int {
 }
 
 fn (mut c WireChannel) write(buf []u8) !int {
-	return c.conn.write(buf)!
+	if c.plugin != '' {
+		mut dst := []u8{}
+		if c.plugin == 'Arc4' {
+			return error(firebird.arc4_error)
+		}
+
+		if c.plugin == 'ChaCha' {
+			c.crypto_writer.xor_key_stream(mut dst, buf)
+		}
+
+		mut written := 0
+		for written < buf.len {
+			// written += c.writer.write(dst[written..])!
+			written += c.conn.write(dst[written..])!
+		}
+		return written
+	}
+
+	// return c.writer.write(mut buf)
+	return c.conn.write(mut buf)
 }
-
-// fn (mut c WireChannel) write(buf []u8) !int {
-// 	if c.plugin != '' {
-// 		mut dst := []u8{}
-// 		if c.plugin == 'Arc4' {
-// 			return error(firebird.arc4_error)
-// 		}
-
-// 		if c.plugin == 'ChaCha' {
-// 			c.crypto_writer.xor_key_stream(mut dst, buf)
-// 		}
-
-// 		mut written := 0
-// 		for written < buf.len {
-// 			written += c.writer.write(dst[written..])!
-// 		}
-// 		return written
-// 	}
-
-// 	return c.writer.write(mut buf)
-// }
 
 // fn (mut c WireChannel) flush() ! {
 // 	c.writer.flush()!

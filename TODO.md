@@ -25,7 +25,7 @@
 - int128
 - events
 - different charsets
-- OS other than EuroLinux >9
+- OS other than EuroLinux >=9
 - older Firebird versions
 - `Legacy_Auth` auth plugin
 - `Arc4` wire encryption plugin
