@@ -11,8 +11,8 @@ fn format_error_message(message string) string {
 	return '[${lib}] ${message}'
 }
 
-fn new_error(message string) ! {
-	return error(format_error_message(message))
+fn format_op_error(op_error_code i32) string {
+	return format_error_message('Error: op_response ${op_error_code}')
 }
 
 fn new_logger() log.Log {

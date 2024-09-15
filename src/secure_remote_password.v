@@ -2,8 +2,11 @@ module firebird
 
 import arrays
 import crypto.sha1
-import math.big
+import crypto.sha256
 import encoding.hex
+import hash
+import math.big
+import rand
 
 const srp_key_size = 128
 const srp_salt_size = 32
@@ -12,14 +15,12 @@ const big_prime_bytes = hex.decode('E67D2E994B2F900C3F41F08F5BB2627ED0D49EE1FE76
 	panic(err) // should never panic
 }
 const big_integer_string = '1277432915985975349439481660349303019122249720001'
-const big_integer_max = '340282366920938463463374607431768211456'
+const big_integer_max = big.integer_from_int(1).left_shift(128) // 1 << 128
 
 fn get_prime() (big.Integer, big.Integer, big.Integer) {
-	prime := big.integer_from_bytes(firebird.big_prime_bytes)
+	prime := big.integer_from_bytes(big_prime_bytes)
 	g := big.integer_from_i64(2)
-	k := big.integer_from_string(firebird.big_integer_string) or {
-		panic(err) // should never panic
-	}
+	k := big.integer_from_string(big_integer_string) or { panic(err) } // should never panic
 	return prime, g, k
 }
 
@@ -27,14 +28,14 @@ fn pad(v big.Integer) []u8 {
 	mut buf := []u8{}
 	mut n := big.integer_from_i64(0) + v
 
-	for i := 0; i < firebird.srp_key_size; i++ {
+	for i := 0; i < srp_key_size; i++ {
 		buf = arrays.concat(buf, u8(big.integer_from_i64(255).bitwise_and(n).int()))
 		n = n / big.integer_from_i64(256)
 	}
 
 	// swap u8 positions
-	for i := 0; i < firebird.srp_key_size; i++ {
-		j := firebird.srp_key_size - 1 - i
+	for i := 0; i < srp_key_size; i++ {
+		j := srp_key_size - 1 - i
 		i_value := buf[i]
 		j_value := buf[j]
 		buf[i] = j_value
@@ -55,19 +56,121 @@ fn pad(v big.Integer) []u8 {
 	return buf[first_non_zero_index..]
 }
 
-fn get_scramble(key_a big.Integer, key_b big.Integer) big.Integer {
-	// key_a:A client public ephemeral values
-	// key_b:B server public ephemeral values
+fn get_scramble(client_public_key big.Integer, server_public_key big.Integer) big.Integer {
+	// client_public_key:A client public ephemeral values
+	// server_public_key:B server public ephemeral values
 	mut digest := sha1.new()
-	digest.write(pad(key_a)) or { panic(err) }
-	digest.write(pad(key_b)) or { panic(err) }
+	digest.write(pad(client_public_key)) or { panic(err) }
+	digest.write(pad(server_public_key)) or { panic(err) }
 	return big.integer_from_bytes(digest.sum([]u8{}))
 }
 
-//  fn get_client_seed() (big.Integer, big.Integer) {
-//  	prime, g, _ := get_prime()
-//  	// a should be a random number in the range [0, 340282366920938463463374607431768211456)
-//  	public :=
-//  	secret := g.big_mod_pow(public, prime) or { panic(err) }
-//  	return public, secret
-//  }
+fn get_client_seed() (big.Integer, big.Integer) {
+	prime, g, _ := get_prime()
+	client_secret_key := new_random_big_integer(big_integer_max) or { panic(err) }
+	client_public_key := g.big_mod_pow(client_secret_key, prime) or { panic(err) }
+	return client_public_key, client_secret_key
+}
+
+fn get_salt() []u8 {
+	buf := []u8{}
+	if !is_debug {
+		for i := 0; i < srp_salt_size; i++ {
+			intn := rand.intn(256) or { 0 }
+			arrays.concat(buf, u8(intn))
+		}
+	}
+	return buf
+}
+
+fn get_verifier(user string, password string, salt []u8) big.Integer {
+	prime, g, _ := get_prime()
+	x := get_user_hash(salt, user, password)
+	verifier := g.big_mod_pow(x, prime) or { panic(err) }
+	return verifier
+}
+
+fn get_server_seed(v big.Integer) (big.Integer, big.Integer) {
+	prime, g, k := get_prime()
+	server_secret_key := new_random_big_integer(big_integer_max) or { panic(err) }
+	gb := g.big_mod_pow(server_secret_key, prime) or { panic(err) } // gb = pow(g, b, N)
+	kv := (k * v) % prime // kv = (k * v) % N
+	server_public_key := (kv + gb) % prime // B = (kv + gb) % N
+	return server_public_key, server_secret_key
+}
+
+fn get_string_hash(s string) big.Integer {
+	mut digest := sha1.new()
+	digest.write(s.bytes()) or { panic(err) }
+	return big.integer_from_bytes(digest.sum([]u8{}))
+}
+
+fn get_user_hash(salt []u8, user string, password string) big.Integer {
+	mut hash1 := sha1.new()
+	hash1.write('${user}:${password}'.bytes()) or {}
+	mut hash2 := sha1.new()
+	hash2.write(salt) or {}
+	hash2.write(hash1.sum([]u8{})) or {}
+	return big.integer_from_bytes(hash2.sum([]u8{}))
+}
+
+fn get_client_session(user string, password string, salt []u8, client_public_key big.Integer, server_public_key big.Integer, client_secret_key big.Integer) []u8 {
+	prime, g, k := get_prime()
+	u := get_scramble(client_public_key, server_public_key)
+	x := get_user_hash(salt, user, password)
+	gx := g.big_mod_pow(x, prime) or { panic(err) } // gx = pow(g, x, N)
+	kgx := (k * gx) % prime // kgx = (k * gx) % N
+	diff := (server_public_key - kgx) % prime // diff = (B - kgx) % N
+	ux := (u * x) % prime // ux = (u * x) % N
+	aux := (client_secret_key + ux) % prime // aux = (a+ ux) % N
+	session_secret := diff.big_mod_pow(aux, prime) or { panic(err) } // (B - kg^x) ^ (a+ ux)
+	return big_int_to_sha1(session_secret)
+}
+
+fn get_server_session(user string, password string, salt []u8, client_public_key big.Integer, server_public_key big.Integer, server_secret_key big.Integer) []u8 {
+	prime, _, _ := get_prime()
+	u := get_scramble(client_public_key, server_public_key)
+	v := get_verifier(user, password, salt)
+	vu := v.big_mod_pow(u, prime) or { panic(err) }
+	avu := (client_public_key * vu) % prime
+	session_secret := avu.big_mod_pow(server_secret_key, prime) or { panic(err) }
+	return big_int_to_sha1(session_secret)
+}
+
+fn big_integer_to_byte_array(b big.Integer) []u8 {
+	byte_array, _ := b.bytes()
+	return byte_array
+}
+
+fn get_client_proof(user string, password string, salt []u8, client_public_key big.Integer, server_public_key big.Integer, client_secret_key big.Integer, plugin_name string) ([]u8, []u8) {
+	// M = H(H(N) xor H(g), H(I), s, A, B, K)
+	prime, g, _ := get_prime()
+	key_k := get_client_session(user, password, salt, client_public_key, server_public_key,
+		client_secret_key)
+
+	n1 := big.integer_from_bytes(big_int_to_sha1(prime))
+	n2 := big.integer_from_bytes(big_int_to_sha1(g))
+	n3 := n1.big_mod_pow(n2, prime) or { panic(err) }
+	n4 := get_string_hash(user)
+
+	new_digest := fn [plugin_name] () hash.Hash {
+		if plugin_name == 'Srp' {
+			return sha1.new()
+		}
+		if plugin_name == 'Srp256' {
+			return sha256.new()
+		}
+		panic('srp protocol error')
+	}
+
+	mut digest := new_digest()
+	digest.write(big_integer_to_byte_array(n3)) or {}
+	digest.write(big_integer_to_byte_array(n4)) or {}
+	digest.write(salt) or {}
+	digest.write(big_integer_to_byte_array(client_public_key)) or {}
+	digest.write(big_integer_to_byte_array(client_public_key)) or {}
+	digest.write(key_k) or {}
+	key_m := digest.sum([]u8{})
+
+	return key_m, key_k
+}

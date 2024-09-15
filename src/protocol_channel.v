@@ -81,7 +81,7 @@ fn (mut c WireChannel) write(buf []u8) !int {
 	if c.plugin != '' {
 		mut dst := []u8{}
 		if c.plugin == 'Arc4' {
-			return error(firebird.arc4_error)
+			return error(arc4_error)
 		}
 
 		if c.plugin == 'ChaCha' {
@@ -97,7 +97,7 @@ fn (mut c WireChannel) write(buf []u8) !int {
 	}
 
 	// return c.writer.write(mut buf)
-	return c.conn.write(mut buf)
+	return c.conn.write(buf)
 }
 
 // fn (mut c WireChannel) flush() ! {

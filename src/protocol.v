@@ -5,7 +5,9 @@ import encoding.binary
 import math.big
 import net
 import os
-import strings
+// import strings
+
+const buffer_length = i32(1024)
 
 struct WireProtocol {
 mut:
@@ -34,12 +36,12 @@ mut:
 fn new_wire_protocol(addr string, timezone string) !&WireProtocol {
 	conn := net.dial_tcp(addr)!
 	return &WireProtocol{
-		buf: []u8{}
-		conn: new_wire_channel(conn)
-		addr: addr
-		charset: 'UTF8'
+		buf:              []u8{}
+		conn:             new_wire_channel(conn)
+		addr:             addr
+		charset:          'UTF8'
 		charset_byte_len: 4
-		timezone: timezone
+		timezone:         timezone
 	}
 }
 
@@ -189,4 +191,269 @@ fn (mut p WireProtocol) receive_packets_alignment(n int) ![]u8 {
 
 	buf := p.receive_packets(n + padding)!
 	return buf[0..n]
+}
+
+fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
+	mut sql_code := 0
+	mut gds_code := 0
+	mut gds_codes := []int{}
+	mut num_arg := 0
+	mut message := ''
+
+	mut b := p.receive_packets(4)!
+	mut n := binary.big_endian_u16(b)
+	for n != isc_arg_end {
+		match n {
+			isc_arg_gds {
+				b = p.receive_packets(4)!
+				gds_code = int(binary.big_endian_u16(b))
+				if gds_code != 0 {
+					gds_codes = arrays.concat(gds_codes, gds_code)
+					msg := get_error_message(gds_code) or { err.msg() }
+					message += msg
+					num_arg = 0
+				}
+			}
+			isc_arg_number {
+				b = p.receive_packets(4)!
+				num := int(binary.big_endian_u16(b))
+				if gds_code == 335544436 {
+					sql_code = num
+				}
+				num_arg++
+				message = message.replace_once('@${num_arg}', '${num}')
+			}
+			isc_arg_string {
+				b = p.receive_packets(4)!
+				nbytes := int(binary.big_endian_u16(b))
+				b = p.receive_packets_alignment(nbytes)!
+				s := b.bytestr()
+				num_arg++
+				message = message.replace_once('@${num_arg}', s)
+			}
+			isc_arg_interpreted {
+				b = p.receive_packets(4)!
+				nbytes := int(binary.big_endian_u16(b))
+				b = p.receive_packets_alignment(nbytes)!
+				s := b.bytestr()
+				message += s
+			}
+			isc_arg_sql_state {
+				b = p.receive_packets(4)!
+				nbytes := int(binary.big_endian_u16(b))
+				b = p.receive_packets_alignment(nbytes)!
+				_ := b.bytestr() // skip status code
+			}
+			else {}
+		}
+		b = p.receive_packets(4)!
+		n = binary.big_endian_u16(b)
+	}
+
+	return gds_codes, sql_code, message
+}
+
+fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
+	b := p.receive_packets(16)!
+	object_handle := i32(binary.big_endian_u16(b[..4]))
+	object_id := b[4..12]
+	response_buffer_length := i32(binary.big_endian_u16(b[12..]))
+	response_buffer := p.receive_packets_alignment(response_buffer_length)!
+
+	gds_code_list, sql_code, message := p.parse_status_vector()!
+	if gds_code_list.len > 0 || sql_code != 0 {
+		return error(format_error_message(message))
+	}
+
+	return object_handle, object_id, response_buffer
+}
+
+fn (mut p WireProtocol) guess_wire_crypt(buf []u8) (string, []u8) {
+	mut params := map[u8][]u8{}
+	for i := 0; i < buf.len; {
+		k := buf[i]
+		i++
+		ln := buf[i]
+		i++
+		v := buf[i..i + ln]
+		i += ln
+		params[k] = v
+	}
+
+	if 3 in params {
+		v := params[3]
+		if (v[..7]).bytestr() == 'ChaCha\x00' {
+			return 'ChaCha', v[7..v.len - 4]
+		}
+	}
+
+	return 'Arc4', []u8{}
+}
+
+// https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
+fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
+	logger.debug('generic_response')
+	mut b := p.receive_packets(4)!
+
+	for big_endian_i32(b) == op_dummy {
+		b = p.receive_packets(4)!
+	}
+
+	for big_endian_i32(b) == op_crypt_key_callback {
+		p.crypt_callback()!
+		b = p.receive_packets(12)!
+		b = p.receive_packets(4)!
+	}
+
+	for big_endian_i32(b) == op_response && p.lazy_response_count > 0 {
+		p.lazy_response_count--
+		p.parse_generic_response()!
+		b = p.receive_packets(4)!
+	}
+
+	if big_endian_i32(b) != op_response {
+		if is_debug && big_endian_i32(b) == op_cont_auth {
+			panic('auth error')
+		}
+		return error(format_op_error(big_endian_i32(b)))
+	}
+	return p.parse_generic_response()!
+}
+
+fn (mut p WireProtocol) parse_connect_response(user string, password string, options map[string]string, client_public big.Integer, client_secret big.Integer) ! {
+	mut b := p.receive_packets(4)!
+	mut opcode := big_endian_i32(b)
+
+	for opcode == op_dummy {
+		b = p.receive_packets(4) or { []u8{} }
+		opcode = big_endian_i32(b)
+	}
+
+	if opcode == op_reject {
+		return error(format_error_message('parse_connect_response op_reject'))
+	}
+
+	if opcode == op_response {
+		p.parse_generic_response()! // error has occured
+	}
+
+	b = p.receive_packets(12) or { []u8{} }
+	p.protocol_version = i32(b[3])
+	p.accept_architecture = big_endian_i32(b[4..8])
+	p.accept_type = big_endian_i32(b[8..12])
+
+	if opcode == op_cond_accept || opcode == op_accept_data {
+		b = p.receive_packets(12) or { []u8{} }
+		mut ln := big_endian_i32(b)
+		mut data := p.receive_packets_alignment(ln) or { []u8{} }
+
+		b = p.receive_packets(4) or { []u8{} }
+		ln = big_endian_i32(b)
+		plugin_name := p.receive_packets_alignment(ln) or { []u8{} }
+		p.plugin_name = plugin_name.bytestr()
+
+		b = p.receive_packets(4) or { []u8{} }
+		is_authenticated := big_endian_i32(b)
+		mut read_length := 4
+
+		b = p.receive_packets(4) or { []u8{} }
+		ln = big_endian_i32(b)
+		_ = p.receive_packets_alignment(ln) or { []u8{} } // keys
+
+		mut auth_data := []u8{}
+		mut session_key := []u8{}
+		if is_authenticated == 0 {
+			if p.plugin_name == 'Srp' || p.plugin_name == 'Srp256' {
+				// TODO: normalize user
+
+				if data.len == 0 {
+					p.continue_authentication(pad(client_public), p.plugin_name, plugin_list,
+						'')!
+					b = p.receive_packets(4) or { []u8{} }
+					op := big_endian_i32(b)
+					if op == op_response {
+						p.parse_generic_response()! // error occurred
+					}
+
+					if is_debug && op != op_cont_auth {
+						panic('auth error')
+					}
+
+					b = p.receive_packets(4) or { []u8{} }
+					ln = big_endian_i32(b)
+					data = p.receive_packets_alignment(ln) or { []u8{} }
+
+					b = p.receive_packets(4) or { []u8{} }
+					ln = big_endian_i32(b)
+					p.receive_packets_alignment(ln) or { []u8{} } // plugin_name
+
+					b = p.receive_packets(4) or { []u8{} }
+					ln = big_endian_i32(b)
+					p.receive_packets_alignment(ln) or { []u8{} } // plugin_list
+
+					b = p.receive_packets(4) or { []u8{} }
+					ln = big_endian_i32(b)
+					p.receive_packets_alignment(ln) or { []u8{} } // keys
+				}
+
+				ln = big_endian_i16(data[..2])
+				server_salt := data[2..ln + 2].clone()
+				server_public := big.integer_from_string(data[4 + ln..].bytestr())!
+				auth_data, session_key = get_client_proof(user.to_upper(), password, server_salt,
+					client_public, server_public, client_secret, p.plugin_name)
+				logger.debug('plugin_name=${p.plugin_name}\nserver_salt=${server_salt}\nserver_public(bin)=${data[
+					4 + ln..]}\nserver_public=${server_public}\nauth_data=${auth_data},sessionKey=${session_key}\n')
+			} else if p.plugin_name == 'Legacy_Auth' {
+				return error(format_error_message(legacy_auth_error))
+			} else {
+				return error(format_error_message('parse_connect_response() Unauthorized'))
+			}
+		}
+
+		get_encrypt_plugin_and_nonce := fn [mut p, opcode, auth_data, options] () !(string, []u8) {
+			if opcode == op_cond_accept {
+				p.continue_authentication(auth_data, options['auth_plugin_name'], plugin_list,
+					'')!
+				_, _, buf := p.generic_response() or { return '', []u8{} }
+				return p.guess_wire_crypt(buf)
+			}
+			return error(format_error_message('received opcode ${opcode}, not ${op_cond_accept}'))
+		}
+		encrypt_plugin, nonce := get_encrypt_plugin_and_nonce()!
+
+		mut wire_crypt := true
+		wire_crypt = options['wire_crypt'].bool()
+		if wire_crypt && session_key.len != 0 {
+			// Send op_crypt
+			p.op_crypt(encrypt_plugin)
+			p.conn.set_crypt_key(encrypt_plugin, session_key, nonce)!
+			_, _, _ := p.generic_response() or { return }
+		} else {
+			p.auth_data = auth_data // use later opAttach and opCreate
+		}
+	} else {
+		if opcode != op_accept {
+			return error(format_error_message('parse_connect_response() protocol error'))
+		}
+	}
+
+	return
+}
+
+fn (mut p WireProtocol) continue_authentication(auth_data []u8, auth_plugin_name string, auth_plugin_list string, keys string) ! {
+	logger.debug('continue_authentication')
+	p.pack_i32(op_cont_auth)
+	p.pack_string(auth_data.hex())
+	p.pack_string(auth_plugin_name)
+	p.pack_string(auth_plugin_list)
+	p.pack_string(keys)
+	p.send_packets()!
+}
+
+fn (mut p WireProtocol) crypt_callback() ! {
+	logger.debug('crypt_callback')
+	p.pack_i32(op_crypt_key_callback)
+	p.pack_i32(0)
+	p.pack_i32(buffer_length)
+	p.send_packets()!
 }

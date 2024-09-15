@@ -1,8 +1,9 @@
 module firebird
 
 import arrays
-import math.big
 import crypto.sha1
+import encoding.binary
+import math.big
 
 fn marshal_i32(n i32) []u8 {
 	return [
@@ -42,4 +43,12 @@ fn big_int_to_sha1(n big.Integer) []u8 {
 	digest.write(n_bytes) or { panic(err) }
 
 	return sha1.sum([]u8{})
+}
+
+fn big_endian_i32(b []u8) i32 {
+	return i32(binary.big_endian_u32(b))
+}
+
+fn big_endian_i16(b []u8) i16 {
+	return i16(binary.big_endian_u16(b))
 }
