@@ -401,8 +401,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 				server_public := big.integer_from_string(data[4 + ln..].bytestr())!
 				auth_data, session_key = get_client_proof(user.to_upper(), password, server_salt,
 					client_public, server_public, client_secret, p.plugin_name)
-				logger.debug('plugin_name=${p.plugin_name}\nserver_salt=${server_salt}\nserver_public(bin)=${data[
-					4 + ln..]}\nserver_public=${server_public}\nauth_data=${auth_data},sessionKey=${session_key}\n')
+				logger.debug('plugin_name=${p.plugin_name}\nserver_salt=${server_salt}\nserver_public(bin)=${data[4 + ln..].bytestr()}\nserver_public=${server_public}\nauth_data=${auth_data},sessionKey=${session_key}\n')
 			} else if p.plugin_name == 'Legacy_Auth' {
 				return error(format_error_message(legacy_auth_error))
 			} else {
@@ -425,7 +424,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 		wire_crypt = options['wire_crypt'].bool()
 		if wire_crypt && session_key.len != 0 {
 			// Send op_crypt
-			p.op_crypt(encrypt_plugin)
+			p.crypt(encrypt_plugin)!
 			p.conn.set_crypt_key(encrypt_plugin, session_key, nonce)!
 			_, _, _ := p.generic_response() or { return }
 		} else {
@@ -440,6 +439,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 	return
 }
 
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L794
 fn (mut p WireProtocol) continue_authentication(auth_data []u8, auth_plugin_name string, auth_plugin_list string, keys string) ! {
 	logger.debug('continue_authentication')
 	p.pack_i32(op_cont_auth)
@@ -450,6 +450,15 @@ fn (mut p WireProtocol) continue_authentication(auth_data []u8, auth_plugin_name
 	p.send_packets()!
 }
 
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L815
+fn (mut p WireProtocol) crypt(plugin string) ! {
+	p.pack_i32(op_crypt)
+	p.pack_string(plugin)
+	p.pack_string('Symmetric')
+	p.send_packets()!
+}
+
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L825
 fn (mut p WireProtocol) crypt_callback() ! {
 	logger.debug('crypt_callback')
 	p.pack_i32(op_crypt_key_callback)
