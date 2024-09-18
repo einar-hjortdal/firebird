@@ -292,7 +292,7 @@ fn (mut p WireProtocol) guess_wire_crypt(buf []u8) (string, []u8) {
 
 // https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
 fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
-	logger.debug('generic_response')
+	// logger.debug('generic_response')
 	mut b := p.receive_packets(4)!
 
 	for big_endian_i32(b) == op_dummy {
@@ -312,7 +312,7 @@ fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 	}
 
 	if big_endian_i32(b) != op_response {
-		if is_debug && big_endian_i32(b) == op_cont_auth {
+		if is_debug() && big_endian_i32(b) == op_cont_auth {
 			panic('auth error')
 		}
 		return error(format_op_error(big_endian_i32(b)))
@@ -354,7 +354,6 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 
 		b = p.receive_packets(4) or { []u8{} }
 		is_authenticated := big_endian_i32(b)
-		mut read_length := 4
 
 		b = p.receive_packets(4) or { []u8{} }
 		ln = big_endian_i32(b)
@@ -375,7 +374,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 						p.parse_generic_response()! // error occurred
 					}
 
-					if is_debug && op != op_cont_auth {
+					if is_debug() && op != op_cont_auth {
 						panic('auth error')
 					}
 
@@ -401,7 +400,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 				server_public := big.integer_from_string(data[4 + ln..].bytestr())!
 				auth_data, session_key = get_client_proof(user.to_upper(), password, server_salt,
 					client_public, server_public, client_secret, p.plugin_name)
-				logger.debug('plugin_name=${p.plugin_name}\nserver_salt=${server_salt}\nserver_public(bin)=${data[4 + ln..].bytestr()}\nserver_public=${server_public}\nauth_data=${auth_data},sessionKey=${session_key}\n')
+				// logger.debug('plugin_name=${p.plugin_name}\nserver_salt=${server_salt}\nserver_public(bin)=${data[4 + ln..].bytestr()}\nserver_public=${server_public}\nauth_data=${auth_data},sessionKey=${session_key}\n')
 			} else if p.plugin_name == 'Legacy_Auth' {
 				return error(format_error_message(legacy_auth_error))
 			} else {
@@ -441,7 +440,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L794
 fn (mut p WireProtocol) continue_authentication(auth_data []u8, auth_plugin_name string, auth_plugin_list string, keys string) ! {
-	logger.debug('continue_authentication')
+	// logger.debug('continue_authentication')
 	p.pack_i32(op_cont_auth)
 	p.pack_string(auth_data.hex())
 	p.pack_string(auth_plugin_name)
@@ -460,7 +459,7 @@ fn (mut p WireProtocol) crypt(plugin string) ! {
 
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L825
 fn (mut p WireProtocol) crypt_callback() ! {
-	logger.debug('crypt_callback')
+	// logger.debug('crypt_callback')
 	p.pack_i32(op_crypt_key_callback)
 	p.pack_i32(0)
 	p.pack_i32(buffer_length)

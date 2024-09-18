@@ -20,7 +20,7 @@ fn get_log_level() log.Level {
 	if level_string == '' {
 		return log.Level.disabled
 	}
-	level := log.Level.from(level_string) or { return log.Level.disabled }
+	level := log.level_from_tag(level_string) or { return log.Level.disabled }
 	return level
 }
 
@@ -32,16 +32,13 @@ fn new_logger() log.Log {
 	return new_log
 }
 
-const logger = new_logger()
-
-fn is_debug_level() bool {
-	if logger.get_level() == log.Level.debug {
+fn is_debug() bool {
+	level := get_log_level()
+	if level == log.Level.debug {
 		return true
 	}
 	return false
 }
-
-const is_debug = is_debug_level()
 
 // new_random_big_integer creates a random `big.Integer` with range [0, n)
 // panics if `n` is 0 or negative.

@@ -74,7 +74,7 @@ fn get_client_seed() (big.Integer, big.Integer) {
 
 fn get_salt() []u8 {
 	buf := []u8{}
-	if !is_debug {
+	if !is_debug() {
 		for i := 0; i < srp_salt_size; i++ {
 			intn := rand.intn(256) or { 0 }
 			arrays.concat(buf, u8(intn))
