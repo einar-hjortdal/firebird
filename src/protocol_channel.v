@@ -17,13 +17,9 @@ const arc4_error = 'Arc4 wire encryption plugin is not supported: ${low_priority
 
 struct WireChannel {
 mut:
-	conn   net.TcpConn
-	reader &io.BufferedReader
-	// The firebird protocol expects that we are in control of when the writing is flushed.
-	// In some situations it is required that flushing is deferred.
-	// io.BufferedWriter doesn't exist
-	// https://github.com/vlang/v/issues/21975
-	// writer         &io.BufferedWriter
+	conn          net.TcpConn
+	reader        &io.BufferedReader
+	writer        &io.BufferedWriter
 	plugin        string
 	crypto_reader &cipher.Stream
 	crypto_writer &cipher.Stream
@@ -31,11 +27,11 @@ mut:
 
 fn new_wire_channel(conn net.TcpConn) &WireChannel {
 	new_reader := io.new_buffered_reader(reader: conn)
-	// new_writer :=
+	new_writer := io.new_buffered_writer(writer: conn)
 	wire_channel := &WireChannel{
-		conn:   conn
-		reader: new_reader
-		// writer: new_writer
+		conn:          conn
+		reader:        new_reader
+		writer:        new_writer
 		crypto_reader: unsafe { nil }
 		crypto_writer: unsafe { nil }
 	}
@@ -90,19 +86,17 @@ fn (mut c WireChannel) write(buf []u8) !int {
 
 		mut written := 0
 		for written < buf.len {
-			// written += c.writer.write(dst[written..])!
-			written += c.conn.write(dst[written..])!
+			written += c.writer.write(dst[written..])!
 		}
 		return written
 	}
 
-	// return c.writer.write(mut buf)
-	return c.conn.write(buf)
+	return c.writer.write(mut buf)
 }
 
-// fn (mut c WireChannel) flush() ! {
-// 	c.writer.flush()!
-// }
+fn (mut c WireChannel) flush() ! {
+	c.writer.flush()!
+}
 
 fn (mut c WireChannel) close() ! {
 	c.conn.close()!

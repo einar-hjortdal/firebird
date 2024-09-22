@@ -27,5 +27,6 @@
 - different charsets
 - OS other than EuroLinux >=9
 - older Firebird versions
+- protocol versions >18
 - `Legacy_Auth` auth plugin
 - `Arc4` wire encryption plugin
