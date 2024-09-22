@@ -13,3 +13,4 @@ fn build_protocol(protocol_version i32, architecture_type i32, minimum_type i32,
 }
 
 const protocol_version_18 = build_protocol(18, 1, 0, 5, 1)
+const protocol_version_19 = build_protocol(19, 1, 0, 5, 1)
