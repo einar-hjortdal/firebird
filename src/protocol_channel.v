@@ -1,17 +1,17 @@
 module firebird
 
-import io
 import crypto.cipher
-import x.crypto.chacha20
 import crypto.sha256
+import io
 import net
+import x.crypto.chacha20
 
 const plugin_list = 'Srp256,Srp'
 const buffer_len = 1024
 const max_char_length = 32767
 const blob_segment_size = 32000
 
-const low_priority_todo = 'https://github.com/Coachonko/firebird/blob/pending/TODO.md#low-priority'
+const low_priority_todo = 'https://github.com/einar-hjortdal/firebird/blob/pending/TODO.md#low-priority'
 const legacy_auth_error = 'LegacyAuth is not supported: ${low_priority_todo}'
 const arc4_error = 'Arc4 wire encryption plugin is not supported: ${low_priority_todo}'
 
@@ -27,7 +27,7 @@ mut:
 
 fn new_wire_channel(conn net.TcpConn) &WireChannel {
 	new_reader := io.new_buffered_reader(reader: conn)
-	new_writer := io.new_buffered_writer(writer: conn)
+	new_writer := io.new_buffered_writer(writer: conn) or {panic(err)}
 	wire_channel := &WireChannel{
 		conn:          conn
 		reader:        new_reader
@@ -91,7 +91,7 @@ fn (mut c WireChannel) write(buf []u8) !int {
 		return written
 	}
 
-	return c.writer.write(mut buf)
+	return c.writer.write(buf)
 }
 
 fn (mut c WireChannel) flush() ! {

@@ -56,8 +56,9 @@ fn (mut p WireProtocol) pack_array_u8(au []u8) {
 }
 
 fn (mut p WireProtocol) pack_string(s string) {
-	string_bytes := marshal_array_u8(s.bytes())
-	p.buf = arrays.append(p.buf, string_bytes)
+	// https://github.com/vlang/v/issues/22256#issuecomment-2366338836
+	string_bytes_ := marshal_array_u8(s.bytes())
+	p.buf = arrays.append(p.buf, string_bytes_)
 }
 
 fn (mut p WireProtocol) append_array_u8(au []u8) {

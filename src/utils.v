@@ -1,8 +1,8 @@
 module firebird
 
 import log
+import math.big
 import os
-import crypto.rand
 
 const lib = 'firebird'
 
@@ -39,7 +39,7 @@ fn is_debug() bool {
 	return false
 }
 
-fn random_u8() !u8 {
-	a := rand.read(1)!
-	return a[0]
+fn big_integer_to_byte_array(b big.Integer) []u8 {
+	byte_array, _ := b.bytes()
+	return byte_array
 }

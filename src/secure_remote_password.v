@@ -8,19 +8,27 @@ import encoding.hex
 import hash
 import math.big
 
+// http://srp.stanford.edu/design.html
+
 const srp_key_size = 128
 const srp_salt_size = 32
+const big_integer_max = big.integer_from_int(1).left_shift(128) // 1 << 128
 
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/auth/SecureRemotePassword/srp.cpp#L14
 const big_prime_bytes = hex.decode('E67D2E994B2F900C3F41F08F5BB2627ED0D49EE1FE767A52EFCD565CD6E768812C3E1E9CE8F0A8BEA6CB13CD29DDEBF7A96D4A93B55D488DF099A15C89DCB0640738EB2CBDD9A8F7BAB561AB1B0DC1C6CDABF303264A08D1BCA932D1F1EE428B619D970F342ABA9A65793B8B2F041AE5364350C16F735F56ECBCA87BD57B29E7') or {
 	panic(err) // should never panic
 }
-const big_integer_string = '1277432915985975349439481660349303019122249720001'
-const big_integer_max = big.integer_from_int(1).left_shift(128) // 1 << 128
+
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/auth/SecureRemotePassword/srp.cpp#L19
+const generator_int = 2
+
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/auth/SecureRemotePassword/srp.cpp#L32
+const multiplier_string = '1277432915985975349439481660349303019122249720001'
 
 fn get_prime() (big.Integer, big.Integer, big.Integer) {
 	prime := big.integer_from_bytes(big_prime_bytes)
-	g := big.integer_from_i64(2)
-	k := big.integer_from_string(big_integer_string) or { panic(err) } // should never panic
+	g := big.integer_from_int(generator_int)
+	k := big.integer_from_string(multiplier_string) or { panic(err) } // should never panic
 	return prime, g, k
 }
 
@@ -73,14 +81,10 @@ fn get_client_seed() (big.Integer, big.Integer) {
 }
 
 fn get_salt() []u8 {
-	buf := []u8{}
-	if !is_debug() {
-		for i := 0; i < srp_salt_size; i++ {
-			random_byte := random_u8() or { 0 }
-			arrays.concat(buf, random_byte)
-		}
+	if is_debug() {
+		return []u8{}
 	}
-	return buf
+	return rand.read(srp_salt_size) or { panic(err) }
 }
 
 fn get_verifier(user string, password string, salt []u8) big.Integer {
@@ -135,11 +139,6 @@ fn get_server_session(user string, password string, salt []u8, client_public_key
 	avu := (client_public_key * vu) % prime
 	session_secret := avu.big_mod_pow(server_secret_key, prime) or { panic(err) }
 	return big_int_to_sha1(session_secret)
-}
-
-fn big_integer_to_byte_array(b big.Integer) []u8 {
-	byte_array, _ := b.bytes()
-	return byte_array
 }
 
 fn get_client_proof(user string, password string, salt []u8, client_public_key big.Integer, server_public_key big.Integer, client_secret_key big.Integer, plugin_name string) ([]u8, []u8) {
