@@ -1,12 +1,12 @@
 module firebird
 
 import arrays
+import crypto.rand
 import crypto.sha1
 import crypto.sha256
 import encoding.hex
 import hash
 import math.big
-import rand
 
 const srp_key_size = 128
 const srp_salt_size = 32
@@ -67,7 +67,7 @@ fn get_scramble(client_public_key big.Integer, server_public_key big.Integer) bi
 
 fn get_client_seed() (big.Integer, big.Integer) {
 	prime, g, _ := get_prime()
-	client_secret_key := new_random_big_integer(big_integer_max) or { panic(err) }
+	client_secret_key := rand.int_big(big_integer_max) or { panic(err) }
 	client_public_key := g.big_mod_pow(client_secret_key, prime) or { panic(err) }
 	return client_public_key, client_secret_key
 }
@@ -76,8 +76,8 @@ fn get_salt() []u8 {
 	buf := []u8{}
 	if !is_debug() {
 		for i := 0; i < srp_salt_size; i++ {
-			intn := rand.intn(256) or { 0 }
-			arrays.concat(buf, u8(intn))
+			random_byte := random_u8() or { 0 }
+			arrays.concat(buf, random_byte)
 		}
 	}
 	return buf
@@ -92,7 +92,7 @@ fn get_verifier(user string, password string, salt []u8) big.Integer {
 
 fn get_server_seed(v big.Integer) (big.Integer, big.Integer) {
 	prime, g, k := get_prime()
-	server_secret_key := new_random_big_integer(big_integer_max) or { panic(err) }
+	server_secret_key := rand.int_big(big_integer_max) or { panic(err) }
 	gb := g.big_mod_pow(server_secret_key, prime) or { panic(err) } // gb = pow(g, b, N)
 	kv := (k * v) % prime // kv = (k * v) % N
 	server_public_key := (kv + gb) % prime // B = (kv + gb) % N
@@ -157,10 +157,13 @@ fn get_client_proof(user string, password string, salt []u8, client_public_key b
 		if plugin_name == 'Srp' {
 			return sha1.new()
 		}
+
 		if plugin_name == 'Srp256' {
 			return sha256.new()
 		}
-		panic('srp protocol error')
+
+		err := format_error_message('Secure Remote Password error: unsupported plugin name')
+		panic(err)
 	}
 
 	mut digest := new_digest()
