@@ -68,3 +68,9 @@ const cnct_plugin_name = 8
 const cnct_login = 9
 const cnct_plugin_list = 10
 const cnct_client_crypt = 11
+
+const isolation_level_read_commited_legacy = 0
+const isolation_level_read_commited = 1
+const isolation_level_repeatable_read = 2
+const isolation_level_serializable = 3
+const isolation_level_read_commited_ro = 4
