@@ -27,7 +27,7 @@ mut:
 
 fn new_wire_channel(conn net.TcpConn) &WireChannel {
 	new_reader := io.new_buffered_reader(reader: conn)
-	new_writer := io.new_buffered_writer(writer: conn) or {panic(err)}
+	new_writer := io.new_buffered_writer(writer: conn) or { panic(err) }
 	wire_channel := &WireChannel{
 		conn:          conn
 		reader:        new_reader

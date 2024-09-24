@@ -41,7 +41,6 @@ fn big_int_to_sha1(n big.Integer) []u8 {
 	mut digest := sha1.new()
 	n_bytes, _ := n.bytes()
 	digest.write(n_bytes) or { panic(err) }
-
 	return sha1.sum([]u8{})
 }
 

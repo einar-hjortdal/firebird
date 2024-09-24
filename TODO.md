@@ -3,8 +3,8 @@
 ## Highest priority
 
 - connect to Firebird >=5.0.0
-  - use SRP
-  - Encrypt with chacha20
+  - ~~Secure Remote Password~~
+  - ~~Encrypt with chacha20~~
 - issue commands
 - parse responses
 
