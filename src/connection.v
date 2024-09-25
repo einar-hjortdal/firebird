@@ -39,11 +39,6 @@ pub fn open(s string) !Connection {
 	return new_connection(dsn)
 }
 
-// Begin a Transaction.
-pub fn (mut conn Connection) begin_transaction(ctx context.Context, o TransactionOptions) !Transaction {
-	return error('TODO')
-}
-
 // Close the connection.
 // Calls Transaction.rollback on any running transaction.
 pub fn (mut conn Connection) close() ! {
@@ -81,4 +76,19 @@ pub fn (mut conn Connection) query_params(ctx context.Context, query string, par
 // Prepare a statement
 pub fn (mut conn Connection) prepare(ctx context.Context, query string) !Statement {
 	return error('TODO')
+}
+
+fn (mut conn Connection) private_begin(isolation_level int) !Transaction {
+	t := new_transaction(mut conn, isolation_level, false, true)!
+	return t
+}
+
+// Begin a Transaction.
+pub fn (mut conn Connection) begin(ctx context.Context, isolation_level int) !Transaction {
+	if o.isolation_level in [isolation_level_read_commited_ro, isolation_level_read_commited,
+		isolation_level_repeatable_read, isolation_level_serializable] {
+		return conn.private_begin(o.isolation_level)
+	}
+
+	return errors(format_error_message('Isolation level not supported.'))
 }

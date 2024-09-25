@@ -2,14 +2,7 @@ module firebird
 
 import arrays
 
-struct TransactionOptions {
-	isolation_level int
-	read_only       bool
-	is_autocommit   bool
-	with_begin      bool
-}
-
-struct Transaction {
+pub struct Transaction {
 	isolation_level int
 mut:
 	conn          &Connection
@@ -55,8 +48,24 @@ fn (mut t Transaction) begin() ! {
 	handle, _, _ := t.conn.p.generic_response()!
 	t.handle = handle
 	t.need_begin = false
-	t.conn.transactions = arrays.concat(t.conn.transactions,&t)
+	t.conn.transactions = arrays.concat(t.conn.transactions, t)
 	return
+}
+
+fn new_transaction(mut conn Connection, isolation_level int, is_autocommit bool, with_begin bool) !Transaction {
+	mut t := Transaction{
+		conn:            conn
+		isolation_level: isolation_level
+		is_autocommit:   is_autocommit
+	}
+
+	if with_begin {
+		t.begin()!
+	} else {
+		t.need_begin = true
+	}
+
+	return t
 }
 
 pub fn (mut t Transaction) commit() ! {
@@ -75,18 +84,22 @@ pub fn (mut t Transaction) rollback() ! {
 	return
 }
 
-fn new_transaction(mut conn Connection, o TransactionOptions) !Transaction {
-	mut t := Transaction{
-		conn:            &conn
-		isolation_level: o.isolation_level
-		is_autocommit:   o.is_autocommit
-	}
+pub fn (mut t Transaction) exec(ctx context.Context, query string) !Result {
+	return error('TODO')
+}
 
-	if o.with_begin {
-		t.begin()!
-	} else {
-		t.need_begin = true
-	}
+pub fn (mut t Transaction) exec_params(ctx context.Context, query string, parameters []Value) !Result {
+	return error('TODO')
+}
 
-	return t
+pub fn (mut t Transaction) query(ctx context.Context, query string) !Rows {
+	return error('TODO')
+}
+
+pub fn (mut t Transaction) query_params(ctx context.Context, query string, parameters []Value) !Rows {
+	return error('TODO')
+}
+
+pub fn (mut t Transaction) prepare(ctx context.Context, query string) !Statement {
+	return error('TODO')
 }

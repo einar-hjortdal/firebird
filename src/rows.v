@@ -1,4 +1,3 @@
 module firebird
 
-pub struct Rows {
-}
+pub struct Rows {}

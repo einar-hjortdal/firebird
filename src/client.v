@@ -4,12 +4,12 @@ import context
 import sync
 
 // TODO
-struct ClientOptions {}
+pub struct ClientOptions {}
 
 // This is the struct that users create and interface with.
 // It maintains a pool of connections.
 // Similar to https://github.com/einar-hjortdal/redict/blob/pending/src/pool/pool.v
-struct Client {
+pub struct Client {
 	options ClientOptions
 	queue   chan int
 mut:
@@ -61,5 +61,10 @@ pub fn (mut c Client) query_params(ctx context.Context, query string, parameters
 
 // Prepare a statement
 pub fn (mut c Client) prepare(ctx context.Context, query string) !Statement {
+	return error('TODO')
+}
+
+// Begin a Transaction.
+pub fn (mut c Client) begin(ctx context.Context, o TransactionOptions) !Transaction {
 	return error('TODO')
 }
