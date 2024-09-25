@@ -38,3 +38,28 @@ pub fn (mut c Client) get_connection() !Connection {
 pub fn (mut c Client) put_connection(mut conn Connection) ! {
 	return error('TODO')
 }
+
+// Execute query that may return a result.
+pub fn (mut c Client) exec(ctx context.Context, query string) !Result {
+	return error('TODO')
+}
+
+// Execute query with params that may return a result.
+pub fn (mut c Client) exec_params(ctx context.Context, query string, parameters []Value) !Result {
+	return error('TODO')
+}
+
+// Execute query that may return rows.
+pub fn (mut c Client) query(ctx context.Context, query string) !Rows {
+	return error('TODO')
+}
+
+// Execute query with params that may return rows.
+pub fn (mut c Client) query_params(ctx context.Context, query string, parameters []Value) !Rows {
+	return error('TODO')
+}
+
+// Prepare a statement
+pub fn (mut c Client) prepare(ctx context.Context, query string) !Statement {
+	return error('TODO')
+}
