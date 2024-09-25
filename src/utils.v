@@ -44,11 +44,9 @@ fn big_integer_to_byte_array(b big.Integer) []u8 {
 	return byte_array
 }
 
-// parse_bool returns true if the string represents a true bool, or false if the string represents a
-// false bool.
-// Any of the following are accepted values: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False
-// Always call `can_parse_bool` before `parse_bool` to handle strings that cannot be parsed to bool.
-pub fn parse_bool(s string) bool {
+// parse_bool returns true if the string represents a true bool, or false otherwise.
+// Any of the following are accepted as true values: 1, t, T, TRUE, true, True.
+fn parse_bool(s string) bool {
 	string_true := ['1', 't', 'T', 'TRUE', 'true', 'True']
 	for value in string_true {
 		if s == value {

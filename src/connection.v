@@ -85,10 +85,10 @@ fn (mut conn Connection) private_begin(isolation_level int) !Transaction {
 
 // Begin a Transaction.
 pub fn (mut conn Connection) begin(ctx context.Context, isolation_level int) !Transaction {
-	if o.isolation_level in [isolation_level_read_commited_ro, isolation_level_read_commited,
+	if isolation_level in [isolation_level_read_commited_ro, isolation_level_read_commited,
 		isolation_level_repeatable_read, isolation_level_serializable] {
-		return conn.private_begin(o.isolation_level)
+		return conn.private_begin(isolation_level)
 	}
 
-	return errors(format_error_message('Isolation level not supported.'))
+	return error(format_error_message('Isolation level not supported.'))
 }

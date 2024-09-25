@@ -65,6 +65,6 @@ pub fn (mut c Client) prepare(ctx context.Context, query string) !Statement {
 }
 
 // Begin a Transaction.
-pub fn (mut c Client) begin(ctx context.Context, o TransactionOptions) !Transaction {
+pub fn (mut c Client) begin(ctx context.Context, isolation_level string) !Transaction {
 	return error('TODO')
 }

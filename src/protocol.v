@@ -154,7 +154,7 @@ fn (mut p WireProtocol) send_packets() !int {
 		n = p.conn.write(p.buf[written..]) or { break }
 		written += n
 	}
-	// p.conn.writer.flush()
+	p.conn.flush()!
 	p.clear_buffer()
 	return written
 }
@@ -437,6 +437,28 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 	}
 
 	return
+}
+
+fn get_wire_crypt_from_options(o map[string]string) bool {
+	if 'wire_crypt' in o {
+		return parse_bool(o['wire_crypt'])
+	}
+	return true
+}
+
+fn (mut p WireProtocol) connect(db_name string, user string, options map[string]string, client_public_key big.Integer) ! {
+	// logger.debug('connect')
+	wire_crypt := get_wire_crypt_from_options(options)
+	p.pack_i32(op_connect)
+	p.pack_i32(op_attach)
+	p.pack_i32(3) // CONNECT_VERSION3
+	p.pack_i32(1) // Arch type GENERIC
+	p.pack_string(db_name)
+	p.pack_i32(i32(supported_protocols.len))
+	p.pack_array_u8(p.user_identification(user, options['auth_plugin_name'], wire_crypt,
+		client_public_key))
+	p.append_array_u8(supported_protocols_bytes)
+	p.send_packets()!
 }
 
 fn (mut p WireProtocol) detach() ! {

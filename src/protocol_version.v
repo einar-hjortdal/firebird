@@ -12,5 +12,16 @@ fn build_protocol(protocol_version i32, architecture_type i32, minimum_type i32,
 	return res
 }
 
-const protocol_version_18 = build_protocol(18, 1, 0, 5, 1)
+const protocol_version_18 = build_protocol(18, 1, 0, 5, 0)
 const protocol_version_19 = build_protocol(19, 1, 0, 5, 1)
+const supported_protocols = [protocol_version_18, protocol_version_19]
+
+fn supported_protocols_to_bytes() []u8 {
+	mut res := []u8{}
+	for p in supported_protocols {
+		res = arrays.append(res, p)
+	}
+	return res
+}
+
+const supported_protocols_bytes = supported_protocols_to_bytes()

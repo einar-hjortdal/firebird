@@ -9,17 +9,17 @@ Firebird database connector for the V language.
 - [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ```bash
-# Start a firebird container
+# Start a Firebird container
 podman run \
-    --rm \
-    --detach \
-    --name=firebird-server \
-    --env=FIREBIRD_ROOT_PASSWORD=rootpwd \
-    --env=FIREBIRD_USER=fbusr \
-    --env=FIREBIRD_PASSWORD=fbpwd \
-    --env=FIREBIRD_DATABASE=firebird.fdb \
-    --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 \
-    --volume=firebird-data:/var/lib/firebird/data \
-    --publish=3050:3050 \
-    ghcr.io/fdcastel/firebird
+  --rm \
+  --detach \
+  --name=firebird-server \
+  --env=FIREBIRD_ROOT_PASSWORD=rootpwd \
+  --env=FIREBIRD_USER=fbusr \
+  --env=FIREBIRD_PASSWORD=fbpwd \
+  --env=FIREBIRD_DATABASE=firebird.fdb \
+  --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 \
+  --volume=firebird-data:/var/lib/firebird/data \
+  --publish=3050:3050 \
+  ghcr.io/fdcastel/firebird
 ```

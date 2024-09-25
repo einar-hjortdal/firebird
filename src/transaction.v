@@ -1,6 +1,7 @@
 module firebird
 
 import arrays
+import context
 
 pub struct Transaction {
 	isolation_level int
