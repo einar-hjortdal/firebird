@@ -1,6 +1,8 @@
 # TODO
 
-## Highest priority
+## Priorities
+
+### Highest
 
 - connect to Firebird >=5.0.0
   - ~~Secure Remote Password~~
@@ -8,25 +10,26 @@
 - issue commands
 - parse responses
 
-## High priority
+### High
 
 - connection pool
 
-## Medium priority
+### Medium
 
 
 
-## Low priority
+### Low
 
-**I do not use these features and will not support them, pull requests are welcome.**
+I do not use the following features and will not support them. If you would like to support any of them, 
+please open a pull request.
 
 - embedded
 - decfloat
 - int128
 - events
-- different charsets
+- charset other than UTF8
 - OS other than EuroLinux >=9
-- older Firebird versions
-- protocol versions >18
+- Firebird versions other than >=5
+- protocol versions <18
 - `Legacy_Auth` auth plugin
 - `Arc4` wire encryption plugin
