@@ -34,7 +34,7 @@ fn get_address(s string) string {
 	return '${s}:3050'
 }
 
-fn get_options(rq string) !map[string]string {
+fn get_options_from_raw_query(rq string) !map[string]string {
 	query_values := urllib.parse_query(rq)!
 	m := query_values.to_map()
 	mut res := map[string]string{}
@@ -50,7 +50,7 @@ fn get_options(rq string) !map[string]string {
 
 fn parse_dsn(s string) !DataSourceName {
 	u := parse_url(s)!
-	options := get_options(u.raw_query)!
+	options := get_options_from_raw_query(u.raw_query)!
 	return DataSourceName{
 		address:  get_address(u.host)
 		database: u.path

@@ -2,6 +2,7 @@ module firebird
 
 import arrays
 import encoding.binary
+import encoding.hex
 import math.big
 import net
 import os
@@ -451,13 +452,59 @@ fn (mut p WireProtocol) connect(db_name string, user string, options map[string]
 	wire_crypt := get_wire_crypt_from_options(options)
 	p.pack_i32(op_connect)
 	p.pack_i32(op_attach)
-	p.pack_i32(3) // CONNECT_VERSION3
-	p.pack_i32(1) // Arch type GENERIC
+	p.pack_i32(connect_version_3)
+	p.pack_i32(arch_type_generic)
 	p.pack_string(db_name)
 	p.pack_i32(i32(supported_protocols.len))
 	p.pack_array_u8(p.user_identification(user, options['auth_plugin_name'], wire_crypt,
 		client_public_key))
 	p.append_array_u8(supported_protocols_bytes)
+	p.send_packets()!
+}
+
+fn (mut p WireProtocol) attach(database string, user string, password string, role string) ! {
+	// logger.debug('attach')
+	charset_bytes := p.charset.bytes()
+	user_bytes := user.bytes()
+	password_bytes := password.bytes()
+	role_bytes := role.bytes()
+
+	executable := get_executable()
+	executable_bytes := executable.bytes()
+
+	pid := i32(os.getpid())
+
+	// https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-databases-attach-attachment
+	// https://github.com/FirebirdSQL/jaybird/blob/master/src/main/org/firebirdsql/gds/impl/ParameterBufferBase.java
+	dpb_version := [u8(isc_dpb_version1)]
+	dpb_sql_dialect := arrays.append([u8(isc_dpb_sql_dialect), u8(4)], marshal_i32(3))
+	dpb_lc_type := arrays.append([u8(isc_dpb_lc_ctype), u8(charset_bytes.len)], charset_bytes)
+	dpb_role_name := arrays.append([u8(isc_dpb_sql_role_name), u8(role_bytes.len)], role_bytes)
+	dpb_user_name := arrays.append([u8(isc_dpb_user_name), u8(user_bytes.len)], user_bytes)
+	dpb_password := arrays.append([u8(isc_dpb_password), u8(password_bytes.len)], password_bytes)
+	dpb_process_id := arrays.append([u8(isc_dpb_process_id), u8(4)], marshal_i32(pid))
+	dpb_process_name := arrays.append([u8(isc_dpb_process_name), u8(executable.len)],
+		executable_bytes)
+	dpb_utf8_filename := [u8(isc_dpb_utf8_filename), u8(1), u8(1)]
+	mut dpb := append(dpb_version, dpb_sql_dialect, dpb_lc_type, dpb_role_name, dpb_user_name,
+		dpb_password, dpb_process_id, dpb_process_name, dpb_utf8_filename)
+
+	if p.auth_data.len > 0 {
+		specific_auth_data_hex := hex.encode(p.auth_data)
+		specific_auth_data_bytes := specific_auth_data_hex.bytes()
+		dpb_specific_auth_data := arrays.append([u8(isc_dpb_specific_auth_data), u8(specific_auth_data_bytes.len)],specific_auth_data_bytes)
+		dpb = arrays.append(dpb, dpb_specific_auth_data)
+	}
+	if p.timezone != '' {
+		timezone_bytes := p.timezone.bytes()
+		dpb_session_time_zone := arrays.append([u8(isc_dpb_session_time_zone), u8(timezone_bytes.len)], timezone_bytes)
+		dpb = arrays.append(dpb, dpb_session_time_zone)
+	}
+
+	p.pack_i32(op_attach)
+	p.pack_i32(0) // Database Object ID
+	p.pack_string(database)
+	p.append_array_u8(dpb)
 	p.send_packets()!
 }
 

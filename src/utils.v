@@ -1,5 +1,6 @@
 module firebird
 
+import arrays
 import log
 import math.big
 import os
@@ -42,6 +43,16 @@ fn is_debug() bool {
 fn big_integer_to_byte_array(b big.Integer) []u8 {
 	byte_array, _ := b.bytes()
 	return byte_array
+}
+
+// appends any number of arrays arrs to the array a
+fn append[T](a []T, arrs ...[]T) []T {
+	mut res := []T{}
+	res = arrays.append(res, a)
+	for arr in arrs {
+		res = arrays.append(res, arr)
+	}
+	return res
 }
 
 // parse_bool returns true if the string represents a true bool, or false otherwise.

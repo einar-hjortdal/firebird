@@ -69,6 +69,10 @@ const cnct_login = 9
 const cnct_plugin_list = 10
 const cnct_client_crypt = 11
 
+const connect_version_3 = 3
+
+const arch_type_generic = 1
+
 pub const isolation_level_read_commited_legacy = 0 // not supported
 pub const isolation_level_read_commited = 1 // default
 pub const isolation_level_repeatable_read = 2

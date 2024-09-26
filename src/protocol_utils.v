@@ -4,6 +4,7 @@ import arrays
 import crypto.sha1
 import encoding.binary
 import math.big
+import os
 
 fn marshal_i32(n i32) []u8 {
 	return [
@@ -50,4 +51,14 @@ fn big_endian_i32(b []u8) i32 {
 
 fn big_endian_i16(b []u8) i16 {
 	return i16(binary.big_endian_u16(b))
+}
+
+// Returns the executable file path, limiting the path to 255 characters.
+fn get_executable() string {
+	e := os.executable()
+	len := e.len
+	if len > 255 {
+		return e[len - 255..]
+	}
+	return e
 }
