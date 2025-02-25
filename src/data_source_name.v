@@ -20,9 +20,10 @@ const default_options = {
 	'wire_crypt':           'true'
 }
 
+// Panic if provided URL does not specify the protocol.
 fn parse_url(s string) !urllib.URL {
 	if !s.starts_with('firebird://') {
-		return urllib.parse(s)!
+		panic('URL must begin with the protocol `firebird://`')
 	}
 	return urllib.parse(s)!
 }
@@ -51,6 +52,7 @@ fn get_options_from_raw_query(rq string) !map[string]string {
 fn parse_dsn(s string) !DataSourceName {
 	u := parse_url(s)!
 	options := get_options_from_raw_query(u.raw_query)!
+
 	return DataSourceName{
 		address:  get_address(u.host)
 		database: u.path
