@@ -171,7 +171,7 @@ fn (mut p WireProtocol) resume_buffer(buf []u8) {
 }
 
 fn (mut p WireProtocol) receive_packets(n int) ![]u8 {
-	mut buf := []u8{}
+	mut buf := []u8{len: n}
 	mut read := 0
 	mut total_read := 0
 	for total_read < n {
@@ -492,12 +492,15 @@ fn (mut p WireProtocol) attach(database string, user string, password string, ro
 	if p.auth_data.len > 0 {
 		specific_auth_data_hex := hex.encode(p.auth_data)
 		specific_auth_data_bytes := specific_auth_data_hex.bytes()
-		dpb_specific_auth_data := arrays.append([u8(isc_dpb_specific_auth_data), u8(specific_auth_data_bytes.len)],specific_auth_data_bytes)
+		dpb_specific_auth_data := arrays.append([u8(isc_dpb_specific_auth_data),
+			u8(specific_auth_data_bytes.len)], specific_auth_data_bytes)
 		dpb = arrays.append(dpb, dpb_specific_auth_data)
 	}
+
 	if p.timezone != '' {
 		timezone_bytes := p.timezone.bytes()
-		dpb_session_time_zone := arrays.append([u8(isc_dpb_session_time_zone), u8(timezone_bytes.len)], timezone_bytes)
+		dpb_session_time_zone := arrays.append([u8(isc_dpb_session_time_zone), u8(timezone_bytes.len)],
+			timezone_bytes)
 		dpb = arrays.append(dpb, dpb_session_time_zone)
 	}
 
