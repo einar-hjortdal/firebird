@@ -332,7 +332,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 	}
 
 	if opcode == op_reject {
-		return error(format_error_message('parse_connect_response op_reject'))
+		return error(format_error_message('Connection rejected by the Firebird database'))
 	}
 
 	if opcode == op_response {
