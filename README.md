@@ -10,7 +10,7 @@ Firebird database connector for the V language.
 
 ```bash
 # Start a Firebird container
-podman run \
+sudo docker run \
   --rm \
   --detach \
   --name=firebird-server \
@@ -21,5 +21,5 @@ podman run \
   --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 \
   --volume=firebird-data:/var/lib/firebird/data \
   --publish=3050:3050 \
-  ghcr.io/fdcastel/firebird
+  firebirdsql/firebird:latest
 ```
