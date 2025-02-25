@@ -28,8 +28,8 @@ please open a pull request.
 - int128
 - events
 - charset other than UTF8
-- OS other than EuroLinux >=9
-- Firebird versions other than >=5
-- protocol versions <18
+- OS other than openmamba >= 2025
+- Firebird versions other than >= 5
+- protocol versions < 18
 - `Legacy_Auth` auth plugin
 - `Arc4` wire encryption plugin
