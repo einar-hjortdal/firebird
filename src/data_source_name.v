@@ -22,10 +22,11 @@ const default_options = {
 
 // Panic if provided URL does not specify the protocol.
 fn parse_url(s string) !urllib.URL {
-	if !s.starts_with('firebird://') {
-		panic('URL must begin with the protocol `firebird://`')
+	p := 'firebird://'
+	if s.starts_with(p) {
+		return urllib.parse(s)!
 	}
-	return urllib.parse(s)!
+	return urllib.parse('${p}${s}')!
 }
 
 fn get_address(s string) string {
