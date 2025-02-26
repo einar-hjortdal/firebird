@@ -8,8 +8,9 @@ Firebird database connector for the V language.
 - [TODO.md](./TODO.md)
 - [CONTRIBUTING.md](./CONTRIBUTING.md)
 
+All you have to do to contribute to this project is to start a Firebird container like so:
+
 ```bash
-# Start a Firebird container
 sudo docker run \
   --rm \
   --detach \
