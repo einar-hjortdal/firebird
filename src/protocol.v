@@ -1,14 +1,90 @@
 module firebird
 
 import arrays
+import crypto.sha1
 import encoding.binary
 import encoding.hex
 import math.big
 import net
 import os
-// import strings
 
 const buffer_length = i32(1024)
+
+fn marshal_i32(n i32) []u8 {
+	return [
+		u8((n >> 24) & 0xFF),
+		u8((n >> 16) & 0xFF),
+		u8((n >> 8) & 0xFF),
+		u8(n & 0xFF),
+	]
+}
+
+fn generate_padding(number_of_bytes i32) []u8 {
+	mut res := []u8{}
+	for i := 0; i < number_of_bytes; i++ {
+		res << u8(0)
+	}
+	return res
+}
+
+// https://www.ietf.org/rfc/rfc4506.html#section-4.13
+fn marshal_array_u8(au []u8) []u8 {
+	len := i32(au.len)
+
+	marshalled_len := marshal_i32(len)
+	res := arrays.append(marshalled_len, au)
+
+	remainder := len % 4
+	if remainder == 0 {
+		return res
+	} else {
+		padding := generate_padding(remainder)
+		return arrays.append(res, padding)
+	}
+}
+
+// https://www.ietf.org/rfc/rfc4506.html#section-4.11
+fn marshal_string(s string) []u8 {
+	b := s.bytes()
+	len := i32(b.len)
+
+	marshalled_len := marshal_i32(len)
+	intermediate := arrays.append(marshalled_len, b)
+
+	remainder := len % 4
+	if remainder == 0 {
+		padding := generate_padding(4)
+		return arrays.append(intermediate, padding)
+	} else {
+		padding := generate_padding(remainder)
+		return arrays.append(intermediate, padding)
+	}
+}
+
+fn big_int_to_sha1(n big.Integer) []u8 {
+	mut digest := sha1.new()
+	n_bytes, _ := n.bytes()
+	digest.write(n_bytes) or { panic(err) }
+	return sha1.sum([]u8{})
+}
+
+fn big_endian_i32(b []u8) i32 {
+	return i32(binary.big_endian_u32(b))
+}
+
+fn big_endian_i16(b []u8) i16 {
+	return i16(binary.big_endian_u16(b))
+}
+
+// Returns the executable file path, limiting the path to 255 characters.
+fn get_executable() string {
+	e := os.executable()
+	len := e.len
+	if len > 255 {
+		return e[len - 255..]
+	}
+	return e
+}
 
 struct WireProtocol {
 mut:
@@ -46,20 +122,24 @@ fn new_wire_protocol(addr string, timezone string) !&WireProtocol {
 	}
 }
 
+// The Firebird wire protocol uses XDR for exchange messages between client and server
+// https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-appendix-xdr
+// https://www.ietf.org/rfc/rfc4506.html
+
 fn (mut p WireProtocol) pack_i32(i i32) {
 	i32_bytes := marshal_i32(i)
 	p.buf = arrays.append(p.buf, i32_bytes)
 }
 
+// something is wrong with pack_array_u8, I think. TODO
 fn (mut p WireProtocol) pack_array_u8(au []u8) {
 	array_u8_bytes := marshal_array_u8(au)
 	p.buf = arrays.append(p.buf, array_u8_bytes)
 }
 
 fn (mut p WireProtocol) pack_string(s string) {
-	// https://github.com/vlang/v/issues/22256#issuecomment-2366338836
-	string_bytes_ := marshal_array_u8(s.bytes())
-	p.buf = arrays.append(p.buf, string_bytes_)
+	array_u8_string := marshal_string(s)
+	p.buf = arrays.append(p.buf, array_u8_string)
 }
 
 fn (mut p WireProtocol) append_array_u8(au []u8) {
@@ -181,15 +261,16 @@ fn (mut p WireProtocol) receive_packets(n int) ![]u8 {
 	return buf
 }
 
-fn (mut p WireProtocol) receive_packets_alignment(n int) ![]u8 {
-	get_padding := fn [n] () int {
-		padding := n % 4
-		if padding > 0 {
-			return 4 - padding
-		}
-		return 0
+fn received_packets_padding(n int) int {
+	padding := n % 4
+	if padding > 0 {
+		return 4 - padding
 	}
-	padding := get_padding()
+	return 0
+}
+
+fn (mut p WireProtocol) receive_packets_alignment(n int) ![]u8 {
+	padding := received_packets_padding(n)
 
 	buf := p.receive_packets(n + padding)!
 	return buf[0..n]
@@ -459,6 +540,7 @@ fn (mut p WireProtocol) connect(db_name string, user string, options map[string]
 	p.pack_array_u8(p.user_identification(user, options['auth_plugin_name'], wire_crypt,
 		client_public_key))
 	p.append_array_u8(supported_protocols_bytes)
+	println(p.buf.bytestr())
 	p.send_packets()!
 }
 
