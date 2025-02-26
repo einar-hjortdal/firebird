@@ -192,7 +192,7 @@ fn get_specific_data(auth_plugin_name string, client_public big.Integer) []u8 {
 	panic('Unknown plugin name: ${auth_plugin_name}')
 }
 
-fn (mut p WireProtocol) user_identification(user string, auth_plugin_name string, wire_crypt bool, client_public big.Integer) []u8 {
+fn user_identification(user string, auth_plugin_name string, wire_crypt bool, client_public big.Integer) []u8 {
 	user_name_bytes := user.to_upper().bytes()
 	user_name := arrays.append([u8(cnct_login), u8(user_name_bytes.len)], user_name_bytes)
 
@@ -277,6 +277,7 @@ fn (mut p WireProtocol) receive_packets_alignment(n int) ![]u8 {
 	return buf[0..n]
 }
 
+// TODO refactor, function is too big
 fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 	mut sql_code := 0
 	mut gds_code := 0
@@ -404,6 +405,7 @@ fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 	return p.parse_generic_response()!
 }
 
+// TODO refactor, this function is too big.
 fn (mut p WireProtocol) parse_connect_response(user string, password string, options map[string]string, client_public big.Integer, client_secret big.Integer) ! {
 	mut b := p.receive_packets(4)!
 	mut opcode := big_endian_i32(b)
@@ -532,14 +534,14 @@ fn get_wire_crypt_from_options(o map[string]string) bool {
 fn (mut p WireProtocol) connect(db_name string, user string, options map[string]string, client_public_key big.Integer) ! {
 	// logger.debug('connect')
 	wire_crypt := get_wire_crypt_from_options(options)
+	uid := user_identification(user, options['auth_plugin_name'], wire_crypt, client_public_key)
 	p.pack_i32(op_connect)
 	p.pack_i32(op_attach)
 	p.pack_i32(connect_version_3)
 	p.pack_i32(arch_type_generic)
 	p.pack_string(db_name) // Database path or alias
 	p.pack_i32(i32(supported_protocols.len)) // Count of protocol versions understood
-	p.pack_array_u8(p.user_identification(user, options['auth_plugin_name'], wire_crypt,
-		client_public_key))
+	p.pack_array_u8(uid)
 	p.append_array_u8(supported_protocols_bytes)
 	p.send_packets()!
 }
