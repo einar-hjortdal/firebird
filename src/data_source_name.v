@@ -20,7 +20,9 @@ const default_options = {
 	'wire_crypt':           'true'
 }
 
-// Panic if provided URL does not specify the protocol.
+// https://firebirdsql.org/file/documentation/html/en/firebirddocs/qsg5/firebird-5-quickstartguide.html#qsg5-databases-connstrings-tcpip
+// Despite the information in the quickstart guide, connectors in other languages enforce the `firebird://`
+// protocol portion of the url. This connector does the same, but it can be changed with a pull request.
 fn parse_url(s string) !urllib.URL {
 	p := 'firebird://'
 	if s.starts_with(p) {

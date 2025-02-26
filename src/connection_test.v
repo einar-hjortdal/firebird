@@ -13,10 +13,11 @@ fn test_open_no_protocol() {
 }
 
 fn test_open_no_db() {
-	_ := open('${protocol}${user}@${host}') or {
+	mut conn := open('${protocol}${user}@${host}') or {
 		assert true // as expected, connection is rejected because no database is provided.
 		return
 	}
+	conn.close() or { panic(err) }
 }
 
 fn test_open() {
