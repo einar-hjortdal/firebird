@@ -12,6 +12,7 @@
 
 ### High
 
+- logging
 - connection pool
 
 ### Medium
