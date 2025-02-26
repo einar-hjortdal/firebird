@@ -20,7 +20,6 @@ fn new_connection(dsn DataSourceName) !Connection {
 	client_public_key, client_secret_key := get_client_seed()
 	p.connect(dsn.database, dsn.user, dsn.options, client_public_key)!
 	p.parse_connect_response(dsn.user, dsn.password, dsn.options, client_public_key, client_secret_key)!
-	// TODO attach is not called. parse_connect_response must be hanging
 	p.attach(dsn.database, dsn.user, dsn.password, dsn.options['role'])!
 	p.db_handle, _, _ = p.generic_response()!
 	mut conn := Connection{

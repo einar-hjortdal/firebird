@@ -10,6 +10,7 @@ import os
 
 const buffer_length = i32(1024)
 
+// https://www.ietf.org/rfc/rfc4506.html#section-4.1
 fn marshal_i32(n i32) []u8 {
 	return [
 		u8((n >> 24) & 0xFF),
@@ -146,52 +147,52 @@ fn (mut p WireProtocol) append_array_u8(au []u8) {
 	p.buf = arrays.append(p.buf, au)
 }
 
+fn get_system_user() []u8 {
+	system_user := os.getenv('USER')
+	if system_user == '' {
+		return os.getenv('USERNAME').bytes()
+	}
+	return system_user.bytes()
+}
+
+fn get_hostname() []u8 {
+	hostname := os.hostname() or { '' }
+	return hostname.bytes()
+}
+
+fn get_wire_crypt_u8(wire_crypt bool) u8 {
+	if wire_crypt == true {
+		return u8(1)
+	}
+	return u8(0)
+}
+
+fn get_srp_client_public(client_public big.Integer) []u8 {
+	b, _ := client_public.bytes()
+	len := b.len
+	if len > 254 {
+		mut res := [u8(cnct_specific_data), 255, 0]
+		res = arrays.append(res, b[..254])
+		res = arrays.append(res, [u8(cnct_specific_data), u8((len - 254) + 1), 1])
+		res = arrays.append(res, b[254..])
+		return res
+	}
+
+	return arrays.append([u8(cnct_specific_data), u8(len + 1), 0], b)
+}
+
+fn get_specific_data(auth_plugin_name string, client_public big.Integer) []u8 {
+	if auth_plugin_name == 'Srp' || auth_plugin_name == 'Srp256' {
+		return get_srp_client_public(client_public)
+	}
+
+	if auth_plugin_name == 'Legacy_Auth' {
+		panic(legacy_auth_error)
+	}
+	panic('Unknown plugin name: ${auth_plugin_name}')
+}
+
 fn (mut p WireProtocol) user_identification(user string, auth_plugin_name string, wire_crypt bool, client_public big.Integer) []u8 {
-	get_system_user := fn () []u8 {
-		system_user := os.getenv('USER')
-		if system_user == '' {
-			return os.getenv('USERNAME').bytes()
-		}
-		return system_user.bytes()
-	}
-
-	get_hostname := fn () []u8 {
-		hostname := os.hostname() or { '' }
-		return hostname.bytes()
-	}
-
-	get_wire_crypt_u8 := fn [wire_crypt] () u8 {
-		if wire_crypt == true {
-			return u8(1)
-		}
-		return u8(0)
-	}
-
-	get_srp_client_public := fn [client_public] () []u8 {
-		b, _ := client_public.bytes()
-		len := b.len
-		if len > 254 {
-			mut res := [u8(cnct_specific_data), 255, 0]
-			res = arrays.append(res, b[..254])
-			res = arrays.append(res, [u8(cnct_specific_data), u8((len - 254) + 1), 1])
-			res = arrays.append(res, b[254..])
-			return res
-		}
-
-		return arrays.append([u8(cnct_specific_data), u8(len + 1), 0], b)
-	}
-
-	get_specific_data := fn [auth_plugin_name, get_srp_client_public] () []u8 {
-		if auth_plugin_name == 'Srp' || auth_plugin_name == 'Srp256' {
-			return get_srp_client_public()
-		}
-
-		if auth_plugin_name == 'Legacy_Auth' {
-			panic(legacy_auth_error)
-		}
-		panic('Unknown plugin name: ${auth_plugin_name}')
-	}
-
 	user_name_bytes := user.to_upper().bytes()
 	user_name := arrays.append([u8(cnct_login), u8(user_name_bytes.len)], user_name_bytes)
 
@@ -201,9 +202,9 @@ fn (mut p WireProtocol) user_identification(user string, auth_plugin_name string
 	plugins_bytes := plugin_list.bytes()
 	plugins := arrays.append([u8(cnct_plugin_list), u8(plugins_bytes.len)], plugins_bytes)
 
-	specific_data := get_specific_data()
+	specific_data := get_specific_data(auth_plugin_name, client_public)
 
-	wire_crypt_byte := get_wire_crypt_u8()
+	wire_crypt_byte := get_wire_crypt_u8(wire_crypt)
 	wire_crypt_bytes := [u8(cnct_client_crypt), 4, wire_crypt_byte, 0, 0, 0]
 
 	system_user_bytes := get_system_user()
@@ -535,12 +536,11 @@ fn (mut p WireProtocol) connect(db_name string, user string, options map[string]
 	p.pack_i32(op_attach)
 	p.pack_i32(connect_version_3)
 	p.pack_i32(arch_type_generic)
-	p.pack_string(db_name)
-	p.pack_i32(i32(supported_protocols.len))
+	p.pack_string(db_name) // Database path or alias
+	p.pack_i32(i32(supported_protocols.len)) // Count of protocol versions understood
 	p.pack_array_u8(p.user_identification(user, options['auth_plugin_name'], wire_crypt,
 		client_public_key))
 	p.append_array_u8(supported_protocols_bytes)
-	println(p.buf.bytestr())
 	p.send_packets()!
 }
 
