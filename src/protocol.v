@@ -542,7 +542,7 @@ fn (mut p WireProtocol) connect(db_name string, user string, options map[string]
 	p.pack_string(db_name) // Database path or alias
 	p.pack_i32(i32(supported_protocols.len)) // Count of protocol versions understood
 	p.pack_array_u8(uid)
-	p.append_array_u8(supported_protocols_bytes)
+	p.append_array_u8(supported_protocols_bytes) // suspect this is bad
 	p.send_packets()!
 }
 

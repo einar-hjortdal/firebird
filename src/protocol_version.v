@@ -13,9 +13,9 @@ fn build_protocol(protocol_version i32, architecture_type i32, minimum_type i32,
 	return res
 }
 
-const protocol_version_18 = build_protocol(18, 1, 0, 5, 2)
-const protocol_version_19 = build_protocol(19, 1, 0, 5, 4)
-const supported_protocols = [protocol_version_18, protocol_version_19]
+const protocol_version_18 = build_protocol(18, 1, 0, 5, 18)
+
+const supported_protocols = [protocol_version_18]
 
 fn supported_protocols_to_bytes() []u8 {
 	mut res := []u8{}
