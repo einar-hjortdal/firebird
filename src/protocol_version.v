@@ -13,9 +13,12 @@ fn build_protocol(protocol_version i32, architecture_type i32, minimum_type i32,
 	return res
 }
 
+// https://github.com/FirebirdSQL/jaybird/blob/master/src/main/org/firebirdsql/gds/impl/wire/WireProtocolConstants.java#L183
 const protocol_version_18 = build_protocol(18, 1, 0, 5, 18)
 
 const supported_protocols = [protocol_version_18]
+
+const supported_protocols_count = i32(supported_protocols.len)
 
 fn supported_protocols_to_bytes() []u8 {
 	mut res := []u8{}

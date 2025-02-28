@@ -132,7 +132,6 @@ fn (mut p WireProtocol) pack_i32(i i32) {
 	p.buf = arrays.append(p.buf, i32_bytes)
 }
 
-// something is wrong with pack_array_u8, I think. TODO
 fn (mut p WireProtocol) pack_array_u8(au []u8) {
 	array_u8_bytes := marshal_array_u8(au)
 	p.buf = arrays.append(p.buf, array_u8_bytes)
@@ -167,8 +166,8 @@ fn get_wire_crypt_u8(wire_crypt bool) u8 {
 	return u8(0)
 }
 
-fn get_srp_client_public(client_public big.Integer) []u8 {
-	b, _ := client_public.bytes()
+fn get_srp_client_public_key_bytes(client_public_key big.Integer) []u8 {
+	b, _ := client_public_key.bytes()
 	len := b.len
 	if len > 254 {
 		mut res := [u8(cnct_specific_data), 255, 0]
@@ -178,31 +177,31 @@ fn get_srp_client_public(client_public big.Integer) []u8 {
 		return res
 	}
 
-	return arrays.append([u8(cnct_specific_data), u8(len + 1), 0], b)
+	return arrays.append([u8(cnct_specific_data), u8(len) + 1, 0], b)
 }
 
-fn get_specific_data(auth_plugin_name string, client_public big.Integer) []u8 {
+fn get_specific_data(auth_plugin_name string, client_public_key big.Integer) []u8 {
 	if auth_plugin_name == 'Srp' || auth_plugin_name == 'Srp256' {
-		return get_srp_client_public(client_public)
+		return get_srp_client_public_key_bytes(client_public_key)
 	}
 
 	if auth_plugin_name == 'Legacy_Auth' {
-		panic(legacy_auth_error)
+		panic(format_error_message(legacy_auth_error))
 	}
-	panic('Unknown plugin name: ${auth_plugin_name}')
+	panic(format_error_message('Unknown plugin name: ${auth_plugin_name}'))
 }
 
-fn user_identification(user string, auth_plugin_name string, wire_crypt bool, client_public big.Integer) []u8 {
+fn user_identification(user string, auth_plugin_name string, wire_crypt bool, client_public_key big.Integer) []u8 {
 	user_name_bytes := user.to_upper().bytes()
 	user_name := arrays.append([u8(cnct_login), u8(user_name_bytes.len)], user_name_bytes)
 
 	plugin_name_bytes := auth_plugin_name.bytes()
 	plugin_name := arrays.append([u8(cnct_plugin_name), u8(plugin_name_bytes.len)], plugin_name_bytes)
 
-	plugins_bytes := plugin_list.bytes()
-	plugins := arrays.append([u8(cnct_plugin_list), u8(plugins_bytes.len)], plugins_bytes)
+	plugin_list_bytes := plugin_list.bytes()
+	plugins := arrays.append([u8(cnct_plugin_list), u8(plugin_list_bytes.len)], plugin_list_bytes)
 
-	specific_data := get_specific_data(auth_plugin_name, client_public)
+	specific_data := get_specific_data(auth_plugin_name, client_public_key)
 
 	wire_crypt_byte := get_wire_crypt_u8(wire_crypt)
 	wire_crypt_bytes := [u8(cnct_client_crypt), 4, wire_crypt_byte, 0, 0, 0]
@@ -531,6 +530,7 @@ fn get_wire_crypt_from_options(o map[string]string) bool {
 	return true
 }
 
+// FIXME server does not respond.
 fn (mut p WireProtocol) connect(db_name string, user string, options map[string]string, client_public_key big.Integer) ! {
 	// logger.debug('connect')
 	wire_crypt := get_wire_crypt_from_options(options)
@@ -539,10 +539,10 @@ fn (mut p WireProtocol) connect(db_name string, user string, options map[string]
 	p.pack_i32(op_attach)
 	p.pack_i32(connect_version_3)
 	p.pack_i32(arch_type_generic)
-	p.pack_string(db_name) // Database path or alias
-	p.pack_i32(i32(supported_protocols.len)) // Count of protocol versions understood
+	p.pack_string(db_name)
+	p.pack_i32(supported_protocols_count)
 	p.pack_array_u8(uid)
-	p.append_array_u8(supported_protocols_bytes) // suspect this is bad
+	p.append_array_u8(supported_protocols_bytes)
 	p.send_packets()!
 }
 

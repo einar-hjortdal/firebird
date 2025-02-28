@@ -77,7 +77,7 @@ fn (mut c WireChannel) write(buf []u8) !int {
 	if c.plugin != '' {
 		mut dst := []u8{}
 		if c.plugin == 'Arc4' {
-			return error(arc4_error)
+			return error(format_error_message(arc4_error))
 		}
 
 		if c.plugin == 'ChaCha' {
