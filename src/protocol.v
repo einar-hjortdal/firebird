@@ -266,7 +266,7 @@ fn received_packets_padding(n int) int {
 	return 0
 }
 
-fn (mut p WireProtocol) receive_packets_alignment(n int) ![]u8 {
+fn (mut p WireProtocol) receive_packets_alignment(n i32) ![]u8 {
 	padding := received_packets_padding(n)
 	buf := p.receive_packets(n + padding)!
 	res := buf[0..n] // exclude padding
@@ -282,12 +282,12 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 	mut message := ''
 
 	mut b := p.receive_packets(4)!
-	mut n := binary.big_endian_u16(b)
+	mut n := i32(binary.big_endian_u32(b))
 	for n != isc_arg_end {
 		match n {
 			isc_arg_gds {
 				b = p.receive_packets(4)!
-				gds_code = int(binary.big_endian_u16(b))
+				gds_code = i32(binary.big_endian_u32(b))
 				if gds_code != 0 {
 					gds_codes = arrays.concat(gds_codes, gds_code)
 					msg := get_error_message(gds_code) or { err.msg() }
@@ -297,7 +297,7 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 			}
 			isc_arg_number {
 				b = p.receive_packets(4)!
-				num := int(binary.big_endian_u16(b))
+				num := i32(binary.big_endian_u32(b))
 				if gds_code == 335544436 {
 					sql_code = num
 				}
@@ -306,7 +306,7 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 			}
 			isc_arg_string {
 				b = p.receive_packets(4)!
-				nbytes := int(binary.big_endian_u16(b))
+				nbytes := i32(binary.big_endian_u32(b))
 				b = p.receive_packets_alignment(nbytes)!
 				s := b.bytestr()
 				num_arg++
@@ -314,21 +314,21 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 			}
 			isc_arg_interpreted {
 				b = p.receive_packets(4)!
-				nbytes := int(binary.big_endian_u16(b))
+				nbytes := i32(binary.big_endian_u32(b))
 				b = p.receive_packets_alignment(nbytes)!
 				s := b.bytestr()
 				message += s
 			}
 			isc_arg_sql_state {
 				b = p.receive_packets(4)!
-				nbytes := int(binary.big_endian_u16(b))
+				nbytes := i32(binary.big_endian_u32(b))
 				b = p.receive_packets_alignment(nbytes)!
 				_ := b.bytestr() // skip status code
 			}
 			else {}
 		}
 		b = p.receive_packets(4)!
-		n = binary.big_endian_u16(b)
+		n = i32(binary.big_endian_u32(b))
 	}
 
 	return gds_codes, sql_code, message
@@ -417,11 +417,10 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 	}
 
 	if opcode == op_response {
-		p.parse_generic_response()! // error has occured
+		p.parse_generic_response()! // error has occured, should return an error TODO
 	}
 
 	b = p.receive_packets(12) or { []u8{} }
-	// TODO b doesn't come
 	p.protocol_version = i32(b[3])
 	p.accept_architecture = big_endian_i32(b[4..8])
 	p.accept_type = big_endian_i32(b[8..12])
