@@ -9,7 +9,7 @@ const url = '${protocol}${user}:${password}@${host}${database}'
 
 fn test_open_no_db() {
 	mut conn := open('${protocol}${user}@${host}') or {
-		assert true // connection is rejected because no database is provided.
+		assert true // protocol error: no database is provided
 		return
 	}
 	conn.close() or { panic(err) }

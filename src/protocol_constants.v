@@ -1,6 +1,6 @@
 module firebird
 
-// https://github.com/FirebirdSQL/jaybird/blob/27c3d39325e0d1b011b43fa45a9daf9dcd0a9c85/src/main/org/firebirdsql/gds/impl/wire/WireProtocolConstants.java#L253
+// https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/impl/wire/WireProtocolConstants.java
 const op_connect = 1
 const op_exit = 2
 const op_accept = 3
@@ -72,6 +72,9 @@ const cnct_client_crypt = 11
 const connect_version_3 = 3
 
 const arch_type_generic = 1
+
+// https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/impl/wire/WireProtocolConstants.java#L168
+const fb_protocol_flag = i32(0b0000_0000_0000_0000_1000_0000_0000_0000)
 
 pub const isolation_level_read_commited_legacy = 0 // not supported
 pub const isolation_level_read_commited = 1 // default

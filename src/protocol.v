@@ -29,11 +29,11 @@ fn generate_padding(number_of_bytes i32) []u8 {
 }
 
 // https://www.ietf.org/rfc/rfc4506.html#section-4.13
-fn marshal_array_u8(au []u8) []u8 {
-	len := i32(au.len)
+fn marshal_array_u8(a []u8) []u8 {
+	len := i32(a.len)
 
 	marshalled_len := marshal_i32(len)
-	res := arrays.append(marshalled_len, au)
+	res := arrays.append(marshalled_len, a)
 
 	remainder := len % 4
 	if remainder == 0 {
@@ -407,6 +407,7 @@ fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 // TODO refactor, this function is too big.
 fn (mut p WireProtocol) parse_connect_response(user string, password string, options map[string]string, client_public big.Integer, client_secret big.Integer) ! {
 	mut b := p.receive_packets(4)!
+	println(b)
 	mut opcode := big_endian_i32(b)
 
 	for opcode == op_dummy {
@@ -415,7 +416,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 	}
 
 	if opcode == op_reject {
-		return error(format_error_message('Connection rejected by the Firebird database'))
+		return error(format_error_message('Connection rejected'))
 	}
 
 	if opcode == op_response {
@@ -516,7 +517,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 		}
 	} else {
 		if opcode != op_accept {
-			return error(format_error_message('parse_connect_response() protocol error'))
+			return error(format_error_message('Protocol error'))
 		}
 	}
 
@@ -531,6 +532,7 @@ fn get_wire_crypt_from_options(o map[string]string) bool {
 }
 
 // FIXME server does not respond.
+// https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-databases-attach-identification
 fn (mut p WireProtocol) connect(db_name string, user string, options map[string]string, client_public_key big.Integer) ! {
 	// logger.debug('connect')
 	wire_crypt := get_wire_crypt_from_options(options)
@@ -539,10 +541,11 @@ fn (mut p WireProtocol) connect(db_name string, user string, options map[string]
 	p.pack_i32(op_attach)
 	p.pack_i32(connect_version_3)
 	p.pack_i32(arch_type_generic)
-	p.pack_string(db_name)
-	p.pack_i32(supported_protocols_count)
+	p.pack_string(db_name) // Database path or alias
+	p.pack_i32(supported_protocols_count) // Count of protocol versions understood
 	p.pack_array_u8(uid)
 	p.append_array_u8(supported_protocols_bytes)
+	println(supported_protocols_bytes)
 	p.send_packets()!
 }
 
