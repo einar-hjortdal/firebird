@@ -416,7 +416,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 	}
 
 	if opcode == op_response {
-		p.parse_generic_response()! // error has occured, should return an error TODO
+		p.parse_generic_response()!
 	}
 
 	b = p.receive_packets(12) or { []u8{} }
@@ -425,7 +425,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 	p.accept_type = big_endian_i32(b[8..12])
 
 	if opcode == op_cond_accept || opcode == op_accept_data {
-		b = p.receive_packets(12) or { []u8{} }
+		b = p.receive_packets(4) or { []u8{} }
 		mut ln := big_endian_i32(b)
 		mut data := p.receive_packets_alignment(ln) or { []u8{} }
 
@@ -445,12 +445,13 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 		mut session_key := []u8{}
 		if is_authenticated == 0 {
 			if p.plugin_name == 'Srp' || p.plugin_name == 'Srp256' {
-				// TODO: normalize user
+				// TODO normalize user
 
 				if data.len == 0 {
 					p.continue_authentication(pad(client_public), p.plugin_name, plugin_list,
 						'')!
 					b = p.receive_packets(4) or { []u8{} }
+					println(b)
 					op := big_endian_i32(b)
 					if op == op_response {
 						p.parse_generic_response()! // error occurred
@@ -478,6 +479,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 				}
 
 				ln = big_endian_i16(data[..2])
+				println(data[..2]) // [64, 0] = 16384 ( too big) TODO BLOCKING
 				server_salt := data[2..ln + 2].clone()
 				server_public := big.integer_from_string(data[4 + ln..].bytestr())!
 				auth_data, session_key = get_client_proof(user.to_upper(), password, server_salt,
