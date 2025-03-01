@@ -32,6 +32,16 @@ fn get_prime() (big.Integer, big.Integer, big.Integer) {
 	return prime, g, k
 }
 
+fn get_first_non_zero_index(a []u8) int {
+	len := a.len
+	for i := 0; i < len; i++ {
+		if a[i] != 0 {
+			return i
+		}
+	}
+	return len - 1
+}
+
 fn pad(v big.Integer) []u8 {
 	mut buf := []u8{}
 	mut n := big.integer_from_i64(0) + v
@@ -50,17 +60,7 @@ fn pad(v big.Integer) []u8 {
 		buf[j] = i_value
 	}
 
-	get_first_non_zero_index := fn [buf] () int {
-		len := buf.len
-		for i := 0; i < len; i++ {
-			if buf[i] != 0 {
-				return i
-			}
-		}
-		return len - 1
-	}
-
-	first_non_zero_index := get_first_non_zero_index()
+	first_non_zero_index := get_first_non_zero_index(buf)
 	return buf[first_non_zero_index..]
 }
 
@@ -141,6 +141,19 @@ fn get_server_session(user string, password string, salt []u8, client_public_key
 	return big_int_to_sha1(session_secret)
 }
 
+fn new_digest(plugin_name string) hash.Hash {
+	if plugin_name == 'Srp' {
+		return sha1.new()
+	}
+
+	if plugin_name == 'Srp256' {
+		return sha256.new()
+	}
+
+	err := format_error_message('Secure Remote Password error: unsupported plugin name')
+	panic(err)
+}
+
 fn get_client_proof(user string, password string, salt []u8, client_public_key big.Integer, server_public_key big.Integer, client_secret_key big.Integer, plugin_name string) ([]u8, []u8) {
 	// M = H(H(N) xor H(g), H(I), s, A, B, K)
 	prime, g, _ := get_prime()
@@ -152,20 +165,7 @@ fn get_client_proof(user string, password string, salt []u8, client_public_key b
 	n3 := n1.big_mod_pow(n2, prime) or { panic(err) }
 	n4 := get_string_hash(user)
 
-	new_digest := fn [plugin_name] () hash.Hash {
-		if plugin_name == 'Srp' {
-			return sha1.new()
-		}
-
-		if plugin_name == 'Srp256' {
-			return sha256.new()
-		}
-
-		err := format_error_message('Secure Remote Password error: unsupported plugin name')
-		panic(err)
-	}
-
-	mut digest := new_digest()
+	mut digest := new_digest(plugin_name)
 	digest.write(big_integer_to_byte_array(n3)) or {}
 	digest.write(big_integer_to_byte_array(n4)) or {}
 	digest.write(salt) or {}

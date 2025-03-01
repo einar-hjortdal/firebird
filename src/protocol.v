@@ -164,7 +164,7 @@ fn get_wire_crypt_u8(wire_crypt bool) u8 {
 }
 
 fn get_srp_client_public_key_bytes(client_public_key big.Integer) []u8 {
-	b, _ := client_public_key.bytes()
+	b := client_public_key.hex().bytes()
 	len := b.len
 	if len > 254 {
 		mut res := [u8(cnct_specific_data), 255, 0]
@@ -404,7 +404,6 @@ fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 // TODO refactor, this function is too big.
 fn (mut p WireProtocol) parse_connect_response(user string, password string, options map[string]string, client_public big.Integer, client_secret big.Integer) ! {
 	mut b := p.receive_packets(4)!
-	println('server responds with: ${b}') // TODO remove
 	mut opcode := big_endian_i32(b)
 
 	for opcode == op_dummy {
