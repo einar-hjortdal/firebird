@@ -28,38 +28,34 @@ fn generate_padding(number_of_bytes i32) []u8 {
 	return res
 }
 
-// https://www.ietf.org/rfc/rfc4506.html#section-4.13
-fn marshal_array_u8(a []u8) []u8 {
+fn create_array_u8(a []u8) ([]u8, i32) {
 	len := i32(a.len)
-
 	marshalled_len := marshal_i32(len)
 	res := arrays.append(marshalled_len, a)
-
 	remainder := len % 4
+	return res, remainder
+}
+
+// https://www.ietf.org/rfc/rfc4506.html#section-4.13
+fn marshal_array_u8(a []u8) []u8 {
+	mut res, remainder := create_array_u8(a)
 	if remainder == 0 {
 		return res
-	} else {
-		padding := generate_padding(remainder)
-		return arrays.append(res, padding)
 	}
+	padding := generate_padding(remainder)
+	return arrays.append(res, padding)
 }
 
 // https://www.ietf.org/rfc/rfc4506.html#section-4.11
 fn marshal_string(s string) []u8 {
-	b := s.bytes()
-	len := i32(b.len)
-
-	marshalled_len := marshal_i32(len)
-	intermediate := arrays.append(marshalled_len, b)
-
-	remainder := len % 4
+	a := s.bytes()
+	mut res, remainder := create_array_u8(a)
 	if remainder == 0 {
 		padding := generate_padding(4)
-		return arrays.append(intermediate, padding)
-	} else {
-		padding := generate_padding(remainder)
-		return arrays.append(intermediate, padding)
+		return arrays.append(res, padding)
 	}
+	padding := generate_padding(remainder)
+	return arrays.append(res, padding)
 }
 
 fn big_int_to_sha1(n big.Integer) []u8 {
@@ -407,7 +403,7 @@ fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 // TODO refactor, this function is too big.
 fn (mut p WireProtocol) parse_connect_response(user string, password string, options map[string]string, client_public big.Integer, client_secret big.Integer) ! {
 	mut b := p.receive_packets(4)!
-	println(b)
+	println('server responds with: ${b}') // TODO remove
 	mut opcode := big_endian_i32(b)
 
 	for opcode == op_dummy {
@@ -545,7 +541,6 @@ fn (mut p WireProtocol) connect(db_name string, user string, options map[string]
 	p.pack_i32(supported_protocols_count) // Count of protocol versions understood
 	p.pack_array_u8(uid)
 	p.append_array_u8(supported_protocols_bytes)
-	println(supported_protocols_bytes)
 	p.send_packets()!
 }
 
