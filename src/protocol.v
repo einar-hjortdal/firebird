@@ -259,18 +259,18 @@ fn (mut p WireProtocol) receive_packets(n int) ![]u8 {
 }
 
 fn received_packets_padding(n int) int {
-	padding := n % 4
-	if padding > 0 {
-		return 4 - padding
+	remainder := n % 4
+	if remainder > 0 {
+		return 4 - remainder
 	}
 	return 0
 }
 
 fn (mut p WireProtocol) receive_packets_alignment(n int) ![]u8 {
 	padding := received_packets_padding(n)
-
 	buf := p.receive_packets(n + padding)!
-	return buf[0..n]
+	res := buf[0..n] // exclude padding
+	return res
 }
 
 // TODO refactor, function is too big
@@ -336,9 +336,9 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 
 fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 	b := p.receive_packets(16)!
-	object_handle := i32(binary.big_endian_u16(b[..4]))
+	object_handle := i32(binary.big_endian_u32(b[..4]))
 	object_id := b[4..12]
-	response_buffer_length := i32(binary.big_endian_u16(b[12..]))
+	response_buffer_length := i32(binary.big_endian_u32(b[12..]))
 	response_buffer := p.receive_packets_alignment(response_buffer_length)!
 
 	gds_code_list, sql_code, message := p.parse_status_vector()!
@@ -421,6 +421,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 	}
 
 	b = p.receive_packets(12) or { []u8{} }
+	// TODO b doesn't come
 	p.protocol_version = i32(b[3])
 	p.accept_architecture = big_endian_i32(b[4..8])
 	p.accept_type = big_endian_i32(b[8..12])
@@ -528,7 +529,6 @@ fn get_wire_crypt_from_options(o map[string]string) bool {
 	return true
 }
 
-// FIXME server does not respond.
 // https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-databases-attach-identification
 fn (mut p WireProtocol) connect(db_name string, user string, options map[string]string, client_public_key big.Integer) ! {
 	// logger.debug('connect')

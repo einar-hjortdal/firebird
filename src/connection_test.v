@@ -15,13 +15,14 @@ fn test_open_no_db() {
 	conn.close() or { panic(err) }
 }
 
-// The following tests hang: the server does not respond. Therefore the request must be bad (server still expects data?).
+// Verifies that the protocol is added if not provided.
 fn test_open_no_protocol() {
 	mut conn := open('${user}:${password}@${host}${database}') or { panic(err) }
 	conn.close() or { panic(err) }
 }
 
 fn test_open() {
+	println('test started')
 	mut conn := open(url) or { panic(err) }
 	conn.close() or { panic(err) }
 }
