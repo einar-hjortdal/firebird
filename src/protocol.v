@@ -9,21 +9,22 @@ import net
 import os
 
 const buffer_length = i32(1024)
+const mask_1_byte = u8(0b1111_1111)
 
 // https://www.ietf.org/rfc/rfc4506.html#section-4.1
 fn marshal_i32(n i32) []u8 {
 	return [
-		u8((n >> 24) & 0xFF),
-		u8((n >> 16) & 0xFF),
-		u8((n >> 8) & 0xFF),
-		u8(n & 0xFF),
+		u8((n >> 24) & mask_1_byte),
+		u8((n >> 16) & mask_1_byte),
+		u8((n >> 8) & mask_1_byte),
+		u8(n & mask_1_byte),
 	]
 }
 
 fn generate_padding(number_of_bytes i32) []u8 {
 	mut res := []u8{}
 	for i := 0; i < number_of_bytes; i++ {
-		res << u8(0)
+		res = arrays.concat(res, u8(0))
 	}
 	return res
 }
@@ -32,29 +33,29 @@ fn create_array_u8(a []u8) ([]u8, i32) {
 	len := i32(a.len)
 	marshalled_len := marshal_i32(len)
 	res := arrays.append(marshalled_len, a)
-	remainder := len % 4
-	return res, remainder
+	bytes_to_pad := 4 - (len % 4)
+	return res, bytes_to_pad
 }
 
 // https://www.ietf.org/rfc/rfc4506.html#section-4.13
 fn marshal_array_u8(a []u8) []u8 {
-	mut res, remainder := create_array_u8(a)
-	if remainder == 0 {
+	mut res, bytes_to_pad := create_array_u8(a)
+	if bytes_to_pad == 0 {
 		return res
 	}
-	padding := generate_padding(remainder)
+	padding := generate_padding(bytes_to_pad)
 	return arrays.append(res, padding)
 }
 
 // https://www.ietf.org/rfc/rfc4506.html#section-4.11
 fn marshal_string(s string) []u8 {
 	a := s.bytes()
-	mut res, remainder := create_array_u8(a)
-	if remainder == 0 {
+	mut res, bytes_to_pad := create_array_u8(a)
+	if bytes_to_pad == 0 {
 		padding := generate_padding(4)
 		return arrays.append(res, padding)
 	}
-	padding := generate_padding(remainder)
+	padding := generate_padding(bytes_to_pad)
 	return arrays.append(res, padding)
 }
 

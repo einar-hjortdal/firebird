@@ -2,6 +2,9 @@ module firebird
 
 import arrays
 
+// https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/impl/wire/WireProtocolConstants.java#L168
+const fb_protocol_flag = i32(0b0000_0000_0000_0000_1000_0000_0000_0000)
+
 // https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-databases-attach-identification
 fn build_protocol(protocol_version i32, architecture_type i32, minimum_type i32, maximum_type i32, preference_weight i32) []u8 {
 	mut res := []u8{}
@@ -13,7 +16,7 @@ fn build_protocol(protocol_version i32, architecture_type i32, minimum_type i32,
 	return res
 }
 
-// https://github.com/FirebirdSQL/jaybird/blob/master/src/main/org/firebirdsql/gds/impl/wire/WireProtocolConstants.java#L183
+// https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/impl/wire/WireProtocolConstants.java#L183
 const protocol_version_18 = build_protocol(18, 1, 0, 5, 20)
 
 const supported_protocols = [protocol_version_18]

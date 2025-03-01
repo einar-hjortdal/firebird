@@ -73,9 +73,6 @@ const connect_version_3 = 3
 
 const arch_type_generic = 1
 
-// https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/impl/wire/WireProtocolConstants.java#L168
-const fb_protocol_flag = i32(0b0000_0000_0000_0000_1000_0000_0000_0000)
-
 pub const isolation_level_read_commited_legacy = 0 // not supported
 pub const isolation_level_read_commited = 1 // default
 pub const isolation_level_repeatable_read = 2
