@@ -286,12 +286,12 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 	mut message := ''
 
 	mut b := p.receive_packets(4)!
-	mut n := i32(binary.big_endian_u32(b))
+	mut n := parse_i32(b)
 	for n != isc_arg_end {
 		match n {
 			isc_arg_gds {
 				b = p.receive_packets(4)!
-				gds_code = i32(binary.big_endian_u32(b))
+				gds_code = parse_i32(b)
 				if gds_code != 0 {
 					gds_codes = arrays.concat(gds_codes, gds_code)
 					msg := get_error_message(gds_code) or { err.msg() }
@@ -301,7 +301,7 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 			}
 			isc_arg_number {
 				b = p.receive_packets(4)!
-				num := i32(binary.big_endian_u32(b))
+				num := parse_i32(b)
 				if gds_code == 335544436 {
 					sql_code = num
 				}
@@ -310,7 +310,7 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 			}
 			isc_arg_string {
 				b = p.receive_packets(4)!
-				nbytes := i32(binary.big_endian_u32(b))
+				nbytes := parse_i32(b)
 				b = p.receive_aligned_packets(nbytes)!
 				s := b.bytestr()
 				num_arg++
@@ -318,21 +318,21 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 			}
 			isc_arg_interpreted {
 				b = p.receive_packets(4)!
-				nbytes := i32(binary.big_endian_u32(b))
+				nbytes := parse_i32(b)
 				b = p.receive_aligned_packets(nbytes)!
 				s := b.bytestr()
 				message += s
 			}
 			isc_arg_sql_state {
 				b = p.receive_packets(4)!
-				nbytes := i32(binary.big_endian_u32(b))
+				nbytes := parse_i32(b)
 				b = p.receive_aligned_packets(nbytes)!
 				_ := b.bytestr() // skip status code
 			}
 			else {}
 		}
 		b = p.receive_packets(4)!
-		n = i32(binary.big_endian_u32(b))
+		n = parse_i32(b)
 	}
 
 	return gds_codes, sql_code, message
@@ -340,9 +340,9 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 
 fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 	b := p.receive_packets(16)!
-	object_handle := i32(binary.big_endian_u32(b[..4]))
+	object_handle := parse_i32(b[..4])
 	object_id := b[4..12]
-	response_buffer_length := i32(binary.big_endian_u32(b[12..]))
+	response_buffer_length := parse_i32(b[12..])
 	response_buffer := p.receive_aligned_packets(response_buffer_length)!
 
 	gds_code_list, sql_code, message := p.parse_status_vector()!
@@ -400,6 +400,16 @@ fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 		return error(format_op_error(parse_i32(b)))
 	}
 	return p.parse_generic_response()!
+}
+
+fn (mut p WireProtocol) get_encrypt_plugin_and_nonce(opcode i32, auth_data []u8, options map[string]string) !(string, []u8) {
+	if opcode == op_cond_accept {
+		p.continue_authentication(auth_data, options['auth_plugin_name'], plugin_list,
+			'')!
+		_, _, buf := p.generic_response() or { return '', []u8{} } // TODO BLOCKING Invalid clumplet buffer structure: buffer end before end of clumplet - no length component
+		return p.guess_wire_crypt(buf)
+	}
+	return error(format_error_message('received opcode ${opcode}, not ${op_cond_accept}'))
 }
 
 // TODO refactor, this function is too big.
@@ -474,11 +484,11 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 					p.receive_aligned_packets(ln) or { []u8{} } // keys
 				}
 
-				ln = parse_i16(data[..2])
-				server_salt := data[2..ln + 2].clone()
-				server_public := big.integer_from_string(data[4 + ln..].bytestr())!
-				auth_data, session_key = get_client_proof(user.to_upper(), password, server_salt,
-					client_public, server_public, client_secret, p.plugin_name)
+				ln = parse_i16(data[..2]) // server salt length
+				server_public_key := big.integer_from_radix(data[4 + ln..].bytestr(),
+					16)!
+				auth_data, session_key = get_client_proof(user.to_upper(), password, data[2..ln + 2],
+					client_public, server_public_key, client_secret, p.plugin_name)
 			} else if p.plugin_name == 'Legacy_Auth' {
 				return error(format_error_message(legacy_auth_error))
 			} else {
@@ -486,16 +496,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 			}
 		}
 
-		get_encrypt_plugin_and_nonce := fn [mut p, opcode, auth_data, options] () !(string, []u8) {
-			if opcode == op_cond_accept {
-				p.continue_authentication(auth_data, options['auth_plugin_name'], plugin_list,
-					'')!
-				_, _, buf := p.generic_response() or { return '', []u8{} }
-				return p.guess_wire_crypt(buf)
-			}
-			return error(format_error_message('received opcode ${opcode}, not ${op_cond_accept}'))
-		}
-		encrypt_plugin, nonce := get_encrypt_plugin_and_nonce()!
+		encrypt_plugin, nonce := p.get_encrypt_plugin_and_nonce(opcode, auth_data, options)!
 
 		mut wire_crypt := true
 		wire_crypt = options['wire_crypt'].bool()

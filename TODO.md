@@ -4,7 +4,7 @@
 
 ### Highest
 
-- connect to Firebird >=5.0.0
+- connect to Firebird
   - ~~Secure Remote Password~~
   - ~~Encrypt with chacha20~~
 - issue commands
@@ -29,7 +29,6 @@ please open a pull request.
 - int128
 - events
 - charset other than UTF8
-- OS other than openmamba >= 2025
 - Firebird versions other than >= 5
 - protocol versions < 18
 - `Legacy_Auth` auth plugin
