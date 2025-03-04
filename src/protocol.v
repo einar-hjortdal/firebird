@@ -406,7 +406,7 @@ fn (mut p WireProtocol) get_encrypt_plugin_and_nonce(opcode i32, auth_data []u8,
 	if opcode == op_cond_accept {
 		p.continue_authentication(auth_data, options['auth_plugin_name'], plugin_list,
 			'')!
-		_, _, buf := p.generic_response() or { return '', []u8{} } // TODO BLOCKING Invalid clumplet buffer structure: buffer end before end of clumplet - no length component
+		_, _, buf := p.generic_response()!
 		return p.guess_wire_crypt(buf)
 	}
 	return error(format_error_message('received opcode ${opcode}, not ${op_cond_accept}'))
@@ -499,7 +499,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 		encrypt_plugin, nonce := p.get_encrypt_plugin_and_nonce(opcode, auth_data, options)!
 
 		mut wire_crypt := true
-		wire_crypt = options['wire_crypt'].bool()
+		wire_crypt = parse_bool(options['wire_crypt'])
 		if wire_crypt && session_key.len != 0 {
 			// Send op_crypt
 			p.crypt(encrypt_plugin)!
