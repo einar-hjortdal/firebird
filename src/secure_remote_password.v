@@ -81,9 +81,6 @@ fn get_client_seed() (big.Integer, big.Integer) {
 }
 
 fn get_salt() []u8 {
-	if is_debug() {
-		return []u8{}
-	}
 	return rand.read(srp_salt_size) or { panic(err) }
 }
 
