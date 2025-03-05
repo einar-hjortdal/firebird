@@ -17,7 +17,12 @@ fn test_open_no_db() {
 
 // Verifies that the protocol is added if not provided.
 fn test_open_no_protocol() {
-	mut conn := open('${user}:${password}@${host}${database}') or { panic(err) }
+	mut conn := open('${user}:${password}@${host}${database}') or {
+		panic(err)
+		// TODO BLOCKING
+		// V panic: [firebird] Your user name and password are not defined. Ask your database administrator to set up a Firebird login.
+		// either user_identification or SRP issue
+	}
 	conn.close() or { panic(err) }
 }
 
