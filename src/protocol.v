@@ -599,7 +599,6 @@ fn (mut p WireProtocol) rollback(handle i32) ! {
 
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L794
 fn (mut p WireProtocol) continue_authentication(auth_data []u8, auth_plugin_name string, auth_plugin_list string, keys string) ! {
-	// logger.debug('continue_authentication')
 	p.pack_i32(op_cont_auth)
 	p.pack_string(auth_data.hex())
 	p.pack_string(auth_plugin_name)

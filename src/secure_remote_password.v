@@ -106,7 +106,7 @@ fn big_int_to_sha1(n big.Integer) []u8 {
 	return sha1.sum([]u8{})
 }
 
-fn get_client_session(user string, password string, salt []u8, client_public_key big.Integer, server_public_key big.Integer, client_secret_key big.Integer) []u8 {
+fn get_session_key(user string, password string, salt []u8, client_public_key big.Integer, server_public_key big.Integer, client_secret_key big.Integer) []u8 {
 	prime, generator, k := get_prime()
 	u := get_scramble(client_public_key, server_public_key)
 	x := get_user_hash(salt, user, password)
@@ -141,7 +141,7 @@ fn new_digest(plugin_name string) hash.Hash {
 // K is the session key
 fn get_client_proof(user string, password string, salt []u8, client_public_key big.Integer, server_public_key big.Integer, client_secret_key big.Integer, plugin_name string) ([]u8, []u8) {
 	prime, generator, _ := get_prime()
-	session_key := get_client_session(user, password, salt, client_public_key, server_public_key,
+	session_key := get_session_key(user, password, salt, client_public_key, server_public_key,
 		client_secret_key)
 
 	n1 := big.integer_from_bytes(big_int_to_sha1(prime))
