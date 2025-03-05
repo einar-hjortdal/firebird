@@ -1,7 +1,6 @@
 module firebird
 
 import arrays
-import crypto.sha1
 import encoding.binary
 import encoding.hex
 import math.big
@@ -57,13 +56,6 @@ fn marshal_string(s string) []u8 {
 	}
 	padding := generate_padding(bytes_to_pad)
 	return arrays.append(res, padding)
-}
-
-fn big_int_to_sha1(n big.Integer) []u8 {
-	mut digest := sha1.new()
-	n_bytes, _ := n.bytes()
-	digest.write(n_bytes) or { panic(err) }
-	return sha1.sum([]u8{})
 }
 
 fn parse_i32(b []u8) i32 {
