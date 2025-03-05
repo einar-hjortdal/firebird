@@ -1,6 +1,5 @@
 module firebird
 
-import arrays
 import crypto.rand
 import crypto.sha1
 import crypto.sha256
@@ -27,9 +26,9 @@ const multiplier_string = '1277432915985975349439481660349303019122249720001'
 
 fn get_prime() (big.Integer, big.Integer, big.Integer) {
 	prime := big.integer_from_bytes(big_prime_bytes)
-	g := big.integer_from_int(generator_int)
+	generator := big.integer_from_int(generator_int)
 	k := big.integer_from_string(multiplier_string) or { panic(err) } // should never panic
-	return prime, g, k
+	return prime, generator, k
 }
 
 fn get_first_non_zero_index(a []u8) int {
@@ -43,11 +42,11 @@ fn get_first_non_zero_index(a []u8) int {
 }
 
 fn pad(v big.Integer) []u8 {
-	mut buf := []u8{}
+	mut buf := []u8{len: srp_key_size}
 	mut n := big.integer_from_i64(0) + v
 
 	for i := 0; i < srp_key_size; i++ {
-		buf = arrays.concat(buf, u8(big.integer_from_i64(255).bitwise_and(n).int()))
+		buf[i] = u8(big.integer_from_i64(255).bitwise_and(n).int())
 		n = n / big.integer_from_i64(256)
 	}
 
@@ -74,9 +73,9 @@ fn get_scramble(client_public_key big.Integer, server_public_key big.Integer) bi
 }
 
 fn get_client_seed() (big.Integer, big.Integer) {
-	prime, g, _ := get_prime()
+	prime, generator, _ := get_prime()
 	client_secret_key := rand.int_big(big_integer_max) or { panic(err) }
-	client_public_key := g.big_mod_pow(client_secret_key, prime) or { panic(err) }
+	client_public_key := generator.big_mod_pow(client_secret_key, prime) or { panic(err) }
 	return client_public_key, client_secret_key
 }
 
@@ -108,10 +107,10 @@ fn big_int_to_sha1(n big.Integer) []u8 {
 }
 
 fn get_client_session(user string, password string, salt []u8, client_public_key big.Integer, server_public_key big.Integer, client_secret_key big.Integer) []u8 {
-	prime, g, k := get_prime()
+	prime, generator, k := get_prime()
 	u := get_scramble(client_public_key, server_public_key)
 	x := get_user_hash(salt, user, password)
-	gx := g.big_mod_pow(x, prime) or { panic(err) } // gx = pow(g, x, N)
+	gx := generator.big_mod_pow(x, prime) or { panic(err) } // gx = pow(g, x, N)
 	kgx := (k * gx) % prime // kgx = (k * gx) % N
 	diff := (server_public_key - kgx) % prime // diff = (B - kgx) % N
 	ux := (u * x) % prime // ux = (u * x) % N
@@ -124,23 +123,29 @@ fn new_digest(plugin_name string) hash.Hash {
 	if plugin_name == 'Srp' {
 		return sha1.new()
 	}
-
 	if plugin_name == 'Srp256' {
 		return sha256.new()
 	}
-
 	err := format_error_message('Secure Remote Password error: unsupported plugin name')
 	panic(err)
 }
 
+// get_client_proof gets the verification message from Secure Remote Password equation.
+// M = H(H(N) xor H(g), H(I), s, A, B, K)
+// M is the verification message
+// H is the hash function
+// s is the salt
+// g is the generator
+// A is the client public key
+// B is the server public key
+// K is the session key
 fn get_client_proof(user string, password string, salt []u8, client_public_key big.Integer, server_public_key big.Integer, client_secret_key big.Integer, plugin_name string) ([]u8, []u8) {
-	// M = H(H(N) xor H(g), H(I), s, A, B, K)
-	prime, g, _ := get_prime()
-	key_k := get_client_session(user, password, salt, client_public_key, server_public_key,
+	prime, generator, _ := get_prime()
+	session_key := get_client_session(user, password, salt, client_public_key, server_public_key,
 		client_secret_key)
 
 	n1 := big.integer_from_bytes(big_int_to_sha1(prime))
-	n2 := big.integer_from_bytes(big_int_to_sha1(g))
+	n2 := big.integer_from_bytes(big_int_to_sha1(generator))
 	n3 := n1.big_mod_pow(n2, prime) or { panic(err) }
 	n4 := get_string_hash(user)
 
@@ -150,8 +155,8 @@ fn get_client_proof(user string, password string, salt []u8, client_public_key b
 	digest.write(salt) or { panic(err) }
 	digest.write(big_integer_to_byte_array(client_public_key)) or { panic(err) }
 	digest.write(big_integer_to_byte_array(server_public_key)) or { panic(err) }
-	digest.write(key_k) or { panic(err) }
+	digest.write(session_key) or { panic(err) }
 	key_m := digest.sum([]u8{})
 
-	return key_m, key_k
+	return key_m, session_key
 }

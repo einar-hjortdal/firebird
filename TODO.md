@@ -17,7 +17,8 @@
 
 ### Medium
 
-
+- optimize performance
+- never panic
 
 ### Low
 
