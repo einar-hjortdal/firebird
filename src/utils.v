@@ -2,7 +2,6 @@ module firebird
 
 import arrays
 import log
-import math.big
 import os
 
 const lib = 'firebird'
@@ -38,11 +37,6 @@ fn is_debug() bool {
 		return true
 	}
 	return false
-}
-
-fn big_integer_to_byte_array(b big.Integer) []u8 {
-	byte_array, _ := b.bytes()
-	return byte_array
 }
 
 // appends any number of arrays arrs to the array a

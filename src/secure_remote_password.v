@@ -80,26 +80,6 @@ fn get_client_seed() (big.Integer, big.Integer) {
 	return client_public_key, client_secret_key
 }
 
-fn get_salt() []u8 {
-	return rand.read(srp_salt_size) or { panic(err) }
-}
-
-fn get_verifier(user string, password string, salt []u8) big.Integer {
-	prime, g, _ := get_prime()
-	x := get_user_hash(salt, user, password)
-	verifier := g.big_mod_pow(x, prime) or { panic(err) }
-	return verifier
-}
-
-fn get_server_seed(v big.Integer) (big.Integer, big.Integer) {
-	prime, g, k := get_prime()
-	server_secret_key := rand.int_big(big_integer_max) or { panic(err) }
-	gb := g.big_mod_pow(server_secret_key, prime) or { panic(err) } // gb = pow(g, b, N)
-	kv := (k * v) % prime // kv = (k * v) % N
-	server_public_key := (kv + gb) % prime // B = (kv + gb) % N
-	return server_public_key, server_secret_key
-}
-
 fn get_string_hash(s string) big.Integer {
 	mut digest := sha1.new()
 	digest.write(s.bytes()) or { panic(err) }
@@ -108,10 +88,10 @@ fn get_string_hash(s string) big.Integer {
 
 fn get_user_hash(salt []u8, user string, password string) big.Integer {
 	mut hash1 := sha1.new()
-	hash1.write('${user}:${password}'.bytes()) or {}
+	hash1.write('${user}:${password}'.bytes()) or { panic(err) }
 	mut hash2 := sha1.new()
-	hash2.write(salt) or {}
-	hash2.write(hash1.sum([]u8{})) or {}
+	hash2.write(salt) or { panic(err) }
+	hash2.write(hash1.sum([]u8{})) or { panic(err) }
 	return big.integer_from_bytes(hash2.sum([]u8{}))
 }
 
@@ -128,16 +108,6 @@ fn get_client_session(user string, password string, salt []u8, client_public_key
 	return big_int_to_sha1(session_secret)
 }
 
-fn get_server_session(user string, password string, salt []u8, client_public_key big.Integer, server_public_key big.Integer, server_secret_key big.Integer) []u8 {
-	prime, _, _ := get_prime()
-	u := get_scramble(client_public_key, server_public_key)
-	v := get_verifier(user, password, salt)
-	vu := v.big_mod_pow(u, prime) or { panic(err) }
-	avu := (client_public_key * vu) % prime
-	session_secret := avu.big_mod_pow(server_secret_key, prime) or { panic(err) }
-	return big_int_to_sha1(session_secret)
-}
-
 fn new_digest(plugin_name string) hash.Hash {
 	if plugin_name == 'Srp' {
 		return sha1.new()
@@ -149,6 +119,11 @@ fn new_digest(plugin_name string) hash.Hash {
 
 	err := format_error_message('Secure Remote Password error: unsupported plugin name')
 	panic(err)
+}
+
+fn big_integer_to_byte_array(b big.Integer) []u8 {
+	byte_array, _ := b.bytes()
+	return byte_array
 }
 
 fn get_client_proof(user string, password string, salt []u8, client_public_key big.Integer, server_public_key big.Integer, client_secret_key big.Integer, plugin_name string) ([]u8, []u8) {
@@ -163,12 +138,12 @@ fn get_client_proof(user string, password string, salt []u8, client_public_key b
 	n4 := get_string_hash(user)
 
 	mut digest := new_digest(plugin_name)
-	digest.write(big_integer_to_byte_array(n3)) or {}
-	digest.write(big_integer_to_byte_array(n4)) or {}
-	digest.write(salt) or {}
-	digest.write(big_integer_to_byte_array(client_public_key)) or {}
-	digest.write(big_integer_to_byte_array(client_public_key)) or {}
-	digest.write(key_k) or {}
+	digest.write(big_integer_to_byte_array(n3)) or { panic(err) }
+	digest.write(big_integer_to_byte_array(n4)) or { panic(err) }
+	digest.write(salt) or { panic(err) }
+	digest.write(big_integer_to_byte_array(client_public_key)) or { panic(err) }
+	digest.write(big_integer_to_byte_array(client_public_key)) or { panic(err) }
+	digest.write(key_k) or { panic(err) }
 	key_m := digest.sum([]u8{})
 
 	return key_m, key_k

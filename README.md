@@ -22,5 +22,5 @@ sudo docker run \
   --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 \
   --volume=firebird-data:/var/lib/firebird/data \
   --publish=3050:3050 \
-  firebirdsql/firebird:latest
+  firebirdsql/firebird
 ```
