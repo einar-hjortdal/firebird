@@ -21,7 +21,7 @@ fn test_open_no_protocol() {
 		panic(err)
 		// TODO BLOCKING
 		// V panic: [firebird] Your user name and password are not defined. Ask your database administrator to set up a Firebird login.
-		// either user_identification or SRP issue
+		// Seems like an SRP issue: if giving wrong user, it fails before op_cont_auth
 	}
 	conn.close() or { panic(err) }
 }

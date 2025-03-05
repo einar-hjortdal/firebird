@@ -94,14 +94,14 @@ fn get_user_hash(salt []u8, user string, password string) big.Integer {
 	return big.integer_from_bytes(hash2.sum([]u8{}))
 }
 
-fn big_integer_to_byte_array(b big.Integer) []u8 {
+fn big_integer_to_bytes(b big.Integer) []u8 {
 	byte_array, _ := b.bytes()
 	return byte_array
 }
 
 fn big_int_to_sha1(n big.Integer) []u8 {
 	mut digest := sha1.new()
-	n_bytes := big_integer_to_byte_array(n)
+	n_bytes := big_integer_to_bytes(n)
 	digest.write(n_bytes) or { panic(err) }
 	return sha1.sum([]u8{})
 }
@@ -150,11 +150,11 @@ fn get_client_proof(user string, password string, salt []u8, client_public_key b
 	n4 := get_string_hash(user)
 
 	mut digest := new_digest(plugin_name)
-	digest.write(big_integer_to_byte_array(n3)) or { panic(err) }
-	digest.write(big_integer_to_byte_array(n4)) or { panic(err) }
+	digest.write(big_integer_to_bytes(n3)) or { panic(err) }
+	digest.write(big_integer_to_bytes(n4)) or { panic(err) }
 	digest.write(salt) or { panic(err) }
-	digest.write(big_integer_to_byte_array(client_public_key)) or { panic(err) }
-	digest.write(big_integer_to_byte_array(server_public_key)) or { panic(err) }
+	digest.write(big_integer_to_bytes(client_public_key)) or { panic(err) }
+	digest.write(big_integer_to_bytes(server_public_key)) or { panic(err) }
 	digest.write(session_key) or { panic(err) }
 	key_m := digest.sum([]u8{})
 
