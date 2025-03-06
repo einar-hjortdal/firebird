@@ -405,7 +405,7 @@ fn (mut p WireProtocol) get_encrypt_plugin_and_nonce(opcode i32, auth_data []u8,
 }
 
 // TODO refactor, this function is too big.
-fn (mut p WireProtocol) parse_connect_response(user string, password string, options map[string]string, client_public big.Integer, client_secret big.Integer) ! {
+fn (mut p WireProtocol) parse_connect_response(user string, password string, options map[string]string, client_public_key big.Integer, client_secret_key big.Integer) ! {
 	mut b := p.receive_packets(4)!
 	mut opcode := parse_i32(b)
 
@@ -451,7 +451,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 				// TODO normalize user
 
 				if data.len == 0 {
-					p.continue_authentication(pad(client_public), p.plugin_name, plugin_list,
+					p.continue_authentication(pad(client_public_key), p.plugin_name, plugin_list,
 						'')!
 					b = p.receive_packets(4) or { []u8{} }
 					op := parse_i32(b)
@@ -480,11 +480,11 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 				server_public_key := big.integer_from_radix(data[4 + ln..].bytestr(),
 					16)!
 				auth_data, session_key = get_client_proof(user.to_upper(), password, data[2..ln + 2],
-					client_public, server_public_key, client_secret, p.plugin_name)
+					client_public_key, server_public_key, client_secret_key, p.plugin_name)
 			} else if p.plugin_name == 'Legacy_Auth' {
 				return error(format_error_message(legacy_auth_error))
 			} else {
-				return error(format_error_message('parse_connect_response() Unauthorized'))
+				return error(format_error_message('Unauthorized'))
 			}
 		}
 

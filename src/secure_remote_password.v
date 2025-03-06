@@ -17,7 +17,7 @@ const big_integer_max = big.integer_from_int(2).pow(srp_key_size)
 
 // https://github.com/FirebirdSQL/jaybird/blob/64d0249ce0f28693ab91d7294174d80d788caf66/src/main/org/firebirdsql/gds/ng/wire/auth/srp/SrpClient.java#L33
 const big_prime_bytes = hex.decode('E67D2E994B2F900C3F41F08F5BB2627ED0D49EE1FE767A52EFCD565CD6E768812C3E1E9CE8F0A8BEA6CB13CD29DDEBF7A96D4A93B55D488DF099A15C89DCB0640738EB2CBDD9A8F7BAB561AB1B0DC1C6CDABF303264A08D1BCA932D1F1EE428B619D970F342ABA9A65793B8B2F041AE5364350C16F735F56ECBCA87BD57B29E7') or {
-	panic(err) // should never panic
+	panic(err) // it will never panic
 }
 
 // https://github.com/FirebirdSQL/jaybird/blob/64d0249ce0f28693ab91d7294174d80d788caf66/src/main/org/firebirdsql/gds/ng/wire/auth/srp/SrpClient.java#L34
@@ -29,7 +29,7 @@ const multiplier_string = '1277432915985975349439481660349303019122249719989'
 fn get_prime() (big.Integer, big.Integer, big.Integer) {
 	prime := big.integer_from_bytes(big_prime_bytes)
 	generator := big.integer_from_int(generator_int)
-	k := big.integer_from_string(multiplier_string) or { panic(err) } // should never panic
+	k := big.integer_from_string(multiplier_string) or { panic(err) } // it will never panic
 	return prime, generator, k
 }
 
@@ -62,8 +62,6 @@ fn pad(v big.Integer) []u8 {
 }
 
 fn get_scramble(client_public_key big.Integer, server_public_key big.Integer) big.Integer {
-	// client_public_key:A client public ephemeral values
-	// server_public_key:B server public ephemeral values
 	mut digest := sha1.new()
 	digest.write(pad(client_public_key)) or { panic(err) }
 	digest.write(pad(server_public_key)) or { panic(err) }
@@ -112,7 +110,7 @@ fn get_session_key(user string, password string, salt []u8, client_public_key bi
 	kgx := (k * gx) % prime // kgx = (k * gx) % N
 	diff := (server_public_key - kgx) % prime // diff = (B - kgx) % N
 	ux := (u * x) % prime // ux = (u * x) % N
-	aux := (client_secret_key + ux) % prime // aux = (a+ ux) % N
+	aux := (client_secret_key + ux) % prime // aux = (a + ux) % N
 	session_secret := diff.big_mod_pow(aux, prime) or { panic(err) } // (B - kg^x) ^ (a+ ux)
 	return big_int_to_sha1(session_secret)
 }
