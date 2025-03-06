@@ -9,9 +9,11 @@ import math.big
 
 // http://srp.stanford.edu/design.html
 
+// https://github.com/FirebirdSQL/jaybird/blob/64d0249ce0f28693ab91d7294174d80d788caf66/src/main/org/firebirdsql/gds/ng/wire/auth/srp/SrpClient.java#L29
 const srp_key_size = 128
-const srp_salt_size = 32
-const big_integer_max = big.integer_from_int(1).left_shift(128) // 1 << 128
+
+// https://github.com/FirebirdSQL/jaybird/blob/64d0249ce0f28693ab91d7294174d80d788caf66/src/main/org/firebirdsql/gds/ng/wire/auth/srp/SrpClient.java#L114
+const big_integer_max = big.integer_from_int(2).pow(srp_key_size)
 
 // https://github.com/FirebirdSQL/jaybird/blob/64d0249ce0f28693ab91d7294174d80d788caf66/src/main/org/firebirdsql/gds/ng/wire/auth/srp/SrpClient.java#L33
 const big_prime_bytes = hex.decode('E67D2E994B2F900C3F41F08F5BB2627ED0D49EE1FE767A52EFCD565CD6E768812C3E1E9CE8F0A8BEA6CB13CD29DDEBF7A96D4A93B55D488DF099A15C89DCB0640738EB2CBDD9A8F7BAB561AB1B0DC1C6CDABF303264A08D1BCA932D1F1EE428B619D970F342ABA9A65793B8B2F041AE5364350C16F735F56ECBCA87BD57B29E7') or {
@@ -91,8 +93,8 @@ fn get_user_hash(salt []u8, user string, password string) big.Integer {
 }
 
 fn big_integer_to_bytes(b big.Integer) []u8 {
-	byte_array, _ := b.bytes()
-	return byte_array
+	bytes, _ := b.bytes()
+	return bytes
 }
 
 fn big_int_to_sha1(n big.Integer) []u8 {

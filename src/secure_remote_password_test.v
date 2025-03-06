@@ -3,6 +3,8 @@ module firebird
 import crypto.rand
 import math.big
 
+const srp_salt_size = 32
+
 fn get_verifier(user string, password string, salt []u8) big.Integer {
 	prime, g, _ := get_prime()
 	x := get_user_hash(salt, user, password)
