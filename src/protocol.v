@@ -211,7 +211,11 @@ fn (mut p WireProtocol) send_packets() !int {
 	mut written := 0
 	mut n := 0
 	for written < p.buf.len {
-		n = p.conn.write(p.buf[written..]) or { break }
+		n = p.conn.write(p.buf[written..]) or {
+			p.conn.flush()!
+			p.clear_buffer()
+			return err
+		}
 		written += n
 	}
 	p.conn.flush()!
@@ -320,6 +324,7 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 	return gds_codes, sql_code, message
 }
 
+// https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
 fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 	b := p.receive_packets(16)!
 	object_handle := parse_i32(b[..4])
@@ -413,9 +418,11 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 	}
 
 	b = p.receive_packets(12)! // if error next line causes out of bound memory access
-	p.protocol_version = parse_i32(b[0..4])
+	p.protocol_version = i32(b[3]) // b[..3] are the taken by fb_protocol_flag
 	p.accept_architecture = parse_i32(b[4..8])
 	p.accept_type = parse_i32(b[8..12])
+	p.user = user
+	p.password = password
 
 	if opcode == op_cond_accept || opcode == op_accept_data {
 		b = p.receive_packets(4) or { []u8{} }

@@ -3,7 +3,6 @@ module firebird
 import crypto.rand
 import crypto.sha1
 import crypto.sha256
-import encoding.hex
 import hash
 import math.big
 
@@ -16,9 +15,7 @@ const srp_key_size = 128
 const big_integer_max = big.integer_from_i64(2).pow(srp_key_size)
 
 // https://github.com/FirebirdSQL/jaybird/blob/64d0249ce0f28693ab91d7294174d80d788caf66/src/main/org/firebirdsql/gds/ng/wire/auth/srp/SrpClient.java#L33
-const big_prime_bytes = hex.decode('E67D2E994B2F900C3F41F08F5BB2627ED0D49EE1FE767A52EFCD565CD6E768812C3E1E9CE8F0A8BEA6CB13CD29DDEBF7A96D4A93B55D488DF099A15C89DCB0640738EB2CBDD9A8F7BAB561AB1B0DC1C6CDABF303264A08D1BCA932D1F1EE428B619D970F342ABA9A65793B8B2F041AE5364350C16F735F56ECBCA87BD57B29E7') or {
-	panic(err) // it will never panic
-}
+const big_prime_hex = 'E67D2E994B2F900C3F41F08F5BB2627ED0D49EE1FE767A52EFCD565CD6E768812C3E1E9CE8F0A8BEA6CB13CD29DDEBF7A96D4A93B55D488DF099A15C89DCB0640738EB2CBDD9A8F7BAB561AB1B0DC1C6CDABF303264A08D1BCA932D1F1EE428B619D970F342ABA9A65793B8B2F041AE5364350C16F735F56ECBCA87BD57B29E7'
 
 // https://github.com/FirebirdSQL/jaybird/blob/64d0249ce0f28693ab91d7294174d80d788caf66/src/main/org/firebirdsql/gds/ng/wire/auth/srp/SrpClient.java#L34
 const generator_int = 2
@@ -27,7 +24,7 @@ const generator_int = 2
 const multiplier_string = '1277432915985975349439481660349303019122249719989'
 
 fn get_prime() (big.Integer, big.Integer, big.Integer) {
-	prime := big.integer_from_bytes(big_prime_bytes)
+	prime := big.integer_from_radix(big_prime_hex, 16) or { panic(err) } // it will never panic
 	generator := big.integer_from_i64(generator_int)
 	k := big.integer_from_string(multiplier_string) or { panic(err) } // it will never panic
 	return prime, generator, k
@@ -97,7 +94,7 @@ fn big_integer_to_bytes(b big.Integer) []u8 {
 fn big_int_to_sha1(n big.Integer) []u8 {
 	mut digest := sha1.new()
 	n_bytes := big_integer_to_bytes(n)
-	digest.write(n_bytes) or { panic(err) }
+	digest.write(n_bytes) or { panic(err) } // TODO when does digest.write panics?
 	return sha1.sum([]u8{})
 }
 
