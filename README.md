@@ -4,6 +4,8 @@ Firebird database connector for the V language.
 
 ## Development
 
+Contributions are very welcome.
+
 - [Issues](https://github.com/einar-hjortdal/firebird/issues)
 - [TODO.md](./TODO.md)
 - [CONTRIBUTING.md](./CONTRIBUTING.md)

@@ -70,8 +70,8 @@ fn get_scramble(client_public_key big.Integer, server_public_key big.Integer) bi
 
 fn get_client_seed() (big.Integer, big.Integer) {
 	prime, generator, _ := get_prime()
-	client_secret_key := rand.int_big(big_integer_max) or { panic(err) }
-	client_public_key := generator.big_mod_pow(client_secret_key, prime) or { panic(err) }
+	client_secret_key := rand.int_big(big_integer_max) or { panic(err) } // will never panic
+	client_public_key := generator.big_mod_pow(client_secret_key, prime) or { panic(err) } // will never panic
 	return client_public_key, client_secret_key
 }
 

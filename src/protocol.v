@@ -8,22 +8,25 @@ import net
 import os
 
 const buffer_length = i32(1024)
-const mask_1_byte = u8(0b1111_1111)
+const mask_byte = u8(0b1111_1111)
+const zero_byte = u8(0)
+const zero_terminated_chacha20 = arrays.concat('ChaCha'.bytes(), zero_byte)
+const zero_terminated_chacha64 = arrays.concat('ChaCha64'.bytes(), zero_byte)
 
 // https://www.ietf.org/rfc/rfc4506.html#section-4.1
 fn marshal_i32(n i32) []u8 {
 	return [
-		u8((n >> 24) & mask_1_byte),
-		u8((n >> 16) & mask_1_byte),
-		u8((n >> 8) & mask_1_byte),
-		u8(n & mask_1_byte),
+		u8((n >> 24) & mask_byte),
+		u8((n >> 16) & mask_byte),
+		u8((n >> 8) & mask_byte),
+		u8(n & mask_byte),
 	]
 }
 
 fn generate_padding(number_of_bytes i32) []u8 {
 	mut res := []u8{}
 	for i := 0; i < number_of_bytes; i++ {
-		res = arrays.concat(res, u8(0))
+		res = arrays.concat(res, zero_byte)
 	}
 	return res
 }
@@ -144,7 +147,7 @@ fn get_system_user() []u8 {
 }
 
 fn get_hostname() []u8 {
-	hostname := os.hostname() or { '' }
+	hostname := os.hostname() or { return []u8{} }
 	return hostname.bytes()
 }
 
@@ -359,11 +362,11 @@ fn (mut p WireProtocol) guess_wire_crypt(buf []u8) (string, []u8) {
 
 	if 3 in params {
 		v := params[3]
-		if (v[..7]).bytestr() == 'ChaCha\x00' {
+		if (v[..7]) == zero_terminated_chacha20 {
 			return 'ChaCha', v[7..v.len - 4]
 		}
 	}
-
+	// TODO chacha40 is also supported by firebird (not available yet in vlib)
 	return 'Arc4', []u8{}
 }
 
@@ -477,7 +480,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 				}
 
 				ln = parse_i16(data[..2]) // server salt length
-				server_public_key := big.integer_from_radix(data[4 + ln..].bytestr(),
+				server_public_key := big.integer_from_radix(data[ln + 4..].bytestr(),
 					16)!
 				auth_data, session_key = get_client_proof(user.to_upper(), password, data[2..ln + 2],
 					client_public_key, server_public_key, client_secret_key, p.plugin_name)
@@ -617,7 +620,6 @@ fn (mut p WireProtocol) crypt(plugin string) ! {
 
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L825
 fn (mut p WireProtocol) crypt_callback() ! {
-	// logger.debug('crypt_callback')
 	p.pack_i32(op_crypt_key_callback)
 	p.pack_i32(0)
 	p.pack_i32(buffer_length)

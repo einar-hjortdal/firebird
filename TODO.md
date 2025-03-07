@@ -12,13 +12,13 @@
 
 ### High
 
-- logging
 - connection pool
+- never panic
 
 ### Medium
 
+- logging
 - optimize performance
-- never panic
 
 ### Low
 
@@ -28,6 +28,8 @@ please open a pull request.
 - embedded
 - decfloat
 - int128
+- batches
+- services
 - events
 - charset other than UTF8
 - Firebird versions other than >= 5
