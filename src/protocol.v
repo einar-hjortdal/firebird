@@ -23,15 +23,9 @@ fn marshal_i32(n i32) []u8 {
 	]
 }
 
-fn generate_padding(number_of_bytes i32) []u8 {
-	mut res := []u8{}
-	for i := 0; i < number_of_bytes; i++ {
-		res = arrays.concat(res, zero_byte)
-	}
-	return res
-}
-
-fn create_array_u8(a []u8) ([]u8, i32) {
+// `create_bytes` returns the array `a` prefixed by the length of the array.
+// It also returns the number of bytes to pad to align the array to multiples of 4 bytes.
+fn create_bytes(a []u8) ([]u8, int) {
 	len := i32(a.len)
 	marshalled_len := marshal_i32(len)
 	res := arrays.append(marshalled_len, a)
@@ -40,25 +34,22 @@ fn create_array_u8(a []u8) ([]u8, i32) {
 }
 
 // https://www.ietf.org/rfc/rfc4506.html#section-4.13
-fn marshal_array_u8(a []u8) []u8 {
-	mut res, bytes_to_pad := create_array_u8(a)
+fn marshal_bytes(a []u8) []u8 {
+	mut res, bytes_to_pad := create_bytes(a)
 	if bytes_to_pad == 0 {
 		return res
 	}
-	padding := generate_padding(bytes_to_pad)
-	return arrays.append(res, padding)
+	return arrays.append(res, []u8{len: bytes_to_pad})
 }
 
 // https://www.ietf.org/rfc/rfc4506.html#section-4.11
 fn marshal_string(s string) []u8 {
 	a := s.bytes()
-	mut res, bytes_to_pad := create_array_u8(a)
+	mut res, bytes_to_pad := create_bytes(a)
 	if bytes_to_pad == 0 {
-		padding := generate_padding(4)
-		return arrays.append(res, padding)
+		return arrays.append(res, []u8{len: 4})
 	}
-	padding := generate_padding(bytes_to_pad)
-	return arrays.append(res, padding)
+	return arrays.append(res, []u8{len: bytes_to_pad})
 }
 
 fn parse_i32(b []u8) i32 {
@@ -118,20 +109,16 @@ fn new_wire_protocol(addr string, timezone string) !&WireProtocol {
 // The Firebird wire protocol uses XDR for exchange messages between client and server
 // https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-appendix-xdr
 // https://www.ietf.org/rfc/rfc4506.html
-
 fn (mut p WireProtocol) pack_i32(i i32) {
-	i32_bytes := marshal_i32(i)
-	p.buf = arrays.append(p.buf, i32_bytes)
+	p.buf = arrays.append(p.buf, marshal_i32(i))
 }
 
 fn (mut p WireProtocol) pack_array_u8(au []u8) {
-	array_u8_bytes := marshal_array_u8(au)
-	p.buf = arrays.append(p.buf, array_u8_bytes)
+	p.buf = arrays.append(p.buf, marshal_bytes(au))
 }
 
 fn (mut p WireProtocol) pack_string(s string) {
-	array_u8_string := marshal_string(s)
-	p.buf = arrays.append(p.buf, array_u8_string)
+	p.buf = arrays.append(p.buf, marshal_string(s))
 }
 
 fn (mut p WireProtocol) append_array_u8(au []u8) {
