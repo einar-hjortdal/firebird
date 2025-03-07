@@ -13,7 +13,7 @@ import math.big
 const srp_key_size = 128
 
 // https://github.com/FirebirdSQL/jaybird/blob/64d0249ce0f28693ab91d7294174d80d788caf66/src/main/org/firebirdsql/gds/ng/wire/auth/srp/SrpClient.java#L114
-const big_integer_max = big.integer_from_int(2).pow(srp_key_size)
+const big_integer_max = big.integer_from_i64(2).pow(srp_key_size)
 
 // https://github.com/FirebirdSQL/jaybird/blob/64d0249ce0f28693ab91d7294174d80d788caf66/src/main/org/firebirdsql/gds/ng/wire/auth/srp/SrpClient.java#L33
 const big_prime_bytes = hex.decode('E67D2E994B2F900C3F41F08F5BB2627ED0D49EE1FE767A52EFCD565CD6E768812C3E1E9CE8F0A8BEA6CB13CD29DDEBF7A96D4A93B55D488DF099A15C89DCB0640738EB2CBDD9A8F7BAB561AB1B0DC1C6CDABF303264A08D1BCA932D1F1EE428B619D970F342ABA9A65793B8B2F041AE5364350C16F735F56ECBCA87BD57B29E7') or {
@@ -28,7 +28,7 @@ const multiplier_string = '1277432915985975349439481660349303019122249719989'
 
 fn get_prime() (big.Integer, big.Integer, big.Integer) {
 	prime := big.integer_from_bytes(big_prime_bytes)
-	generator := big.integer_from_int(generator_int)
+	generator := big.integer_from_i64(generator_int)
 	k := big.integer_from_string(multiplier_string) or { panic(err) } // it will never panic
 	return prime, generator, k
 }
@@ -57,8 +57,7 @@ fn pad(v big.Integer) []u8 {
 		buf[i], buf[j] = buf[j], buf[i]
 	}
 
-	first_non_zero_index := get_first_non_zero_index(buf)
-	return buf[first_non_zero_index..]
+	return buf[get_first_non_zero_index(buf)..]
 }
 
 fn get_scramble(client_public_key big.Integer, server_public_key big.Integer) big.Integer {
@@ -102,6 +101,7 @@ fn big_int_to_sha1(n big.Integer) []u8 {
 	return sha1.sum([]u8{})
 }
 
+// https://github.com/FirebirdSQL/jaybird/blob/64d0249ce0f28693ab91d7294174d80d788caf66/src/main/org/firebirdsql/gds/ng/wire/auth/srp/SrpClient.java#L163
 fn get_session_key(user string, password string, salt []u8, client_public_key big.Integer, server_public_key big.Integer, client_secret_key big.Integer) []u8 {
 	prime, generator, k := get_prime()
 	u := get_scramble(client_public_key, server_public_key)
@@ -122,8 +122,7 @@ fn new_digest(plugin_name string) hash.Hash {
 	if plugin_name == 'Srp256' {
 		return sha256.new()
 	}
-	err := format_error_message('Secure Remote Password error: unsupported plugin name')
-	panic(err)
+	panic(format_error_message('Secure Remote Password error: unsupported plugin name'))
 }
 
 // get_client_proof gets the verification message from Secure Remote Password equation.
@@ -152,7 +151,7 @@ fn get_client_proof(user string, password string, salt []u8, client_public_key b
 	digest.write(big_integer_to_bytes(client_public_key)) or { panic(err) }
 	digest.write(big_integer_to_bytes(server_public_key)) or { panic(err) }
 	digest.write(session_key) or { panic(err) }
-	key_m := digest.sum([]u8{})
+	m := digest.sum([]u8{})
 
-	return key_m, session_key
+	return m, session_key
 }
