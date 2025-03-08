@@ -146,7 +146,7 @@ fn get_wire_crypt_u8(wire_crypt bool) u8 {
 }
 
 fn get_srp_client_public_key_bytes(client_public_key big.Integer) []u8 {
-	b := big_integer_to_bytes(client_public_key).hex().bytes()
+	b := client_public_key.hex().bytes()
 	len := b.len
 	if len > 254 {
 		mut res := [u8(cnct_specific_data), 255, 0]

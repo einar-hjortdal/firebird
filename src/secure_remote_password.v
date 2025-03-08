@@ -77,7 +77,7 @@ fn big_integer_to_bytes(b big.Integer) []u8 {
 fn big_int_to_sha1(n big.Integer) []u8 {
 	mut digest := sha1.new()
 	n_bytes := big_integer_to_bytes(n)
-	digest.write(n_bytes) or { panic(err) } // TODO when does digest.write panics?
+	digest.write(n_bytes) or { panic(err) } // TODO when does digest.write panic?
 	return sha1.sum([]u8{})
 }
 
