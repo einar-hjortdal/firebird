@@ -78,7 +78,7 @@ fn big_int_to_sha1(n big.Integer) []u8 {
 	mut digest := sha1.new()
 	n_bytes := big_integer_to_bytes(n)
 	digest.write(n_bytes) or { panic(err) } // TODO when does digest.write panic?
-	return digest.sum([]u8{}) // This is the issue
+	return digest.sum([]u8{})
 }
 
 // https://github.com/FirebirdSQL/jaybird/blob/64d0249ce0f28693ab91d7294174d80d788caf66/src/main/org/firebirdsql/gds/ng/wire/auth/srp/SrpClient.java#L163

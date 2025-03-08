@@ -43,13 +43,14 @@ fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8
 	if plugin == 'Arc4' {
 		return error(arc4_error)
 	}
-
+	// TODO handle ChaCha64, not available in vlib yet
 	if plugin == 'ChaCha' {
 		mut digest := sha256.new()
 		digest.write(session_key)!
 		key := digest.sum([]u8{})
 		c.crypto_reader = chacha20.new_cipher(key, nonce)!
 		c.crypto_writer = chacha20.new_cipher(key, nonce)!
+		return
 	}
 
 	return error('Unknown wire encryption plugin name: ${plugin}')
@@ -57,7 +58,7 @@ fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8
 
 fn (mut c WireChannel) read(mut buf []u8) !int {
 	if c.plugin != '' {
-		mut src := []u8{}
+		mut src := []u8{len: buf.len}
 		n := c.reader.read(mut src)!
 		if c.plugin == 'Arc4' {
 			return error(arc4_error)
@@ -75,7 +76,7 @@ fn (mut c WireChannel) read(mut buf []u8) !int {
 
 fn (mut c WireChannel) write(buf []u8) !int {
 	if c.plugin != '' {
-		mut dst := []u8{}
+		mut dst := []u8{len: buf.len}
 		if c.plugin == 'Arc4' {
 			return error(format_error_message(arc4_error))
 		}
