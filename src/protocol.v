@@ -113,7 +113,7 @@ fn (mut p WireProtocol) pack_i32(i i32) {
 	p.buf = arrays.append(p.buf, marshal_i32(i))
 }
 
-fn (mut p WireProtocol) pack_array_u8(au []u8) {
+fn (mut p WireProtocol) pack_bytes(au []u8) {
 	p.buf = arrays.append(p.buf, marshal_bytes(au))
 }
 
@@ -121,7 +121,7 @@ fn (mut p WireProtocol) pack_string(s string) {
 	p.buf = arrays.append(p.buf, marshal_string(s))
 }
 
-fn (mut p WireProtocol) append_array_u8(au []u8) {
+fn (mut p WireProtocol) append_bytes(au []u8) {
 	p.buf = arrays.append(p.buf, au)
 }
 
@@ -146,7 +146,7 @@ fn get_wire_crypt_u8(wire_crypt bool) u8 {
 }
 
 fn get_srp_client_public_key_bytes(client_public_key big.Integer) []u8 {
-	b := pad(client_public_key).hex().bytes()
+	b := big_integer_to_bytes(client_public_key).hex().bytes()
 	len := b.len
 	if len > 254 {
 		mut res := [u8(cnct_specific_data), 255, 0]
@@ -448,8 +448,8 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 				// TODO normalize user
 
 				if data.len == 0 {
-					p.continue_authentication(pad(client_public_key), p.plugin_name, plugin_list,
-						'')!
+					p.continue_authentication(big_integer_to_bytes(client_public_key),
+						p.plugin_name, plugin_list, '')!
 					b = p.receive_packets(4) or { []u8{} }
 					op := parse_i32(b)
 					if op == op_response {
@@ -524,8 +524,8 @@ fn (mut p WireProtocol) connect(db_name string, user string, options map[string]
 	p.pack_i32(arch_type_generic)
 	p.pack_string(db_name) // Database path or alias
 	p.pack_i32(supported_protocols_count) // Count of protocol versions understood
-	p.pack_array_u8(uid)
-	p.append_array_u8(supported_protocols_bytes)
+	p.pack_bytes(uid)
+	p.append_bytes(supported_protocols_bytes)
 	p.send_packets()!
 }
 
@@ -574,7 +574,7 @@ fn (mut p WireProtocol) attach(database string, user string, password string, ro
 	p.pack_i32(op_attach)
 	p.pack_i32(0) // Database Object ID
 	p.pack_string(database)
-	p.append_array_u8(dpb)
+	p.append_bytes(dpb)
 	p.send_packets()!
 }
 

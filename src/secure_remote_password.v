@@ -40,27 +40,10 @@ fn get_first_non_zero_index(a []u8) int {
 	return len - 1
 }
 
-fn pad(v big.Integer) []u8 {
-	mut buf := []u8{len: srp_key_size}
-	mut n := big.integer_from_i64(0) + v
-
-	for i := 0; i < srp_key_size; i++ {
-		buf[i] = u8(big.integer_from_i64(255).bitwise_and(n).int())
-		n = n / big.integer_from_i64(256)
-	}
-
-	// swap u8 positions
-	for i, j := 0, srp_key_size - 1; i < srp_key_size; i++, j-- {
-		buf[i], buf[j] = buf[j], buf[i]
-	}
-
-	return buf[get_first_non_zero_index(buf)..]
-}
-
 fn get_scramble(client_public_key big.Integer, server_public_key big.Integer) big.Integer {
 	mut digest := sha1.new()
-	digest.write(pad(client_public_key)) or { panic(err) }
-	digest.write(pad(server_public_key)) or { panic(err) }
+	digest.write(big_integer_to_bytes(client_public_key)) or { panic(err) }
+	digest.write(big_integer_to_bytes(server_public_key)) or { panic(err) }
 	return big.integer_from_bytes(digest.sum([]u8{}))
 }
 
@@ -135,7 +118,6 @@ fn get_client_proof(user string, password string, salt []u8, client_public_key b
 	prime, generator, _ := get_prime()
 	session_key := get_session_key(user, password, salt, client_public_key, server_public_key,
 		client_secret_key)
-
 	n1 := big.integer_from_bytes(big_int_to_sha1(prime))
 	n2 := big.integer_from_bytes(big_int_to_sha1(generator))
 	n3 := n1.big_mod_pow(n2, prime) or { panic(err) }
