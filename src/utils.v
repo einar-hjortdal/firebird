@@ -67,7 +67,7 @@ fn parse_bool(s string) bool {
 
 // WireProtocol
 // https://www.ietf.org/rfc/rfc4506.html#section-4.1
-fn marshal_i32(n i32) []u8 {
+fn marshal_i32_big_endian(n i32) []u8 {
 	return [
 		u8((n >> 24) & mask_byte),
 		u8((n >> 16) & mask_byte),
@@ -76,14 +76,30 @@ fn marshal_i32(n i32) []u8 {
 	]
 }
 
+fn marshal_i32_small_endian(n i32) []u8 {
+	return [
+		u8(n & mask_byte),
+		u8((n >> 8) & mask_byte),
+		u8((n >> 16) & mask_byte),
+		u8((n >> 24) & mask_byte),
+	]
+}
+
 // `create_bytes` returns the array `a` prefixed by the length of the array.
 // It also returns the number of bytes to pad to align the array to multiples of 4 bytes.
 fn create_bytes(a []u8) ([]u8, int) {
 	len := i32(a.len)
-	marshalled_len := marshal_i32(len)
+	marshalled_len := marshal_i32_big_endian(len)
 	res := arrays.append(marshalled_len, a)
 	bytes_to_pad := 4 - (len % 4)
 	return res, bytes_to_pad
+}
+
+// https://www.ietf.org/rfc/rfc4506.html#section-4.11
+fn marshal_string(s string) []u8 {
+	a := s.bytes()
+	mut res, bytes_to_pad := create_bytes(a)
+	return arrays.append(res, []u8{len: bytes_to_pad})
 }
 
 // https://www.ietf.org/rfc/rfc4506.html#section-4.13
@@ -92,13 +108,6 @@ fn marshal_bytes(a []u8) []u8 {
 	if bytes_to_pad == 4 {
 		return res
 	}
-	return arrays.append(res, []u8{len: bytes_to_pad})
-}
-
-// https://www.ietf.org/rfc/rfc4506.html#section-4.11
-fn marshal_string(s string) []u8 {
-	a := s.bytes()
-	mut res, bytes_to_pad := create_bytes(a)
 	return arrays.append(res, []u8{len: bytes_to_pad})
 }
 

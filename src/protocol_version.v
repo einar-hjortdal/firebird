@@ -8,11 +8,11 @@ const fb_protocol_flag = i32(0b0000_0000_0000_0000_1000_0000_0000_0000)
 // https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-databases-attach-identification
 fn build_protocol(protocol_version i32, architecture_type i32, minimum_type i32, maximum_type i32, preference_weight i32) []u8 {
 	mut res := []u8{}
-	res = arrays.append(res, marshal_i32(fb_protocol_flag | protocol_version))
-	res = arrays.append(res, marshal_i32(architecture_type))
-	res = arrays.append(res, marshal_i32(minimum_type))
-	res = arrays.append(res, marshal_i32(maximum_type))
-	res = arrays.append(res, marshal_i32(preference_weight))
+	res = arrays.append(res, marshal_i32_big_endian(fb_protocol_flag | protocol_version))
+	res = arrays.append(res, marshal_i32_big_endian(architecture_type))
+	res = arrays.append(res, marshal_i32_big_endian(minimum_type))
+	res = arrays.append(res, marshal_i32_big_endian(maximum_type))
+	res = arrays.append(res, marshal_i32_big_endian(preference_weight))
 	return res
 }
 

@@ -50,7 +50,7 @@ fn new_wire_protocol(addr string, timezone string) !&WireProtocol {
 // https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-appendix-xdr
 // https://www.ietf.org/rfc/rfc4506.html
 fn (mut p WireProtocol) pack_i32(i i32) {
-	p.buf = arrays.append(p.buf, marshal_i32(i))
+	p.buf = arrays.append(p.buf, marshal_i32_big_endian(i))
 }
 
 fn (mut p WireProtocol) pack_bytes(au []u8) {
@@ -373,12 +373,12 @@ fn (mut p WireProtocol) attach(database string, user string, password string, ro
 	// https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-databases-attach-attachment
 	// https://github.com/FirebirdSQL/jaybird/blob/master/src/main/org/firebirdsql/gds/impl/ParameterBufferBase.java
 	dpb_version := [u8(isc_dpb_version1)]
-	dpb_sql_dialect := arrays.append([u8(isc_dpb_sql_dialect), 4], marshal_i32(3))
+	dpb_sql_dialect := arrays.append([u8(isc_dpb_sql_dialect), 4], marshal_i32_small_endian(3))
 	dpb_lc_type := arrays.append([u8(isc_dpb_lc_ctype), u8(charset_bytes.len)], charset_bytes)
 	dpb_user_name := arrays.append([u8(isc_dpb_user_name), u8(user_bytes.len)], user_bytes)
 	dpb_password := arrays.append([u8(isc_dpb_password), u8(password_bytes.len)], password_bytes)
 	dpb_role_name := arrays.append([u8(isc_dpb_sql_role_name), u8(role_bytes.len)], role_bytes)
-	dpb_process_id := arrays.append([u8(isc_dpb_process_id), 4], marshal_i32(pid))
+	dpb_process_id := arrays.append([u8(isc_dpb_process_id), 4], marshal_i32_small_endian(pid))
 	dpb_process_name := arrays.append([u8(isc_dpb_process_name), u8(executable_bytes.len)],
 		executable_bytes)
 	dpb_utf8_filename := [u8(isc_dpb_utf8_filename), 1, 1]
