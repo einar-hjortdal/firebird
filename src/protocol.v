@@ -336,7 +336,6 @@ fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 	if gds_code_list.len > 0 || sql_code != 0 {
 		return error(format_error_message(message))
 	}
-
 	return object_handle, object_id, response_buffer
 }
 
@@ -364,8 +363,7 @@ fn (mut p WireProtocol) guess_wire_crypt(buf []u8) (string, []u8) {
 
 // https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
 fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
-	// logger.debug('generic_response')
-	mut b := p.receive_packets(4)!
+	mut b := p.receive_packets(4)! // TODO io.Eof after attach
 
 	for parse_i32(b) == op_dummy {
 		b = p.receive_packets(4)!
@@ -530,7 +528,6 @@ fn (mut p WireProtocol) connect(db_name string, user string, options map[string]
 }
 
 fn (mut p WireProtocol) attach(database string, user string, password string, role string) ! {
-	// logger.debug('attach')
 	charset_bytes := p.charset.bytes()
 	user_bytes := user.bytes()
 	password_bytes := password.bytes()
@@ -557,8 +554,7 @@ fn (mut p WireProtocol) attach(database string, user string, password string, ro
 		dpb_password, dpb_process_id, dpb_process_name, dpb_utf8_filename)
 
 	if p.auth_data.len > 0 {
-		specific_auth_data_hex := hex.encode(p.auth_data)
-		specific_auth_data_bytes := specific_auth_data_hex.bytes()
+		specific_auth_data_bytes := hex.encode(p.auth_data).bytes()
 		dpb_specific_auth_data := arrays.append([u8(isc_dpb_specific_auth_data),
 			u8(specific_auth_data_bytes.len)], specific_auth_data_bytes)
 		dpb = arrays.append(dpb, dpb_specific_auth_data)

@@ -61,7 +61,7 @@ fn (mut c WireChannel) read(mut buf []u8) !int {
 		mut src := []u8{len: buf.len}
 		n := c.reader.read(mut src)!
 		if c.plugin == 'Arc4' {
-			return error(arc4_error)
+			return error(format_error_message(arc4_error))
 		}
 
 		if c.plugin == 'ChaCha' {

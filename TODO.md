@@ -12,11 +12,11 @@
 
 ### High
 
-- connection pool
 - never panic
 
 ### Medium
 
+- connection pool
 - logging
 - optimize performance
 
