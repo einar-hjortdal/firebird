@@ -6,7 +6,6 @@ import net
 import os
 
 const buffer_length = i32(1024)
-const mask_byte = u8(0b1111_1111)
 const zero_byte = u8(0)
 const zero_terminated_chacha20 = arrays.concat('ChaCha'.bytes(), zero_byte)
 const zero_terminated_chacha64 = arrays.concat('ChaCha64'.bytes(), zero_byte)
@@ -376,15 +375,15 @@ fn (mut p WireProtocol) attach(database string, user string, password string, ro
 	dpb_version := [u8(isc_dpb_version1)]
 	dpb_sql_dialect := arrays.append([u8(isc_dpb_sql_dialect), 4], marshal_i32(3))
 	dpb_lc_type := arrays.append([u8(isc_dpb_lc_ctype), u8(charset_bytes.len)], charset_bytes)
-	dpb_role_name := arrays.append([u8(isc_dpb_sql_role_name), u8(role_bytes.len)], role_bytes)
 	dpb_user_name := arrays.append([u8(isc_dpb_user_name), u8(user_bytes.len)], user_bytes)
 	dpb_password := arrays.append([u8(isc_dpb_password), u8(password_bytes.len)], password_bytes)
+	dpb_role_name := arrays.append([u8(isc_dpb_sql_role_name), u8(role_bytes.len)], role_bytes)
 	dpb_process_id := arrays.append([u8(isc_dpb_process_id), 4], marshal_i32(pid))
 	dpb_process_name := arrays.append([u8(isc_dpb_process_name), u8(executable_bytes.len)],
 		executable_bytes)
 	dpb_utf8_filename := [u8(isc_dpb_utf8_filename), 1, 1]
 	dpb := attach_append_timezone(attach_append_auth_data(append(dpb_version, dpb_sql_dialect,
-		dpb_lc_type, dpb_role_name, dpb_user_name, dpb_password, dpb_process_id, dpb_process_name,
+		dpb_lc_type, dpb_user_name, dpb_password, dpb_role_name, dpb_process_id, dpb_process_name,
 		dpb_utf8_filename), p.auth_data), p.timezone)
 
 	p.pack_i32(op_attach)

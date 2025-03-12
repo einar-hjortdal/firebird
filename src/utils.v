@@ -8,6 +8,7 @@ import math.big
 import os
 
 const lib = 'firebird'
+const mask_byte = u8(0b1111_1111)
 
 fn format_error_message(message string) string {
 	return '[${lib}] ${message}'
@@ -88,7 +89,7 @@ fn create_bytes(a []u8) ([]u8, int) {
 // https://www.ietf.org/rfc/rfc4506.html#section-4.13
 fn marshal_bytes(a []u8) []u8 {
 	mut res, bytes_to_pad := create_bytes(a)
-	if bytes_to_pad == 0 {
+	if bytes_to_pad == 4 {
 		return res
 	}
 	return arrays.append(res, []u8{len: bytes_to_pad})
@@ -98,9 +99,6 @@ fn marshal_bytes(a []u8) []u8 {
 fn marshal_string(s string) []u8 {
 	a := s.bytes()
 	mut res, bytes_to_pad := create_bytes(a)
-	if bytes_to_pad == 0 {
-		return arrays.append(res, []u8{len: 4})
-	}
 	return arrays.append(res, []u8{len: bytes_to_pad})
 }
 
