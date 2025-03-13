@@ -206,8 +206,7 @@ fn (mut p WireProtocol) guess_wire_crypt(buf []u8) (string, []u8) {
 
 // https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
 fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
-	mut b := p.receive_packets(4)! // TODO io.Eof after attach
-
+	mut b := p.receive_packets(4)! // TODO io.Eof after attach. attach is not the issue.
 	for parse_i32(b) == op_dummy {
 		b = p.receive_packets(4)!
 	}
@@ -382,6 +381,7 @@ fn (mut p WireProtocol) attach(database string, user string, password string, ro
 	dpb_process_name := arrays.append([u8(isc_dpb_process_name), u8(executable_bytes.len)],
 		executable_bytes)
 	dpb_utf8_filename := [u8(isc_dpb_utf8_filename), 1, 1]
+
 	dpb := attach_append_timezone(attach_append_auth_data(append(dpb_version, dpb_sql_dialect,
 		dpb_lc_type, dpb_user_name, dpb_password, dpb_role_name, dpb_process_id, dpb_process_name,
 		dpb_utf8_filename), p.auth_data), p.timezone)
