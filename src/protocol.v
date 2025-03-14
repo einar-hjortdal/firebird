@@ -182,7 +182,8 @@ fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 	return object_handle, object_id, response_buffer
 }
 
-fn (mut p WireProtocol) guess_wire_crypt(buf []u8) !(string, []u8) {
+fn parse_wire_crypt_buffer(buf []u8) (string, []string, [][]u8) {
+	mut encryption_type := ''
 	mut available_plugins := []string{}
 	mut plugin_nonces := [][]u8{}
 	mut b := 0
@@ -194,7 +195,7 @@ fn (mut p WireProtocol) guess_wire_crypt(buf []u8) !(string, []u8) {
 		v := buf[b..b + length]
 		b += length
 		if type_of_data == 0 {
-			// nothing to do, this is just 'Symmetric'
+			encryption_type = v.bytestr()
 		}
 		if type_of_data == 1 {
 			available_plugins = v.bytestr().split(' ')
@@ -203,6 +204,11 @@ fn (mut p WireProtocol) guess_wire_crypt(buf []u8) !(string, []u8) {
 			plugin_nonces = arrays.append(plugin_nonces, [v])
 		}
 	}
+	return encryption_type, available_plugins, plugin_nonces
+}
+
+fn (mut p WireProtocol) guess_wire_crypt(buf []u8) !(string, []u8) {
+	_, available_plugins, plugin_nonces := parse_wire_crypt_buffer(buf)
 
 	for nonce in plugin_nonces {
 		if nonce[..7] == zero_terminated_chacha20 {
