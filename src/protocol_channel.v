@@ -68,35 +68,22 @@ fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8
 
 fn (mut c WireChannel) read(mut buf []u8) !int {
 	if c.plugin == '' {
-		return c.reader.read(mut buf)
+		return c.reader.read(mut buf)!
 	}
 
 	mut src := []u8{len: buf.len}
-	n := c.reader.read(mut src)!
-	if c.plugin == 'Arc4' {
-		return error(format_error_message(arc4_error))
-	}
-
-	if c.plugin == 'ChaCha' || c.plugin == 'ChaCha64' {
-		c.crypto_reader.xor_key_stream(mut buf, src[0..n])
-	}
-	return n
+	read := c.reader.read(mut src)!
+	c.crypto_reader.xor_key_stream(mut buf, src[0..read])
+	return read
 }
 
 fn (mut c WireChannel) write(buf []u8) !int {
 	if c.plugin == '' {
-		return c.writer.write(buf)
+		return c.writer.write(buf)!
 	}
 
 	mut dst := []u8{len: buf.len}
-	if c.plugin == 'Arc4' {
-		return error(format_error_message(arc4_error))
-	}
-
-	if c.plugin == 'ChaCha' || c.plugin == 'ChaCha64' {
-		c.crypto_writer.xor_key_stream(mut dst, buf)
-	}
-
+	c.crypto_writer.xor_key_stream(mut dst, buf)
 	mut written := 0
 	for written < buf.len {
 		written += c.writer.write(dst[written..])!

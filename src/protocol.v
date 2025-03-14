@@ -188,7 +188,7 @@ fn (mut p WireProtocol) choose_wire_crypt(buf []u8) !(string, []u8) {
 	_, available_plugins, plugin_nonces := parse_wire_crypt_buffer(buf)
 
 	for nonce in plugin_nonces {
-		if nonce[..7] == zero_terminated_chacha20 {
+		if nonce[..9] == zero_terminated_chacha64 {
 			// return chacha64, nonce[9..]
 			// TODO support ChaCha64
 		}
@@ -333,6 +333,9 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 		wire_crypt := get_wire_crypt_from_options(options)
 		if plugin != '' && wire_crypt && session_key.len != 0 {
 			p.crypt(plugin)!
+			println('p.crypt sends the expected data to the server, validated using jaybird')
+			println('But then, the server responds with eof')
+			println('If the server was waiting for more data, it would timeout. Something else is happening.')
 			p.conn.set_crypt_key(plugin, session_key, nonce)!
 			_, _, _ := p.generic_response()! // TODO This one panics
 		} else {
