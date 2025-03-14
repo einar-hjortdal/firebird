@@ -183,24 +183,32 @@ fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 }
 
 fn (mut p WireProtocol) guess_wire_crypt(buf []u8) (string, []u8) {
-	mut params := map[u8][]u8{}
-	for i := 0; i < buf.len; {
-		k := buf[i]
-		i++
-		ln := buf[i]
-		i++
-		v := buf[i..i + ln]
-		i += ln
-		params[k] = v
+	mut plugins := [][]u8{}
+	mut b := 0
+	for b < buf.len {
+		_ := buf[b] // index
+		b += 1
+		ln := buf[b]
+		b += 1
+		v := buf[b..b + ln]
+		b += ln
+		plugins = arrays.append(plugins, [v])
 	}
 
-	if 3 in params {
-		v := params[3]
-		if (v[..7]) == zero_terminated_chacha20 {
-			return 'ChaCha', v[7..v.len - 4]
+	for i := 0; i < plugins.len; i++ {
+		plugin := plugins[u8(i)]
+		if plugin.len > 9 && plugin[..9] == zero_terminated_chacha64 {
+			// TODO chacha40 is also supported by firebird (not available yet in vlib)
 		}
 	}
-	// TODO chacha40 is also supported by firebird (not available yet in vlib)
+
+	for i := 0; i < plugins.len; i++ {
+		plugin := plugins[u8(i)]
+		if plugin.len > 7 && plugin[..7] == zero_terminated_chacha20 {
+			return 'ChaCha', plugin[7..plugin.len - 4]
+		}
+	}
+
 	return 'Arc4', []u8{}
 }
 
