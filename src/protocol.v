@@ -182,34 +182,45 @@ fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 	return object_handle, object_id, response_buffer
 }
 
-fn (mut p WireProtocol) guess_wire_crypt(buf []u8) (string, []u8) {
-	mut plugins := [][]u8{}
+fn (mut p WireProtocol) guess_wire_crypt(buf []u8) !(string, []u8) {
+	mut available_plugins := []string{}
+	mut plugin_nonces := [][]u8{}
 	mut b := 0
 	for b < buf.len {
-		_ := buf[b] // index
+		type_of_data := buf[b]
 		b += 1
-		ln := buf[b]
+		length := buf[b]
 		b += 1
-		v := buf[b..b + ln]
-		b += ln
-		plugins = arrays.append(plugins, [v])
-	}
-
-	for i := 0; i < plugins.len; i++ {
-		plugin := plugins[u8(i)]
-		if plugin.len > 9 && plugin[..9] == zero_terminated_chacha64 {
-			// TODO chacha40 is also supported by firebird (not available yet in vlib)
+		v := buf[b..b + length]
+		b += length
+		if type_of_data == 0 {
+			// nothing to do, this is just 'Symmetric'
+		}
+		if type_of_data == 1 {
+			available_plugins = v.bytestr().split(' ')
+		}
+		if type_of_data == 3 {
+			plugin_nonces = arrays.append(plugin_nonces, [v])
 		}
 	}
 
-	for i := 0; i < plugins.len; i++ {
-		plugin := plugins[u8(i)]
-		if plugin.len > 7 && plugin[..7] == zero_terminated_chacha20 {
-			return 'ChaCha', plugin[7..plugin.len - 4]
+	for nonce in plugin_nonces {
+		if nonce[..7] == zero_terminated_chacha20 {
+			// TODO support ChaCha64
 		}
 	}
 
-	return 'Arc4', []u8{}
+	for nonce in plugin_nonces {
+		if nonce[..7] == zero_terminated_chacha20 {
+			return 'ChaCha', nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
+		}
+	}
+
+	if available_plugins.contains('Arc4') {
+		return 'Arc4', []u8{}
+	}
+
+	return error(format_error_message('Unsupported crypt plugin'))
 }
 
 // https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
@@ -244,7 +255,7 @@ fn (mut p WireProtocol) get_encrypt_plugin_and_nonce(opcode i32, auth_data []u8,
 
 	p.continue_authentication(auth_data, options['auth_plugin_name'], plugin_list, '')!
 	_, _, buf := p.generic_response()!
-	return p.guess_wire_crypt(buf)
+	return p.guess_wire_crypt(buf)!
 }
 
 // TODO refactor, this function is too big.
