@@ -206,7 +206,7 @@ fn (mut p WireProtocol) guess_wire_crypt(buf []u8) (string, []u8) {
 
 // https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
 fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
-	mut b := p.receive_packets(4)! // TODO io.Eof after attach. attach is not the issue.
+	mut b := p.receive_packets(4)! // TODO io.Eof
 	for parse_i32(b) == op_dummy {
 		b = p.receive_packets(4)!
 	}
@@ -230,13 +230,13 @@ fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 }
 
 fn (mut p WireProtocol) get_encrypt_plugin_and_nonce(opcode i32, auth_data []u8, options map[string]string) !(string, []u8) {
-	if opcode == op_cond_accept {
-		p.continue_authentication(auth_data, options['auth_plugin_name'], plugin_list,
-			'')!
-		_, _, buf := p.generic_response()!
-		return p.guess_wire_crypt(buf)
+	if opcode != op_cond_accept {
+		return '', []u8{}
 	}
-	return error(format_error_message('received opcode ${opcode}, not ${op_cond_accept}'))
+
+	p.continue_authentication(auth_data, options['auth_plugin_name'], plugin_list, '')!
+	_, _, buf := p.generic_response()!
+	return p.guess_wire_crypt(buf)
 }
 
 // TODO refactor, this function is too big.
@@ -325,14 +325,13 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 			}
 		}
 
-		encrypt_plugin, nonce := p.get_encrypt_plugin_and_nonce(opcode, auth_data, options)!
-
+		// encrypt
+		plugin, nonce := p.get_encrypt_plugin_and_nonce(opcode, auth_data, options)!
 		wire_crypt := get_wire_crypt_from_options(options)
-		if wire_crypt && session_key.len != 0 {
-			// Send op_crypt
-			p.crypt(encrypt_plugin)!
-			p.conn.set_crypt_key(encrypt_plugin, session_key, nonce)!
-			_, _, _ := p.generic_response() or { return }
+		if plugin != '' && wire_crypt && session_key.len != 0 {
+			p.crypt(plugin)!
+			p.conn.set_crypt_key(plugin, session_key, nonce)!
+			_, _, _ := p.generic_response()! // TODO This one panics
 		} else {
 			p.auth_data = auth_data // use later opAttach and opCreate
 		}
@@ -341,7 +340,6 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 			return error(format_error_message('Protocol error'))
 		}
 	}
-
 	return
 }
 

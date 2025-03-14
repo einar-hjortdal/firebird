@@ -40,59 +40,62 @@ fn new_wire_channel(conn net.TcpConn) &WireChannel {
 
 fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8) ! {
 	c.plugin = plugin
-	if plugin == 'Arc4' {
-		return error(arc4_error)
+	match plugin {
+		'Arc4' {
+			return error(arc4_error)
+		}
+		'ChaCha64' {
+			return error(format_error_message('ChaCha64 not supported yet')) // TODO handle ChaCha64, not available in vlib yet
+		}
+		'ChaCha' {
+			mut digest := sha256.new()
+			digest.write(session_key)!
+			key := digest.sum([]u8{})
+			c.crypto_reader = chacha20.new_cipher(key, nonce)!
+			c.crypto_writer = chacha20.new_cipher(key, nonce)!
+		}
+		else {
+			return error('Unknown wire encryption plugin name: ${plugin}')
+		}
 	}
-	// TODO handle ChaCha64, not available in vlib yet
-	if plugin == 'ChaCha' {
-		mut digest := sha256.new()
-		digest.write(session_key)!
-		key := digest.sum([]u8{})
-		c.crypto_reader = chacha20.new_cipher(key, nonce)!
-		c.crypto_writer = chacha20.new_cipher(key, nonce)!
-		return
-	}
-
-	return error('Unknown wire encryption plugin name: ${plugin}')
 }
 
 fn (mut c WireChannel) read(mut buf []u8) !int {
-	if c.plugin != '' {
-		mut src := []u8{len: buf.len}
-		n := c.reader.read(mut src)!
-		if c.plugin == 'Arc4' {
-			return error(format_error_message(arc4_error))
-		}
-
-		if c.plugin == 'ChaCha' {
-			c.crypto_reader.xor_key_stream(mut buf, src[0..n])
-		}
-
-		return n
+	if c.plugin == '' {
+		return c.reader.read(mut buf)
 	}
 
-	return c.reader.read(mut buf)
+	mut src := []u8{len: buf.len}
+	n := c.reader.read(mut src)!
+	if c.plugin == 'Arc4' {
+		return error(format_error_message(arc4_error))
+	}
+
+	if c.plugin == 'ChaCha' || c.plugin == 'ChaCha64' {
+		c.crypto_reader.xor_key_stream(mut buf, src[0..n])
+	}
+	return n
 }
 
 fn (mut c WireChannel) write(buf []u8) !int {
-	if c.plugin != '' {
-		mut dst := []u8{len: buf.len}
-		if c.plugin == 'Arc4' {
-			return error(format_error_message(arc4_error))
-		}
-
-		if c.plugin == 'ChaCha' {
-			c.crypto_writer.xor_key_stream(mut dst, buf)
-		}
-
-		mut written := 0
-		for written < buf.len {
-			written += c.writer.write(dst[written..])!
-		}
-		return written
+	if c.plugin == '' {
+		return c.writer.write(buf)
 	}
 
-	return c.writer.write(buf)
+	mut dst := []u8{len: buf.len}
+	if c.plugin == 'Arc4' {
+		return error(format_error_message(arc4_error))
+	}
+
+	if c.plugin == 'ChaCha' || c.plugin == 'ChaCha64' {
+		c.crypto_writer.xor_key_stream(mut dst, buf)
+	}
+
+	mut written := 0
+	for written < buf.len {
+		written += c.writer.write(dst[written..])!
+	}
+	return written
 }
 
 fn (mut c WireChannel) flush() ! {
