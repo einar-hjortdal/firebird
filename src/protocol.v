@@ -7,8 +7,10 @@ import os
 
 const buffer_length = i32(1024)
 const zero_byte = u8(0)
-const zero_terminated_chacha20 = arrays.concat('ChaCha'.bytes(), zero_byte)
-const zero_terminated_chacha64 = arrays.concat('ChaCha64'.bytes(), zero_byte)
+const chacha20 = 'ChaCha'
+const chacha64 = 'ChaCha64'
+const zero_terminated_chacha20 = arrays.concat(chacha20.bytes(), zero_byte)
+const zero_terminated_chacha64 = arrays.concat(chacha64.bytes(), zero_byte)
 
 struct WireProtocol {
 mut:
@@ -182,43 +184,19 @@ fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 	return object_handle, object_id, response_buffer
 }
 
-fn parse_wire_crypt_buffer(buf []u8) (string, []string, [][]u8) {
-	mut encryption_type := ''
-	mut available_plugins := []string{}
-	mut plugin_nonces := [][]u8{}
-	mut b := 0
-	for b < buf.len {
-		type_of_data := buf[b]
-		b += 1
-		length := buf[b]
-		b += 1
-		v := buf[b..b + length]
-		b += length
-		if type_of_data == 0 {
-			encryption_type = v.bytestr()
-		}
-		if type_of_data == 1 {
-			available_plugins = v.bytestr().split(' ')
-		}
-		if type_of_data == 3 {
-			plugin_nonces = arrays.append(plugin_nonces, [v])
-		}
-	}
-	return encryption_type, available_plugins, plugin_nonces
-}
-
-fn (mut p WireProtocol) guess_wire_crypt(buf []u8) !(string, []u8) {
+fn (mut p WireProtocol) choose_wire_crypt(buf []u8) !(string, []u8) {
 	_, available_plugins, plugin_nonces := parse_wire_crypt_buffer(buf)
 
 	for nonce in plugin_nonces {
 		if nonce[..7] == zero_terminated_chacha20 {
+			// return chacha64, nonce[9..]
 			// TODO support ChaCha64
 		}
 	}
 
 	for nonce in plugin_nonces {
 		if nonce[..7] == zero_terminated_chacha20 {
-			return 'ChaCha', nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
+			return chacha20, nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
 		}
 	}
 
@@ -261,7 +239,7 @@ fn (mut p WireProtocol) get_encrypt_plugin_and_nonce(opcode i32, auth_data []u8,
 
 	p.continue_authentication(auth_data, options['auth_plugin_name'], plugin_list, '')!
 	_, _, buf := p.generic_response()!
-	return p.guess_wire_crypt(buf)!
+	return p.choose_wire_crypt(buf)!
 }
 
 // TODO refactor, this function is too big.

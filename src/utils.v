@@ -252,3 +252,28 @@ fn get_wire_crypt_from_options(o map[string]string) bool {
 	}
 	return true
 }
+
+fn parse_wire_crypt_buffer(buf []u8) (string, []string, [][]u8) {
+	mut encryption_type := ''
+	mut available_plugins := []string{}
+	mut plugin_nonces := [][]u8{}
+	mut b := 0
+	for b < buf.len {
+		type_of_data := buf[b]
+		b += 1
+		length := buf[b]
+		b += 1
+		v := buf[b..b + length]
+		b += length
+		if type_of_data == 0 {
+			encryption_type = v.bytestr()
+		}
+		if type_of_data == 1 {
+			available_plugins = v.bytestr().split(' ')
+		}
+		if type_of_data == 3 {
+			plugin_nonces = arrays.append(plugin_nonces, [v])
+		}
+	}
+	return encryption_type, available_plugins, plugin_nonces
+}
