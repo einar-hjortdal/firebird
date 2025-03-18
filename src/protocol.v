@@ -5,7 +5,7 @@ import math.big
 import net
 import os
 
-const buffer_length = i32(1024)
+const buffer_length = 1024
 const zero_byte = u8(0)
 const chacha20 = 'ChaCha'
 const chacha64 = 'ChaCha64'
@@ -36,10 +36,10 @@ mut:
 	timezone string
 }
 
-fn new_wire_protocol(addr string, timezone string) !&WireProtocol {
+fn new_wire_protocol(addr string, timezone string) !WireProtocol {
 	conn := net.dial_tcp(addr)!
-	return &WireProtocol{
-		buf:              []u8{}
+	return WireProtocol{
+		buf:              []u8{} // TODO performance enhancement: make it { len: buffer_length }
 		conn:             new_wire_channel(conn)
 		addr:             addr
 		charset:          'UTF8'
@@ -209,7 +209,7 @@ fn (mut p WireProtocol) choose_wire_crypt(buf []u8) !(string, []u8) {
 
 // https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
 fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
-	mut b := p.receive_packets(4)! // TODO io.Eof
+	mut b := p.receive_packets(4)!
 	for parse_i32(b) == op_dummy {
 		b = p.receive_packets(4)!
 	}
@@ -333,10 +333,10 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 		wire_crypt := get_wire_crypt_from_options(options)
 		if plugin != '' && wire_crypt && session_key.len != 0 {
 			p.crypt(plugin)!
-			println('p.crypt sends the expected data to the server, validated using jaybird')
-			println('But then, the server responds with eof')
-			println('If the server was waiting for more data, it would timeout. Something else is happening.')
 			p.conn.set_crypt_key(plugin, session_key, nonce)!
+			println('p.crypt sends the expected data to the server (validated using jaybird, same bytes are sent)')
+			println('But then, the server responds with eof')
+			println('If the server was waiting for more data, it would timeout. Something else is happening, but what?')
 			_, _, _ := p.generic_response()! // TODO This one panics
 		} else {
 			p.auth_data = auth_data // use later opAttach and opCreate

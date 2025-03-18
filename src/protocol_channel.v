@@ -7,7 +7,6 @@ import net
 import x.crypto.chacha20
 
 const plugin_list = 'Srp256,Srp'
-const buffer_len = 1024
 const max_char_length = 32767
 const blob_segment_size = 32000
 
@@ -18,14 +17,14 @@ const arc4_error = 'Arc4 wire encryption plugin is not supported: ${low_priority
 struct WireChannel {
 mut:
 	conn          net.TcpConn
-	reader        &io.BufferedReader
-	writer        &io.BufferedWriter
+	reader        io.BufferedReader
+	writer        io.BufferedWriter
 	plugin        string
-	crypto_reader &cipher.Stream
-	crypto_writer &cipher.Stream
+	crypto_reader cipher.Stream
+	crypto_writer cipher.Stream
 }
 
-fn new_wire_channel(conn net.TcpConn) &WireChannel {
+fn new_wire_channel(conn net.TcpConn) WireChannel {
 	brc := io.BufferedReaderConfig{
 		reader: conn
 	}
@@ -34,7 +33,7 @@ fn new_wire_channel(conn net.TcpConn) &WireChannel {
 	}
 	new_reader := io.new_buffered_reader(brc)
 	new_writer := io.new_buffered_writer(bwc) or { panic(err) } // Will never panic because cap is not 0 (uses default cap)
-	wire_channel := &WireChannel{
+	wire_channel := WireChannel{
 		conn:          conn
 		reader:        new_reader
 		writer:        new_writer
@@ -73,7 +72,7 @@ fn (mut c WireChannel) read(mut buf []u8) !int {
 
 	mut src := []u8{len: buf.len}
 	read := c.reader.read(mut src)!
-	c.crypto_reader.xor_key_stream(mut buf, src[0..read])
+	c.crypto_reader.xor_key_stream(mut buf, src[..read])
 	return read
 }
 

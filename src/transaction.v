@@ -6,7 +6,7 @@ import context
 pub struct Transaction {
 	isolation_level int
 mut:
-	conn          &Connection
+	conn          Connection
 	is_autocommit bool
 	need_begin    bool
 	handle        i32

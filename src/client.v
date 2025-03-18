@@ -6,8 +6,6 @@ import sync
 // TODO
 pub struct ClientOptions {}
 
-// This is the struct that users create and interface with.
-// It maintains a pool of connections.
 // Similar to https://github.com/einar-hjortdal/redict/blob/pending/src/pool/pool.v
 pub struct Client {
 	options ClientOptions
