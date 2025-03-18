@@ -312,7 +312,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 		if plugin != '' && wire_crypt && session_key.len != 0 {
 			p.crypt(plugin)!
 			p.conn.set_crypt_key(plugin, session_key, nonce)!
-			_, _, _ := p.generic_response()!
+			_, _, _ := p.generic_response()! // TODO sometimes hangs, sometimes panic
 		} else {
 			p.auth_data = auth_data // use later opAttach and opCreate
 		}
