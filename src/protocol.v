@@ -335,8 +335,9 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 			p.crypt(plugin)!
 			p.conn.set_crypt_key(plugin, session_key, nonce)!
 			println('p.crypt sends the expected data to the server (validated using jaybird, same bytes are sent)')
-			println('But then, the server responds with eof')
-			println('If the server was waiting for more data, it would timeout. Something else is happening, but what?')
+			println('If the server had not sent data, the read operation would timeout.')
+			println('But the server ends the connection (read returns eof)')
+			println('Why is the connection dropped? Analyze packets sent before p.crypt? p.crypt buf seems to be sent?')
 			_, _, _ := p.generic_response()! // TODO This one panics
 		} else {
 			p.auth_data = auth_data // use later opAttach and opCreate

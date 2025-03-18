@@ -60,7 +60,7 @@ fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8
 			c.crypto_writer = chacha20.new_cipher(key, nonce)!
 		}
 		else {
-			return error('Unknown wire encryption plugin name: ${plugin}')
+			return error(format_error_message('Unknown wire encryption plugin name: ${plugin}'))
 		}
 	}
 }
