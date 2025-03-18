@@ -5,6 +5,7 @@ import math.big
 import net
 import os
 
+const plugin_list = 'Srp256,Srp'
 const buffer_length = 1024
 const zero_byte = u8(0)
 const chacha20 = 'ChaCha'
@@ -108,7 +109,6 @@ fn (mut p WireProtocol) receive_packets(n int) ![]u8 {
 	return buf
 }
 
-// TODO refactor, function is too big
 fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 	mut sql_code := 0
 	mut gds_code := 0
@@ -215,9 +215,8 @@ fn (mut p WireProtocol) get_encrypt_plugin_and_nonce(opcode i32, auth_data []u8,
 		return '', []u8{}
 	}
 
-	p.continue_authentication(auth_data, options['auth_plugin_name'], plugin_list, '')!
-	_, _, buf := p.generic_response()! // buf is as expected and can be parsed with coose_wire_crypt.
-	p.receive_packets(1)! // TODO connection is killed here: receive_packets should hang but it doesn't.
+	p.continue_authentication(auth_data, options['auth_plugin_name'], '')!
+	_, _, buf := p.generic_response()!
 	return choose_wire_crypt(buf)!
 }
 
@@ -271,7 +270,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 
 				if data.len == 0 {
 					p.continue_authentication(big_integer_to_bytes(client_public_key),
-						p.plugin_name, plugin_list, '')!
+						p.plugin_name, '')!
 					b = p.receive_packets(4) or { []u8{} }
 					op := parse_i32(b)
 					if op == op_response {
@@ -313,11 +312,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 		if plugin != '' && wire_crypt && session_key.len != 0 {
 			p.crypt(plugin)!
 			p.conn.set_crypt_key(plugin, session_key, nonce)!
-			println('p.crypt sends the expected data to the server (validated using jaybird, same bytes are sent)')
-			println('If the server had not sent data, the read operation would timeout.')
-			println('But the server ends the connection (read returns eof)')
-			println('Why is the connection dropped? Analyze packets sent before p.crypt? p.crypt buf seems to be sent?')
-			_, _, _ := p.generic_response()! // TODO This one panics
+			_, _, _ := p.generic_response()!
 		} else {
 			p.auth_data = auth_data // use later opAttach and opCreate
 		}
@@ -394,11 +389,11 @@ fn (mut p WireProtocol) rollback(handle i32) ! {
 }
 
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L794
-fn (mut p WireProtocol) continue_authentication(auth_data []u8, auth_plugin_name string, auth_plugin_list string, keys string) ! {
+fn (mut p WireProtocol) continue_authentication(auth_data []u8, auth_plugin_name string, keys string) ! {
 	p.pack_i32(op_cont_auth)
 	p.pack_string(auth_data.hex())
 	p.pack_string(auth_plugin_name)
-	p.pack_string(auth_plugin_list)
+	p.pack_string(plugin_list)
 	p.pack_string(keys)
 	p.send_packets()!
 }

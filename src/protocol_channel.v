@@ -6,7 +6,6 @@ import io
 import net
 import x.crypto.chacha20
 
-const plugin_list = 'Srp256,Srp'
 const max_char_length = 32767
 const blob_segment_size = 32000
 

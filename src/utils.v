@@ -95,20 +95,16 @@ fn create_bytes(a []u8) ([]u8, int) {
 	return res, bytes_to_pad
 }
 
-// https://www.ietf.org/rfc/rfc4506.html#section-4.11
-fn marshal_string(s string) []u8 {
-	a := s.bytes()
-	mut res, bytes_to_pad := create_bytes(a)
-	return arrays.append(res, []u8{len: bytes_to_pad})
-}
-
-// https://www.ietf.org/rfc/rfc4506.html#section-4.13
 fn marshal_bytes(a []u8) []u8 {
 	mut res, bytes_to_pad := create_bytes(a)
 	if bytes_to_pad == 4 {
 		return res
 	}
 	return arrays.append(res, []u8{len: bytes_to_pad})
+}
+
+fn marshal_string(s string) []u8 {
+	return marshal_bytes(s.bytes())
 }
 
 fn parse_i32(b []u8) i32 {
