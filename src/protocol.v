@@ -184,29 +184,6 @@ fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 	return object_handle, object_id, response_buffer
 }
 
-fn (mut p WireProtocol) choose_wire_crypt(buf []u8) !(string, []u8) {
-	_, available_plugins, plugin_nonces := parse_wire_crypt_buffer(buf)
-
-	for nonce in plugin_nonces {
-		if nonce[..9] == zero_terminated_chacha64 {
-			// return chacha64, nonce[9..]
-			// TODO support ChaCha64
-		}
-	}
-
-	for nonce in plugin_nonces {
-		if nonce[..7] == zero_terminated_chacha20 {
-			return chacha20, nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
-		}
-	}
-
-	if available_plugins.contains('Arc4') {
-		return 'Arc4', []u8{}
-	}
-
-	return error(format_error_message('Unsupported crypt plugin'))
-}
-
 // https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
 fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 	mut b := p.receive_packets(4)!
@@ -216,7 +193,7 @@ fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 
 	for parse_i32(b) == op_crypt_key_callback {
 		p.crypt_callback()!
-		b = p.receive_packets(12)!
+		p.receive_packets(12)!
 		b = p.receive_packets(4)!
 	}
 
@@ -226,8 +203,9 @@ fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 		b = p.receive_packets(4)!
 	}
 
-	if parse_i32(b) != op_response {
-		return error(format_op_error(parse_i32(b)))
+	op_error_code := parse_i32(b)
+	if op_error_code != op_response {
+		return error(format_op_error(op_error_code))
 	}
 	return p.parse_generic_response()!
 }
@@ -238,8 +216,9 @@ fn (mut p WireProtocol) get_encrypt_plugin_and_nonce(opcode i32, auth_data []u8,
 	}
 
 	p.continue_authentication(auth_data, options['auth_plugin_name'], plugin_list, '')!
-	_, _, buf := p.generic_response()!
-	return p.choose_wire_crypt(buf)!
+	_, _, buf := p.generic_response()! // buf is as expected and can be parsed with coose_wire_crypt.
+	p.receive_packets(1)! // TODO connection is killed here: receive_packets should hang but it doesn't.
+	return choose_wire_crypt(buf)!
 }
 
 // TODO refactor, this function is too big.

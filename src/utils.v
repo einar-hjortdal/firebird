@@ -277,3 +277,26 @@ fn parse_wire_crypt_buffer(buf []u8) (string, []string, [][]u8) {
 	}
 	return encryption_type, available_plugins, plugin_nonces
 }
+
+fn choose_wire_crypt(buf []u8) !(string, []u8) {
+	_, available_plugins, plugin_nonces := parse_wire_crypt_buffer(buf)
+
+	for nonce in plugin_nonces {
+		if nonce[..9] == zero_terminated_chacha64 {
+			// return chacha64, nonce[9..]
+			// TODO support ChaCha64
+		}
+	}
+
+	for nonce in plugin_nonces {
+		if nonce[..7] == zero_terminated_chacha20 {
+			return chacha20, nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
+		}
+	}
+
+	if available_plugins.contains('Arc4') {
+		return 'Arc4', []u8{}
+	}
+
+	return error(format_error_message('Unsupported crypt plugin'))
+}
