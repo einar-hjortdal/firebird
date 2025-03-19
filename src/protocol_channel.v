@@ -72,6 +72,9 @@ fn (mut c WireChannel) read(mut buf []u8) !int {
 	mut src := []u8{len: buf.len}
 	read := c.reader.read(mut src)!
 	c.crypto_reader.xor_key_stream(mut buf, src[..read])
+	// println(src)
+	// println(buf)
+	// Looks like the second call of xor_key_stream fails to decode the data
 	return read
 }
 
