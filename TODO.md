@@ -16,7 +16,6 @@
 
 ### Medium
 
-- connection pool
 - logging
 - optimize performance
 
