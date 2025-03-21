@@ -34,4 +34,3 @@ please open a pull request.
 - Firebird versions other than >= 5
 - protocol versions < 18
 - `Legacy_Auth` auth plugin
-- `Arc4` wire encryption plugin

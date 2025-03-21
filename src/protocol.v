@@ -12,6 +12,7 @@ const chacha20 = 'ChaCha'
 const chacha64 = 'ChaCha64'
 const zero_terminated_chacha20 = arrays.concat(chacha20.bytes(), zero_byte)
 const zero_terminated_chacha64 = arrays.concat(chacha64.bytes(), zero_byte)
+const legacy_auth_error = 'LegacyAuth is not supported: ${low_priority_todo}'
 
 struct WireProtocol {
 mut:
@@ -175,10 +176,6 @@ fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 	object_handle := parse_i32(b[..4])
 	object_id := b[4..12]
 	response_buffer_length := parse_i32(b[12..])
-	// println('buffer: ${b}')
-	// println('object_handle: ${object_handle}')
-	// println('object_id ${b[12..]}')
-	// println('response_buffer_length ${response_buffer_length}')
 	response_buffer := p.receive_aligned_packets(response_buffer_length)!
 
 	gds_code_list, sql_code, message := p.parse_status_vector()!

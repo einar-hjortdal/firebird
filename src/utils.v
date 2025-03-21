@@ -8,6 +8,7 @@ import math.big
 import os
 
 const lib = 'firebird'
+const low_priority_todo = 'https://github.com/einar-hjortdal/firebird/blob/pending/TODO.md#low-priority'
 const mask_byte = u8(0b1111_1111)
 
 fn format_error_message(message string) string {
@@ -279,14 +280,15 @@ fn choose_wire_crypt(buf []u8) !(string, []u8) {
 
 	for nonce in plugin_nonces {
 		if nonce[..9] == zero_terminated_chacha64 {
+			// chacha20 does not support 64bit internal counter: https://github.com/vlang/v/issues/23977
 			// return chacha64, nonce[9..]
-			// TODO support ChaCha64
 		}
 	}
 
 	for nonce in plugin_nonces {
 		if nonce[..7] == zero_terminated_chacha20 {
-			return chacha20, nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
+			// chacha20 is broken: https://github.com/vlang/v/issues/23977#issuecomment-2739585508
+			// return chacha20, nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
 		}
 	}
 
