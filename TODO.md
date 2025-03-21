@@ -5,10 +5,8 @@
 ### Highest
 
 - ~~connect to Firebird~~
-  - ~~Secure Remote Password~~
-  - ~~Encrypt with rc4~~
-  - Encrypt with chacha20 (32bit internal counter)
-  - Encrypt with chacha20 (64bit internal counter)
+- ~~support Secure Remote Password auth plugin~~
+- ~~support arc4 crypt plugin~~
 - issue commands
 - parse responses
 
@@ -18,6 +16,8 @@
 
 ### Medium
 
+- support chacha crypt plugin
+- support chacha64 crypt plugin
 - logging
 - optimize performance
 
@@ -35,4 +35,4 @@ please open a pull request.
 - charset other than UTF8
 - Firebird versions other than >= 5
 - protocol versions < 18
-- `Legacy_Auth` auth plugin
+- Legacy_Auth auth plugin
