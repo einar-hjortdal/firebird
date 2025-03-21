@@ -4,7 +4,7 @@
 
 ### Highest
 
-- connect to Firebird
+- ~~connect to Firebird~~
   - ~~Secure Remote Password~~
   - ~~Encrypt with chacha20~~
 - issue commands
