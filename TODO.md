@@ -6,7 +6,9 @@
 
 - ~~connect to Firebird~~
   - ~~Secure Remote Password~~
-  - ~~Encrypt with chacha20~~
+  - ~~Encrypt with rc4~~
+  - Encrypt with chacha20 (32bit internal counter)
+  - Encrypt with chacha20 (64bit internal counter)
 - issue commands
 - parse responses
 
