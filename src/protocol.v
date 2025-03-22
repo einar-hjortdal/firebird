@@ -7,11 +7,6 @@ import os
 
 const plugin_list = 'Srp256,Srp'
 const buffer_length = 1024
-const zero_byte = u8(0)
-const chacha20 = 'ChaCha'
-const chacha64 = 'ChaCha64'
-const zero_terminated_chacha20 = arrays.concat(chacha20.bytes(), zero_byte)
-const zero_terminated_chacha64 = arrays.concat(chacha64.bytes(), zero_byte)
 const legacy_auth_error = 'LegacyAuth is not supported: ${low_priority_todo}'
 
 struct WireProtocol {

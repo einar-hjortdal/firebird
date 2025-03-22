@@ -9,7 +9,12 @@ import os
 
 const lib = 'firebird'
 const low_priority_todo = 'https://github.com/einar-hjortdal/firebird/blob/pending/TODO.md#low-priority'
+const zero_byte = u8(0)
 const mask_byte = u8(0b1111_1111)
+const chacha20_32 = 'ChaCha'
+const chacha20_64 = 'ChaCha64'
+const zero_terminated_chacha20_32 = arrays.concat(chacha20_32.bytes(), zero_byte)
+const zero_terminated_chacha20_64 = arrays.concat(chacha20_64.bytes(), zero_byte)
 
 fn format_error_message(message string) string {
 	return '[${lib}] ${message}'
@@ -279,13 +284,13 @@ fn choose_wire_crypt(buf []u8) !(string, []u8) {
 	_, available_plugins, plugin_nonces := parse_wire_crypt_buffer(buf)
 
 	for nonce in plugin_nonces {
-		if nonce[..9] == zero_terminated_chacha64 {
+		if nonce[..9] == zero_terminated_chacha20_64 {
 			// return chacha64, nonce[9..]
 		}
 	}
 
 	for nonce in plugin_nonces {
-		if nonce[..7] == zero_terminated_chacha20 {
+		if nonce[..7] == zero_terminated_chacha20_32 {
 			// return chacha20, nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
 		}
 	}
