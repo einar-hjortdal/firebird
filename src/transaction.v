@@ -85,19 +85,7 @@ pub fn (mut t Transaction) rollback() ! {
 	return
 }
 
-pub fn (mut t Transaction) exec(ctx context.Context, query string) !Result {
-	return error('TODO')
-}
-
-pub fn (mut t Transaction) exec_params(ctx context.Context, query string, parameters []Value) !Result {
-	return error('TODO')
-}
-
-pub fn (mut t Transaction) query(ctx context.Context, query string) !Rows {
-	return error('TODO')
-}
-
-pub fn (mut t Transaction) query_params(ctx context.Context, query string, parameters []Value) !Rows {
+pub fn (mut t Transaction) exec(ctx context.Context, query string, args []Value) ![]Row {
 	return error('TODO')
 }
 

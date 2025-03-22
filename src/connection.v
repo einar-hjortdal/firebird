@@ -40,40 +40,24 @@ pub fn open(s string) !Connection {
 
 // Close the connection.
 // Calls Transaction.rollback on any running transaction.
-pub fn (mut conn Connection) close() ! {
-	len := conn.transactions.len
+pub fn (mut c Connection) close() ! {
+	len := c.transactions.len
 	for i := 0; i < len; i++ {
-		conn.transactions[i].rollback()!
+		c.transactions[i].rollback()!
 	}
 
-	conn.p.detach()!
-	conn.p.generic_response()!
-	conn.p.conn.close()!
-	return
+	c.p.detach()!
+	c.p.generic_response()!
+	c.p.conn.close()!
 }
 
-// Execute query that may return a result.
-pub fn (mut conn Connection) exec(ctx context.Context, query string) !Result {
+// Execute a query
+pub fn (mut c Connection) query(ctx context.Context, query string) ![]Row {
 	return error('TODO')
 }
 
-// Execute query with params that may return a result.
-pub fn (mut conn Connection) exec_params(ctx context.Context, query string, parameters []Value) !Result {
-	return error('TODO')
-}
-
-// Execute query that may return rows.
-pub fn (mut conn Connection) query(ctx context.Context, query string) !Rows {
-	return error('TODO')
-}
-
-// Execute query with params that may return rows.
-pub fn (mut conn Connection) query_params(ctx context.Context, query string, parameters []Value) !Rows {
-	return error('TODO')
-}
-
-// Prepare a statement
-pub fn (mut conn Connection) prepare(ctx context.Context, query string) !Statement {
+// Prepares a statement
+pub fn (mut c Connection) prepare(ctx context.Context, query string) !Statement {
 	return error('TODO')
 }
 
@@ -82,11 +66,11 @@ fn (mut conn Connection) private_begin(isolation_level int) !Transaction {
 	return t
 }
 
-// Begin a Transaction.
-pub fn (mut conn Connection) begin(ctx context.Context, isolation_level int) !Transaction {
+// Begins a Transaction
+pub fn (mut c Connection) begin(ctx context.Context, isolation_level int) !Transaction {
 	if isolation_level in [isolation_level_read_commited_ro, isolation_level_read_commited,
 		isolation_level_repeatable_read, isolation_level_serializable] {
-		return conn.private_begin(isolation_level)
+		return c.private_begin(isolation_level)
 	}
 
 	return error(format_error_message('Isolation level not supported.'))

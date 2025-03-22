@@ -17,22 +17,7 @@ pub fn (mut stmt Statement) close() ! {
 	return error('TODO')
 }
 
-// Execute a query that may return a result.
-pub fn (mut stmt Statement) exec(ctx context.Context) !Result {
-	return error('TODO')
-}
-
-// Execute a query with parameters that may return a result.
-pub fn (mut stmt Statement) exec_params(ctx context.Context, parameters []Value) !Result {
-	return error('TODO')
-}
-
-// Execute a query that may return rows.
-pub fn (mut stmt Statement) query(ctx context.Context, parameters []Value) !Rows {
-	return error('TODO')
-}
-
-// Execute a query with parameters that may return rows.
-pub fn (mut stmt Statement) query_params(ctx context.Context, parameters []Value) !Rows {
+// Executes the statement with the given args
+pub fn (mut stmt Statement) exec(ctx context.Context, args []Value) ![]Row {
 	return error('TODO')
 }
