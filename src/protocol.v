@@ -374,7 +374,9 @@ fn (mut p WireProtocol) attach(database string, user string, password string, ro
 }
 
 fn (mut p WireProtocol) detach() ! {
-	return error('TODO')
+	p.pack_i32(op_detach)
+	p.pack_i32(p.db_handle)
+	p.send_packets()!
 }
 
 fn (mut p WireProtocol) transaction(tpb []u8) ! {

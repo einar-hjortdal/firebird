@@ -16,8 +16,8 @@
 
 ### Medium
 
-- support chacha crypt plugin
-- support chacha64 crypt plugin
+- support chacha crypt plugin <!-- https://github.com/vlang/v/issues/23977 -->
+- support chacha64 crypt plugin <!-- https://github.com/vlang/v/issues/23904 -->
 - logging
 - optimize performance
 

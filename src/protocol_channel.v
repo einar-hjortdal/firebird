@@ -43,7 +43,7 @@ fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8
 	c.plugin = plugin
 	match plugin {
 		'ChaCha64' {
-			return error(format_error_message('ChaCha64 not supported yet')) // https://github.com/vlang/v/issues/23904
+			return error(format_error_message('ChaCha64 crypt plugin not supported yet'))
 		}
 		'ChaCha' {
 			mut digest := sha256.new()
