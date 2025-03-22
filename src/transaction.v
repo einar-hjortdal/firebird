@@ -9,7 +9,7 @@ mut:
 	conn          Connection
 	is_autocommit bool
 	need_begin    bool
-	handle        i32
+	tx_handle     i32
 }
 
 const partial = [u8(isc_tpb_version3), u8(isc_tpb_write), u8(isc_tpb_wait)]
@@ -46,8 +46,8 @@ fn get_tpb(isolation_level int) []u8 {
 fn (mut t Transaction) begin() ! {
 	tpb := get_tpb(t.isolation_level)
 	t.conn.p.transaction(tpb)!
-	handle, _, _ := t.conn.p.generic_response()!
-	t.handle = handle
+	tx_handle, _, _ := t.conn.p.generic_response()!
+	t.tx_handle = tx_handle
 	t.need_begin = false
 	t.conn.transactions = arrays.concat(t.conn.transactions, t)
 	return
@@ -70,7 +70,7 @@ fn new_transaction(mut conn Connection, isolation_level int, is_autocommit bool,
 }
 
 pub fn (mut t Transaction) commit() ! {
-	t.conn.p.commit(t.handle)!
+	t.conn.p.commit(t.tx_handle)!
 	_, _, _ := t.conn.p.generic_response()!
 	t.is_autocommit = t.conn.is_autocommit
 	t.need_begin = true
@@ -78,7 +78,7 @@ pub fn (mut t Transaction) commit() ! {
 }
 
 pub fn (mut t Transaction) rollback() ! {
-	t.conn.p.rollback(t.handle)!
+	t.conn.p.rollback(t.tx_handle)!
 	_, _, _ := t.conn.p.generic_response()!
 	t.is_autocommit = t.conn.is_autocommit
 	t.need_begin = true

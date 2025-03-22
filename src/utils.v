@@ -16,6 +16,25 @@ const chacha20_64 = 'ChaCha64'
 const zero_terminated_chacha20_32 = arrays.concat(chacha20_32.bytes(), zero_byte)
 const zero_terminated_chacha20_64 = arrays.concat(chacha20_64.bytes(), zero_byte)
 
+pub struct Null {}
+
+pub struct NotNull {}
+
+pub struct Row {}
+
+// Value could be:
+// - Null
+// - NotNull
+// - i32
+// - i64
+// - f32
+// - f64
+// - bool
+// - []u8
+// - string
+// - time.Time
+pub interface Value {}
+
 fn format_error_message(message string) string {
 	return '[${lib}] ${message}'
 }

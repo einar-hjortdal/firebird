@@ -8,6 +8,15 @@ import os
 const plugin_list = 'Srp256,Srp'
 const buffer_length = 1024
 const legacy_auth_error = 'LegacyAuth is not supported: ${low_priority_todo}'
+const info_sql_select_describe_vars = [u8(isc_info_sql_select), isc_info_sql_describe_vars,
+	isc_info_sql_sqlda_seq, isc_info_sql_type, isc_info_sql_sub_type, isc_info_sql_scale,
+	isc_info_sql_length, isc_info_sql_null_ind, isc_info_sql_field, isc_info_sql_relation,
+	isc_info_sql_owner, isc_info_sql_alias, isc_info_sql_describe_end]
+
+// Protocol Types (accept_type)
+const ptype_batch_send = 3 // Batch sends, no asynchrony
+const ptype_out_of_band = 4 // Batch sends w/ out of band notification
+const ptype_lazy_send = 5 // Deferred packets delivery
 
 struct WireProtocol {
 mut:
@@ -384,6 +393,23 @@ fn (mut p WireProtocol) commit(handle i32) ! {
 
 fn (mut p WireProtocol) rollback(handle i32) ! {
 	return error('TODO')
+}
+
+fn (mut p WireProtocol) allocate_statement() ! {
+	p.pack_i32(op_allocate_statement)
+	p.pack_i32(p.db_handle)
+	p.send_packets()!
+}
+
+fn (mut p WireProtocol) prepare_statement(stmt_handle i32, tx_handle i32, query string) ! {
+	p.pack_i32(op_prepare_statement)
+	p.pack_i32(tx_handle)
+	p.pack_i32(stmt_handle)
+	p.pack_i32(3) // dialect 3
+	p.pack_string(query)
+	p.pack_bytes(arrays.append([u8(isc_info_sql_stmt_type)], info_sql_select_describe_vars))
+	p.pack_i32(buffer_length)
+	p.send_packets()!
 }
 
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L794

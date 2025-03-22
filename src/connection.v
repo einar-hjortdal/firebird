@@ -12,7 +12,7 @@ mut:
 	is_autocommit        bool
 	client_public_key    big.Integer
 	client_secret_key    big.Integer
-	transactions         []&Transaction
+	transactions         []Transaction
 }
 
 fn new_connection(dsn DataSourceName) !Connection {
@@ -22,7 +22,7 @@ fn new_connection(dsn DataSourceName) !Connection {
 	p.parse_connect_response(dsn.user, dsn.password, dsn.options, client_public_key, client_secret_key)!
 	p.attach(dsn.database, dsn.user, dsn.password, dsn.options['role'])!
 	p.db_handle, _, _ = p.generic_response()!
-	mut conn := Connection{
+	return Connection{
 		p:                    p
 		dsn:                  dsn
 		column_name_to_lower: parse_bool(dsn.options['column_name_to_lower'])
@@ -30,7 +30,6 @@ fn new_connection(dsn DataSourceName) !Connection {
 		client_public_key:    client_public_key
 		client_secret_key:    client_secret_key
 	}
-	return conn
 }
 
 pub fn open(s string) !Connection {
@@ -52,13 +51,16 @@ pub fn (mut c Connection) close() ! {
 }
 
 // Execute a query
-pub fn (mut c Connection) query(ctx context.Context, query string) ![]Row {
-	return error('TODO')
+pub fn (mut c Connection) query(ctx context.Context, query string, args []Value) ![]Row {
+	mut stmt := c.prepare(ctx, query)!
+	result := stmt.exec(ctx, args)!
+	stmt.close()!
+	return result
 }
 
 // Prepares a statement
 pub fn (mut c Connection) prepare(ctx context.Context, query string) !Statement {
-	return error('TODO')
+	return new_statement(mut c, query)!
 }
 
 fn (mut conn Connection) private_begin(isolation_level int) !Transaction {
