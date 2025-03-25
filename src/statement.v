@@ -24,8 +24,7 @@ fn new_statement(mut c Connection, query string) !Statement {
 		stmt.stmt_handle, _, _ = stmt.conn.p.generic_response()!
 	}
 
-	stmt.conn.p.prepare_statement(stmt.stmt_handle, stmt.conn.transactions[0].tx_handle,
-		query)!
+	// stmt.conn.p.prepare_statement(stmt.stmt_handle, tx_handle, query)!
 	return error('TODO') // Understand better how each connection owns a transaction, and how to create non-recursive structures.
 }
 

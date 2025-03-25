@@ -49,7 +49,7 @@ fn (mut t Transaction) begin() ! {
 	tx_handle, _, _ := t.conn.p.generic_response()!
 	t.tx_handle = tx_handle
 	t.need_begin = false
-	t.conn.transactions = arrays.concat(t.conn.transactions, t)
+	// t.conn.transactions = arrays.concat(t.conn.transactions, t)
 	return
 }
 

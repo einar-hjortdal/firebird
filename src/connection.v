@@ -12,7 +12,6 @@ mut:
 	is_autocommit        bool
 	client_public_key    big.Integer
 	client_secret_key    big.Integer
-	transactions         []Transaction
 }
 
 fn new_connection(dsn DataSourceName) !Connection {
@@ -40,11 +39,6 @@ pub fn open(s string) !Connection {
 // Close the connection.
 // Calls Transaction.rollback on any running transaction.
 pub fn (mut c Connection) close() ! {
-	len := c.transactions.len
-	for i := 0; i < len; i++ {
-		c.transactions[i].rollback()!
-	}
-
 	c.p.detach()!
 	c.p.generic_response()!
 	c.p.conn.close()!

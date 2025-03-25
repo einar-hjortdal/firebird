@@ -310,7 +310,7 @@ fn choose_wire_crypt(buf []u8) !(string, []u8) {
 
 	for nonce in plugin_nonces {
 		if nonce[..7] == zero_terminated_chacha20_32 {
-			// return chacha20, nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
+			// return chacha20_32, nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
 		}
 	}
 
