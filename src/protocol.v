@@ -114,6 +114,17 @@ fn (mut p WireProtocol) receive_packets(n int) ![]u8 {
 	return buf
 }
 
+fn (mut p WireProtocol) receive_aligned_packets(n i32) ![]u8 {
+	if n == 0 {
+		return []u8{}
+	}
+
+	padding := received_packets_padding(n)
+	buf := p.receive_packets(n + padding)!
+	res := buf[..n] // exclude padding
+	return res
+}
+
 fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 	mut sql_code := 0
 	mut gds_code := 0

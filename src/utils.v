@@ -256,17 +256,6 @@ fn received_packets_padding(n int) int {
 	return remainder
 }
 
-fn (mut p WireProtocol) receive_aligned_packets(n i32) ![]u8 {
-	if n == 0 {
-		return []u8{}
-	}
-
-	padding := received_packets_padding(n)
-	buf := p.receive_packets(n + padding)!
-	res := buf[..n] // exclude padding
-	return res
-}
-
 fn get_wire_crypt_from_options(o map[string]string) bool {
 	if 'wire_crypt' in o {
 		return parse_bool(o['wire_crypt'])
