@@ -27,8 +27,8 @@ fn new_statement(mut tx Transaction, query string) !Statement {
 	}
 
 	_, _, buf := tx.conn.p.generic_response()!
-	// stmt_type, xsqlda := tx.conn.p.parse_xsqlda(buf, stmt.stmt_handle)!
-	// blr = calculate_blr(stmt.xsqlda)
+	// stmt_type, xsqlda := tx.conn.p.parse_xsqlda(buf, stmt_handle)!
+	// blr = calculate_blr(xsqlda)
 	return Statement{
 		query:       query
 		tx:          tx

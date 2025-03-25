@@ -394,15 +394,22 @@ fn (mut p WireProtocol) detach() ! {
 }
 
 fn (mut p WireProtocol) transaction(tpb []u8) ! {
-	return error('TODO')
+	p.pack_i32(op_transaction)
+	p.pack_i32(p.db_handle)
+	p.pack_bytes(tpb)
+	p.send_packets()!
 }
 
-fn (mut p WireProtocol) commit(handle i32) ! {
-	return error('TODO')
+fn (mut p WireProtocol) commit(tx_handle i32) ! {
+	p.pack_i32(op_commit)
+	p.pack_i32(tx_handle)
+	p.send_packets()!
 }
 
-fn (mut p WireProtocol) rollback(handle i32) ! {
-	return error('TODO')
+fn (mut p WireProtocol) rollback(tx_handle i32) ! {
+	p.pack_i32(op_rollback)
+	p.pack_i32(tx_handle)
+	p.send_packets()!
 }
 
 fn (mut p WireProtocol) allocate_statement() ! {
