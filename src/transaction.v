@@ -1,71 +1,27 @@
 module firebird
 
-import arrays
-import context
-
 pub struct Transaction {
 	isolation_level int
 mut:
 	conn          Connection
 	is_autocommit bool
-	need_begin    bool
 	tx_handle     i32
 }
 
-const partial = [u8(isc_tpb_version3), u8(isc_tpb_write), u8(isc_tpb_wait)]
-
-fn get_tpb(isolation_level int) []u8 {
-	match isolation_level {
-		isolation_level_read_commited_legacy {
-			return arrays.concat(partial, u8(isc_tpb_read_committed), u8(isc_tpb_no_rec_version))
-		}
-		isolation_level_read_commited {
-			return arrays.concat(partial, u8(isc_tpb_read_committed), u8(isc_tpb_rec_version))
-		}
-		isolation_level_repeatable_read {
-			return arrays.concat(partial, u8(isc_tpb_concurrency))
-		}
-		isolation_level_serializable {
-			return arrays.concat(partial, u8(isc_tpb_consistency))
-		}
-		isolation_level_read_commited_ro {
-			return [
-				u8(isc_tpb_version3),
-				u8(isc_tpb_read),
-				u8(isc_tpb_wait),
-				u8(isc_tpb_read_committed),
-				u8(isc_tpb_rec_version),
-			]
-		}
-		else {
-			return []u8{}
-		}
-	}
-}
-
-fn (mut t Transaction) begin() ! {
+fn (mut t Transaction) set() ! {
 	tpb := get_tpb(t.isolation_level)
 	t.conn.p.transaction(tpb)!
 	tx_handle, _, _ := t.conn.p.generic_response()!
 	t.tx_handle = tx_handle
-	t.need_begin = false
-	// t.conn.transactions = arrays.concat(t.conn.transactions, t)
-	return
 }
 
-fn new_transaction(mut conn Connection, isolation_level int, is_autocommit bool, with_begin bool) !Transaction {
+fn new_transaction(mut conn Connection, isolation_level int, is_autocommit bool) !Transaction {
 	mut t := Transaction{
 		conn:            conn
 		isolation_level: isolation_level
 		is_autocommit:   is_autocommit
 	}
-
-	if with_begin {
-		t.begin()!
-	} else {
-		t.need_begin = true
-	}
-
+	t.set()!
 	return t
 }
 
@@ -73,22 +29,14 @@ pub fn (mut t Transaction) commit() ! {
 	t.conn.p.commit(t.tx_handle)!
 	_, _, _ := t.conn.p.generic_response()!
 	t.is_autocommit = t.conn.is_autocommit
-	t.need_begin = true
-	return
 }
 
 pub fn (mut t Transaction) rollback() ! {
 	t.conn.p.rollback(t.tx_handle)!
 	_, _, _ := t.conn.p.generic_response()!
 	t.is_autocommit = t.conn.is_autocommit
-	t.need_begin = true
-	return
 }
 
-pub fn (mut t Transaction) exec(ctx context.Context, query string, args []Value) ![]Row {
-	return error('TODO')
-}
-
-pub fn (mut t Transaction) prepare(ctx context.Context, query string) !Statement {
+pub fn (mut t Transaction) prepare_statement(query string) !Statement {
 	return error('TODO')
 }

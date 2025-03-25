@@ -1,19 +1,20 @@
 module firebird
 
 import math.big
-import context
 
 @[heap]
 struct Connection {
-mut:
-	p                    WireProtocol
 	dsn                  DataSourceName
-	column_name_to_lower bool
-	is_autocommit        bool
 	client_public_key    big.Integer
 	client_secret_key    big.Integer
+	column_name_to_lower bool
+	is_autocommit        bool
+mut:
+	p WireProtocol
 }
 
+// `s` is the dsn in the format [firebird://]<user>:<password>@<host><database>
+// see connection_text.v for an example.
 pub fn new_connection(s string) !Connection {
 	dsn := parse_dsn(s)!
 	mut p := new_wire_protocol(dsn.address, dsn.options['timezone'])!
@@ -33,36 +34,19 @@ pub fn new_connection(s string) !Connection {
 }
 
 // Close the connection.
-// Calls Transaction.rollback on any running transaction.
 pub fn (mut c Connection) close() ! {
 	c.p.detach()!
 	c.p.generic_response()!
 	c.p.conn.close()!
 }
 
-// Execute a query
-pub fn (mut c Connection) query(ctx context.Context, query string, args []Value) ![]Row {
-	mut stmt := c.prepare(ctx, query)!
-	result := stmt.exec(ctx, args)!
-	stmt.close()!
-	return result
-}
-
-// Prepares a statement
-pub fn (mut c Connection) prepare(ctx context.Context, query string) !Statement {
-	return new_statement(mut c, query)!
-}
-
-fn (mut conn Connection) private_begin(isolation_level int) !Transaction {
-	t := new_transaction(mut conn, isolation_level, false, true)!
-	return t
-}
-
-// Begins a Transaction
-pub fn (mut c Connection) begin(ctx context.Context, isolation_level int) !Transaction {
+// Almost all operations in Firebird occur in the context of a transaction. Units of work are isolated
+// between a start point and end point. Changes to data remain reversible until the moment the client
+// application instructs the server to commit them.
+pub fn (mut c Connection) start_transaction(isolation_level int) !Transaction {
 	if isolation_level in [isolation_level_read_commited_ro, isolation_level_read_commited,
 		isolation_level_repeatable_read, isolation_level_serializable] {
-		return c.private_begin(isolation_level)
+		return new_transaction(mut c, isolation_level, false)!
 	}
 
 	return error(format_error_message('Isolation level not supported.'))
