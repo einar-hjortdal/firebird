@@ -8,7 +8,7 @@ const database = '/var/lib/firebird/data/firebird.fdb'
 const url = '${protocol}${user}:${password}@${host}${database}'
 
 fn test_open_no_db() {
-	mut conn := open('${protocol}${user}@${host}') or {
+	mut conn := new_connection('${protocol}${user}@${host}') or {
 		assert true // protocol error: no database is provided
 		return
 	}
@@ -16,6 +16,6 @@ fn test_open_no_db() {
 }
 
 fn test_open_() {
-	mut conn := open('${user}:${password}@${host}${database}') or { panic(err) }
+	mut conn := new_connection('${user}:${password}@${host}${database}') or { panic(err) }
 	conn.close() or { panic(err) }
 }
