@@ -9,13 +9,10 @@ const low_priority_todo = 'https://github.com/einar-hjortdal/firebird/blob/pendi
 
 pub struct Null {}
 
-pub struct NotNull {}
-
 pub struct Row {}
 
 // Value could be:
 // - Null
-// - NotNull
 // - i32
 // - i64
 // - f32
