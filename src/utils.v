@@ -66,6 +66,23 @@ fn append[T](a []T, arrs ...[]T) []T {
 	return res
 }
 
+struct Buffer {
+mut:
+	buf []u8
+}
+
+fn (mut f Buffer) add_bytes(b []u8) {
+	f.buf = arrays.append(f.buf, b)
+}
+
+fn (mut f Buffer) add_byte(b u8) {
+	f.buf = arrays.append(f.buf, [b])
+}
+
+fn (f Buffer) res() []u8 {
+	return f.buf
+}
+
 // parse_bool returns true if the string represents a true bool, or false otherwise.
 // Any of the following are accepted as true values: 1, t, T, TRUE, true, True.
 fn parse_bool(s string) bool {

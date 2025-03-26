@@ -5,6 +5,7 @@ import encoding.binary
 import encoding.hex
 import math.big
 import os
+import strings
 
 const zero_byte = u8(0)
 const mask_byte = u8(0b1111_1111)
@@ -262,4 +263,55 @@ fn choose_wire_crypt(buf []u8) !(string, []u8) {
 	}
 
 	return error(format_error_message('Unsupported crypt plugin'))
+}
+
+fn initialize_blr_data(params []Value) strings.Builder {
+	param_count := params.len * 2
+	mut b := strings.new_builder(6)
+	b.write_u8(blr_version5)
+	b.write_u8(blr_begin)
+	b.write_u8(blr_message)
+	b.write_u8(0)
+	b.write_u8(u8(param_count & mask_byte))
+	b.write_u8(u8(param_count >> 8))
+	return b
+}
+
+fn initialize_values_data(params []Value) strings.Builder {
+	// TODO link source
+	mut b := strings.new_builder(0)
+	big256 := big.integer_from_i64(256)
+	mut null_indicator := big.integer_from_i64(0)
+	for i := params.len - 1; i >= 0; i-- {
+		if params[i] is Null {
+			null_indicator.set_bit(u32(i), true)
+		}
+	}
+	mut n := params.len / 8
+	if params.len % 8 != 0 {
+		n++
+	}
+	if n % 4 != 0 { // padding
+		n += 4 - n % 4
+	}
+	for i := 0; i < n; i++ {
+		mod_res := null_indicator % big256
+		b.write_u8(u8(mod_res.int()))
+		null_indicator = null_indicator / big256
+	}
+	return b
+}
+
+fn bytes_to_blr(v []u8) ([]u8, []u8) {
+	n := v.len
+	padding := []u8{len: (4 - n) & 3}
+	value := arrays.append(v, padding)
+	blr := [u8(blr_text), u8(n & 255), u8(n >> 8)]
+	return blr, value
+}
+
+fn i32_to_blr(n i32) ([]u8, []u8) {
+	value := marshal_i32_big_endian(n)
+	blr := [u8(blr_long), 0]
+	return blr, value
 }

@@ -420,56 +420,75 @@ fn (mut p WireProtocol) crypt_callback() ! {
 	p.send_packets()!
 }
 
-fn (mut p WireProtocol) param_to_blr(param Value) []u8 {
-	match param {
-		string {}
-		i32 {}
-		i64 {}
-		f64 {}
-		time.Time {}
-		bool {}
-		[]u8 {}
-		else {}
-	}
-	return []u8{}
-}
-
 // https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-statements-execute
 // https://github.com/FirebirdSQL/jaybird/blob/48d132b00a160073e60c5babad853d509563cb69/src/main/org/firebirdsql/gds/ng/wire/DefaultBlrCalculator.java
 fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_version i32) ([]u8, []u8) {
-	param_count := params.len * 2
-	mut blr := [u8(blr_version5), blr_begin, blr_message, 0, u8(param_count & mask_byte),
-		u8(param_count >> 8)]
-
-	// TODO link source
-	// TODO split to independent function
-	mut values := []u8{}
-	big256 := big.integer_from_i64(256)
-	mut null_indicator := big.integer_from_i64(0)
-	for i := params.len - 1; i >= 0; i-- {
-		if params[i] is Null {
-			null_indicator.set_bit(u32(i), true)
-		}
-	}
-	mut n := params.len / 8
-	if params.len % 8 != 0 {
-		n++
-	}
-	if n % 4 != 0 { // padding
-		n += 4 - n % 4
-	}
-	for i := 0; i < n; i++ {
-		mod_res := null_indicator % big256
-		values = arrays.append(values, [u8(mod_res.int())])
-		null_indicator = null_indicator / big256
-	}
+	mut b := initialize_blr_data(params) // Parameters in BLR format
+	mut v := initialize_values_data(params) // Parameter values
 
 	for i := 0; i < params.len; i++ {
-		blr = arrays.append(blr, p.param_to_blr(params[i]))
-		blr = arrays.append(blr, [u8(blr_short), 0])
+		param := params[i]
+		match param {
+			string {
+				if param.len < max_char_length {
+					blr, value := bytes_to_blr(param.bytes())
+					_ := b.write(blr) or { 0 } // does not return any error
+					_ := v.write(value) or { 0 } // does not return any error
+				} else {
+					// TODO
+					// p.create_blob(param, tx_handle)
+					// b.write_u8(9)
+					// b.write_u8(0)
+				}
+			}
+			i32 {
+				blr, value := i32_to_blr(param)
+				_ := b.write(blr) or { 0 } // does not return any error
+				_ := v.write(value) or { 0 } // does not return any error
+			}
+			i64 {
+				// TODO
+			}
+			f64 {
+				// TODO
+			}
+			time.Time {
+				// TODO
+			}
+			bool {
+				if param {
+					_ := v.write(marshal_i32_big_endian(1)) or { 0 } // does not return any error
+				} else {
+					_ := v.write(marshal_i32_big_endian(0)) or { 0 } // does not return any error
+				}
+			}
+			Null {
+				b.write_byte(blr_text)
+				b.write_byte(0)
+				b.write_byte(0)
+			}
+			[]u8 {
+				if param.len < max_char_length {
+					blr, value := bytes_to_blr(param)
+					_ := b.write(blr) or { 0 } // does not return any error
+					_ := v.write(value) or { 0 } // does not return any error
+				} else {
+					// TODO
+					// p.create_blob(param, tx_handle)
+					// b.write_u8(9)
+					// b.write_u8(0)
+				}
+			}
+			else {
+				// TODO
+			}
+		}
+		b.write_u8(blr_short)
+		b.write_u8(0)
 	}
-	blr = arrays.append(blr, [u8(blr_end), blr_eoc])
-	return blr, values
+	b.write_u8(blr_end)
+	b.write_u8(blr_eoc)
+	return b, v
 }
 
 fn (mut p WireProtocol) transaction(tpb []u8) ! {

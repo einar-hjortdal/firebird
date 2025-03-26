@@ -86,3 +86,5 @@ const blr_message = 4
 const blr_end = 255
 const blr_eoc = 76
 const blr_short = 7
+const blr_long = 8
+const blr_text = 14
