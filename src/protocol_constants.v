@@ -88,3 +88,4 @@ const blr_eoc = 76
 const blr_short = 7
 const blr_long = 8
 const blr_text = 14
+const blr_double = 27

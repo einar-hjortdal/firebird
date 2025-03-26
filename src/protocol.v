@@ -450,7 +450,9 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 				// TODO
 			}
 			f64 {
-				// TODO
+				blr, value := f64_to_blr(param)
+				_ := b.write(blr) or { 0 } // does not return any error
+				_ := v.write(value) or { 0 } // does not return any error
 			}
 			time.Time {
 				// TODO

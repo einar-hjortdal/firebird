@@ -3,6 +3,7 @@ module firebird
 import arrays
 import encoding.binary
 import encoding.hex
+import math
 import math.big
 import os
 import strings
@@ -313,5 +314,11 @@ fn bytes_to_blr(v []u8) ([]u8, []u8) {
 fn i32_to_blr(n i32) ([]u8, []u8) {
 	value := marshal_i32_big_endian(n)
 	blr := [u8(blr_long), 0]
+	return blr, value
+}
+
+fn f64_to_blr(f f64) ([]u8, []u8) {
+	value := binary.big_endian_get_u64(math.f64_bits(f))
+	blr := [u8(blr_double)]
 	return blr, value
 }
