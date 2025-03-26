@@ -5,6 +5,7 @@ import encoding.binary
 import encoding.hex
 import math.big
 import os
+import time
 
 const zero_byte = u8(0)
 const mask_byte = u8(0b1111_1111)
@@ -275,4 +276,5 @@ fn param_to_blr(param Value) []u8 {
 		[]u8 {}
 		else {}
 	}
+	return []u8{}
 }

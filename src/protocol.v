@@ -428,10 +428,11 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 
 	// TODO link source
 	mut v := []u8{}
-	null_indicator := big.integer_from_i64(0)
+	big256 := big.integer_from_i64(256)
+	mut null_indicator := big.integer_from_i64(0)
 	for i := params.len - 1; i >= 0; i-- {
-		if params[i] == Null{} {
-			null_indicator.set_bit(null_indicator, i, 1)
+		if params[i] is Null {
+			null_indicator.set_bit(u32(i), true)
 		}
 	}
 	mut n := params.len / 8
@@ -443,16 +444,15 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 	}
 	for i := 0; i < n; i++ {
 		mod_res := null_indicator % big256
-		v = arrays.append(v, [mod_res.int()])
+		v = arrays.append(v, [u8(mod_res.int())])
 		null_indicator = null_indicator / big256
 	}
 
-	big256 := big.integer_from_i64(256)
 	for i := 0; i < params.len; i++ {
 		blr = arrays.append(blr, param_to_blr(params[i]))
 		blr = arrays.append(blr, [u8(blr_short), 0])
 	}
-	blr = arrays.concat(blr, [u8(blr_end), blr_eoc])
+	blr = arrays.append(blr, [u8(blr_end), blr_eoc])
 	return blr, v
 }
 

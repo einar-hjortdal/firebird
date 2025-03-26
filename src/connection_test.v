@@ -1,14 +1,9 @@
 module firebird
 
-const protocol = 'firebird://'
-const user = 'fbusr'
-const password = 'fbpwd'
-const host = '127.0.0.1:3050'
-const database = '/var/lib/firebird/data/firebird.fdb'
-const url = '${protocol}${user}:${password}@${host}${database}'
+import tests
 
 fn test_open_no_db() {
-	mut conn := new_connection('${protocol}${user}@${host}') or {
+	mut conn := new_connection('${tests.protocol}${tests.user}@${tests.host}') or {
 		assert true // protocol error: no database is provided
 		return
 	}
@@ -16,6 +11,6 @@ fn test_open_no_db() {
 }
 
 fn test_open_() {
-	mut conn := new_connection('${user}:${password}@${host}${database}') or { panic(err) }
+	mut conn := new_connection(tests.url) or { panic(err) }
 	conn.close() or { panic(err) }
 }
