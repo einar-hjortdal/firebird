@@ -4,6 +4,7 @@ import arrays
 import math.big
 import net
 import os
+import time
 
 const plugin_list = 'Srp256,Srp'
 const buffer_length = 1024
@@ -419,6 +420,20 @@ fn (mut p WireProtocol) crypt_callback() ! {
 	p.send_packets()!
 }
 
+fn (mut p WireProtocol) param_to_blr(param Value) []u8 {
+	match param {
+		string {}
+		i32 {}
+		i64 {}
+		f64 {}
+		time.Time {}
+		bool {}
+		[]u8 {}
+		else {}
+	}
+	return []u8{}
+}
+
 // https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-statements-execute
 // https://github.com/FirebirdSQL/jaybird/blob/48d132b00a160073e60c5babad853d509563cb69/src/main/org/firebirdsql/gds/ng/wire/DefaultBlrCalculator.java
 fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_version i32) ([]u8, []u8) {
@@ -427,7 +442,8 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 		u8(param_count >> 8)]
 
 	// TODO link source
-	mut v := []u8{}
+	// TODO split to independent function
+	mut values := []u8{}
 	big256 := big.integer_from_i64(256)
 	mut null_indicator := big.integer_from_i64(0)
 	for i := params.len - 1; i >= 0; i-- {
@@ -444,16 +460,16 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 	}
 	for i := 0; i < n; i++ {
 		mod_res := null_indicator % big256
-		v = arrays.append(v, [u8(mod_res.int())])
+		values = arrays.append(values, [u8(mod_res.int())])
 		null_indicator = null_indicator / big256
 	}
 
 	for i := 0; i < params.len; i++ {
-		blr = arrays.append(blr, param_to_blr(params[i]))
+		blr = arrays.append(blr, p.param_to_blr(params[i]))
 		blr = arrays.append(blr, [u8(blr_short), 0])
 	}
 	blr = arrays.append(blr, [u8(blr_end), blr_eoc])
-	return blr, v
+	return blr, values
 }
 
 fn (mut p WireProtocol) transaction(tpb []u8) ! {

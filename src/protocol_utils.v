@@ -5,7 +5,6 @@ import encoding.binary
 import encoding.hex
 import math.big
 import os
-import time
 
 const zero_byte = u8(0)
 const mask_byte = u8(0b1111_1111)
@@ -263,18 +262,4 @@ fn choose_wire_crypt(buf []u8) !(string, []u8) {
 	}
 
 	return error(format_error_message('Unsupported crypt plugin'))
-}
-
-fn param_to_blr(param Value) []u8 {
-	match param {
-		string {}
-		i32 {}
-		i64 {}
-		f64 {}
-		time.Time {}
-		bool {}
-		[]u8 {}
-		else {}
-	}
-	return []u8{}
 }
