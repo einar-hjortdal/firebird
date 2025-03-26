@@ -364,7 +364,7 @@ fn (mut p WireProtocol) attach(database string, user string, password string, ro
 	pid := i32(os.getpid())
 
 	// https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-databases-attach-attachment
-	// https://github.com/FirebirdSQL/jaybird/blob/master/src/main/org/firebirdsql/gds/impl/ParameterBufferBase.java
+	// https://github.com/FirebirdSQL/jaybird/blob/48d132b00a160073e60c5babad853d509563cb69/src/main/org/firebirdsql/gds/impl/ParameterBufferBase.java
 	dpb_version := [u8(isc_dpb_version1)]
 	dpb_sql_dialect := arrays.append([u8(isc_dpb_sql_dialect), 4], marshal_i32_small_endian(3))
 	dpb_lc_type := arrays.append([u8(isc_dpb_lc_ctype), u8(charset_bytes.len)], charset_bytes)
@@ -391,6 +391,69 @@ fn (mut p WireProtocol) detach() ! {
 	p.pack_i32(op_detach)
 	p.pack_i32(p.db_handle)
 	p.send_packets()!
+}
+
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L794
+fn (mut p WireProtocol) continue_authentication(auth_data []u8, auth_plugin_name string, keys string) ! {
+	p.pack_i32(op_cont_auth)
+	p.pack_string(auth_data.hex())
+	p.pack_string(auth_plugin_name)
+	p.pack_string(plugin_list)
+	p.pack_string(keys)
+	p.send_packets()!
+}
+
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L815
+fn (mut p WireProtocol) crypt(plugin string) ! {
+	p.pack_i32(op_crypt)
+	p.pack_string(plugin)
+	p.pack_string('Symmetric')
+	p.send_packets()!
+}
+
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L825
+fn (mut p WireProtocol) crypt_callback() ! {
+	p.pack_i32(op_crypt_key_callback)
+	p.pack_i32(0)
+	p.pack_i32(buffer_length)
+	p.send_packets()!
+}
+
+// https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-statements-execute
+// https://github.com/FirebirdSQL/jaybird/blob/48d132b00a160073e60c5babad853d509563cb69/src/main/org/firebirdsql/gds/ng/wire/DefaultBlrCalculator.java
+fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_version i32) ([]u8, []u8) {
+	param_count := params.len * 2
+	mut blr := [u8(blr_version5), blr_begin, blr_message, 0, u8(param_count & mask_byte),
+		u8(param_count >> 8)]
+
+	// TODO link source
+	mut v := []u8{}
+	null_indicator := big.integer_from_i64(0)
+	for i := params.len - 1; i >= 0; i-- {
+		if params[i] == Null{} {
+			null_indicator.set_bit(null_indicator, i, 1)
+		}
+	}
+	mut n := params.len / 8
+	if params.len % 8 != 0 {
+		n++
+	}
+	if n % 4 != 0 { // padding
+		n += 4 - n % 4
+	}
+	for i := 0; i < n; i++ {
+		mod_res := null_indicator % big256
+		v = arrays.append(v, [mod_res.int()])
+		null_indicator = null_indicator / big256
+	}
+
+	big256 := big.integer_from_i64(256)
+	for i := 0; i < params.len; i++ {
+		blr = arrays.append(blr, param_to_blr(params[i]))
+		blr = arrays.append(blr, [u8(blr_short), 0])
+	}
+	blr = arrays.concat(blr, [u8(blr_end), blr_eoc])
+	return blr, v
 }
 
 fn (mut p WireProtocol) transaction(tpb []u8) ! {
@@ -429,28 +492,23 @@ fn (mut p WireProtocol) prepare_statement(stmt_handle i32, tx_handle i32, query 
 	p.send_packets()!
 }
 
-// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L794
-fn (mut p WireProtocol) continue_authentication(auth_data []u8, auth_plugin_name string, keys string) ! {
-	p.pack_i32(op_cont_auth)
-	p.pack_string(auth_data.hex())
-	p.pack_string(auth_plugin_name)
-	p.pack_string(plugin_list)
-	p.pack_string(keys)
-	p.send_packets()!
-}
-
-// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L815
-fn (mut p WireProtocol) crypt(plugin string) ! {
-	p.pack_i32(op_crypt)
-	p.pack_string(plugin)
-	p.pack_string('Symmetric')
-	p.send_packets()!
-}
-
-// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/protocol.cpp#L825
-fn (mut p WireProtocol) crypt_callback() ! {
-	p.pack_i32(op_crypt_key_callback)
-	p.pack_i32(0)
-	p.pack_i32(buffer_length)
+// https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-statements-execute
+// op_execute is used for DDL and DML statements
+fn (mut p WireProtocol) execute(stmt_handle i32, tx_handle i32, params []Value) ! {
+	p.pack_i32(op_execute)
+	p.pack_i32(stmt_handle)
+	p.pack_i32(tx_handle)
+	if params.len == 0 {
+		p.pack_bytes([]u8{len: 0})
+		p.pack_i32(0)
+		p.pack_i32(0)
+	} else {
+		blr, values := p.params_to_blr(tx_handle, params, p.protocol_version)
+		p.pack_bytes(blr)
+		p.pack_i32(0)
+		p.pack_i32(1)
+		p.append_bytes(values)
+	}
+	p.append_bytes(marshal_i32_big_endian(0))
 	p.send_packets()!
 }

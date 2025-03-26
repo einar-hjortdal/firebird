@@ -263,3 +263,16 @@ fn choose_wire_crypt(buf []u8) !(string, []u8) {
 
 	return error(format_error_message('Unsupported crypt plugin'))
 }
+
+fn param_to_blr(param Value) []u8 {
+	match param {
+		string {}
+		i32 {}
+		i64 {}
+		f64 {}
+		time.Time {}
+		bool {}
+		[]u8 {}
+		else {}
+	}
+}
