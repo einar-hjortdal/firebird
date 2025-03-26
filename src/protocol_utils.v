@@ -247,13 +247,13 @@ fn choose_wire_crypt(buf []u8) !(string, []u8) {
 
 	for nonce in plugin_nonces {
 		if nonce[..9] == zero_terminated_chacha20_64 {
-			// return chacha64, nonce[9..]
+			// return chacha20_64, nonce[9..]
 		}
 	}
 
 	for nonce in plugin_nonces {
 		if nonce[..7] == zero_terminated_chacha20_32 {
-			// return chacha20_32, nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
+			return chacha20_32, nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
 		}
 	}
 
