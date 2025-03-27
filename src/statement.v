@@ -3,9 +3,8 @@ module firebird
 pub struct Statement {
 	query       string
 	blr         []u8 // https://www.firebirdfaq.org/faq187/
-	stmt_type   i32  // isc_info_sql_stmt_type
 	stmt_handle i32
-	// xsqlda      []XSQLVAR
+	stmt_type   i32 // isc_info_sql_stmt_type
 mut:
 	tx Transaction
 }
@@ -27,6 +26,7 @@ fn new_statement(mut tx Transaction, query string) !Statement {
 	}
 
 	_, _, buf := tx.conn.p.generic_response()!
+	// TODO definitely need to parse xsql data :(
 	// stmt_type, xsqlda := tx.conn.p.parse_xsqlda(buf, stmt_handle)!
 	// blr = calculate_blr(xsqlda)
 	return Statement{
@@ -35,7 +35,6 @@ fn new_statement(mut tx Transaction, query string) !Statement {
 		stmt_handle: stmt_handle
 		// stmt_type: stmt_type
 		// blr:         blr
-		// xsqlda: xsqlda
 	}
 }
 
@@ -47,5 +46,7 @@ pub fn (mut stmt Statement) close() ! {
 
 // Executes the statement with the given args
 pub fn (mut stmt Statement) exec(args []Value) ![]Row {
-	return error('TODO')
+	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
+	stmt.tx.conn.p.generic_response()!
+	return new_row(stmt)
 }

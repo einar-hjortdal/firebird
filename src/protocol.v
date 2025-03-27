@@ -441,6 +441,18 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 					// b.write_u8(0)
 				}
 			}
+			[]u8 {
+				if param.len < max_char_length {
+					blr, value := bytes_to_blr(*param) // https://github.com/vlang/v/issues/24054#issuecomment-2758173475
+					_ := b.write(blr) or { 0 } // does not return any error
+					_ := v.write(value) or { 0 } // does not return any error
+				} else {
+					// TODO
+					// p.create_blob(param, tx_handle)
+					// b.write_u8(9)
+					// b.write_u8(0)
+				}
+			}
 			i32 {
 				blr, value := i32_to_blr(param)
 				_ := b.write(blr) or { 0 } // does not return any error
@@ -469,18 +481,6 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 				b.write_byte(0)
 				b.write_byte(0)
 			}
-			[]u8 {
-				if param.len < max_char_length {
-					blr, value := bytes_to_blr(param)
-					_ := b.write(blr) or { 0 } // does not return any error
-					_ := v.write(value) or { 0 } // does not return any error
-				} else {
-					// TODO
-					// p.create_blob(param, tx_handle)
-					// b.write_u8(9)
-					// b.write_u8(0)
-				}
-			}
 			else {
 				// TODO
 			}
@@ -492,6 +492,9 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 	b.write_u8(blr_eoc)
 	return b, v
 }
+
+// fn (mut p WireProtocol) parse_xsqlda(buf []u8, stmt_handle i32) !(i32, []xSQLVAR) {
+// }
 
 fn (mut p WireProtocol) transaction(tpb []u8) ! {
 	p.pack_i32(op_transaction)

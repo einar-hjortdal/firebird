@@ -7,7 +7,7 @@
 - ~~connect to Firebird~~
 - ~~support Secure Remote Password auth plugin~~
 - ~~support arc4 crypt plugin~~
-- issue commands
+- perform queries
 - parse responses
 
 ### High
@@ -16,15 +16,15 @@
 
 ### Medium
 
-- support chacha crypt plugin <!-- https://github.com/vlang/v/issues/23977 -->
+- ~~support chacha crypt plugin~~
 - support chacha64 crypt plugin <!-- https://github.com/vlang/v/issues/23904 -->
 - logging
 - optimize performance
 
 ### Low
 
-I do not use the following features and will not support them. If you would like to support any of them, 
-please open a pull request.
+I do not use the following features and will not support them. If you would like this project to support 
+any of them, please open a pull request.
 
 - embedded
 - decfloat
