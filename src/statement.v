@@ -70,5 +70,5 @@ pub fn (mut stmt Statement) exec(args []Value) !Result {
 	}
 	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
 	stmt.tx.conn.p.generic_response()!
-	return new_result(stmt, []Value{})!
+	return new_result(stmt)
 }
