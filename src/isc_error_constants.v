@@ -1,6 +1,6 @@
 module firebird
 
-// https://github.com/FirebirdSQL/jaybird/blob/27c3d39325e0d1b011b43fa45a9daf9dcd0a9c85/src/resources/isc_error_msg.properties
+// https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/resources/isc_error_msg.properties
 const error_messages = {
 	335544321: 'arithmetic exception, numeric overflow, or string truncation'
 	335544322: 'invalid database key'

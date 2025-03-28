@@ -1,6 +1,6 @@
 module firebird
 
-// https://github.com/FirebirdSQL/jaybird/blob/27c3d39325e0d1b011b43fa45a9daf9dcd0a9c85/src/main/org/firebirdsql/gds/ISCConstants.java
+// https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/ISCConstants.java
 const isc_info_end = 1
 const isc_info_truncated = 2
 const isc_info_error = 3
