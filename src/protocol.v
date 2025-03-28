@@ -365,7 +365,7 @@ fn (mut p WireProtocol) attach(database string, user string, password string, ro
 	pid := i32(os.getpid())
 
 	// https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-databases-attach-attachment
-	// https://github.com/FirebirdSQL/jaybird/blob/48d132b00a160073e60c5babad853d509563cb69/src/main/org/firebirdsql/gds/impl/ParameterBufferBase.java
+	// https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/impl/ParameterBufferBase.java
 	dpb_version := [u8(isc_dpb_version1)]
 	dpb_sql_dialect := arrays.append([u8(isc_dpb_sql_dialect), 4], marshal_i32_small_endian(3))
 	dpb_lc_type := arrays.append([u8(isc_dpb_lc_ctype), u8(charset_bytes.len)], charset_bytes)
@@ -421,7 +421,7 @@ fn (mut p WireProtocol) crypt_callback() ! {
 }
 
 // https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-statements-execute
-// https://github.com/FirebirdSQL/jaybird/blob/48d132b00a160073e60c5babad853d509563cb69/src/main/org/firebirdsql/gds/ng/wire/DefaultBlrCalculator.java
+// https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/ng/wire/DefaultBlrCalculator.java
 fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_version i32) ([]u8, []u8) {
 	mut b := initialize_blr_data(params) // Parameters in BLR format
 	mut v := initialize_values_data(params) // Parameter values
@@ -493,7 +493,10 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 	return b, v
 }
 
-// fn (mut p WireProtocol) parse_xsqlda(buf []u8, stmt_handle i32) !(i32, []xSQLVAR) {
+// fn (mut p WireProtocol) parse_xsqlda(buf []u8, stmt_handle i32) !(i32, []XSQLVariable) {
+// }
+
+// fn (mut p WireProtocol) sql_response(xsqlda []XSQLVariable) ![]Value {
 // }
 
 fn (mut p WireProtocol) transaction(tpb []u8) ! {
@@ -550,5 +553,14 @@ fn (mut p WireProtocol) execute(stmt_handle i32, tx_handle i32, params []Value) 
 		p.append_bytes(values)
 	}
 	p.append_bytes(marshal_i32_big_endian(0))
+	p.send_packets()!
+}
+
+fn (mut p WireProtocol) fetch(stmt_handle i32, blr []u8) ! {
+	p.pack_i32(op_fetch)
+	p.pack_i32(stmt_handle)
+	p.pack_bytes(blr)
+	p.pack_i32(0)
+	p.pack_i32(default_fetch_rows)
 	p.send_packets()!
 }
