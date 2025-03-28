@@ -10,10 +10,11 @@ import strings
 
 const zero_byte = u8(0)
 const mask_byte = u8(0b1111_1111)
-const chacha20_32 = 'ChaCha'
-const chacha20_64 = 'ChaCha64'
-const zero_terminated_chacha20_32 = arrays.concat(chacha20_32.bytes(), zero_byte)
-const zero_terminated_chacha20_64 = arrays.concat(chacha20_64.bytes(), zero_byte)
+const rc4_plugin_name = 'Arc4'
+const chacha20_32_plugin_name = 'ChaCha'
+const chacha20_64_plugin_name = 'ChaCha64'
+const zero_terminated_chacha20_32 = arrays.concat(chacha20_32_plugin_name.bytes(), zero_byte)
+const zero_terminated_chacha20_64 = arrays.concat(chacha20_64_plugin_name.bytes(), zero_byte)
 
 // https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/impl/wire/WireProtocolConstants.java#L168
 const fb_protocol_flag = i32(0b0000_0000_0000_0000_1000_0000_0000_0000)
@@ -249,23 +250,24 @@ fn choose_wire_crypt(buf []u8) !(string, []u8) {
 
 	for nonce in plugin_nonces {
 		if nonce[..9] == zero_terminated_chacha20_64 {
-			// return chacha20_64, nonce[9..]
+			return chacha20_64_plugin_name, nonce[9..]
 		}
 	}
 
 	for nonce in plugin_nonces {
 		if nonce[..7] == zero_terminated_chacha20_32 {
-			return chacha20_32, nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
+			return chacha20_32_plugin_name, nonce[7..nonce.len - 4] // this one specifically is terminated by 4 zeros, I don't know why
 		}
 	}
 
-	if available_plugins.contains('Arc4') {
-		return 'Arc4', []u8{}
+	if available_plugins.contains(rc4_plugin_name) {
+		return rc4_plugin_name, []u8{}
 	}
 
 	return error(format_error_message('Unsupported crypt plugin'))
 }
 
+// TODO link source
 fn initialize_blr_data(params []Value) strings.Builder {
 	param_count := params.len * 2
 	mut b := strings.new_builder(6)
@@ -278,8 +280,8 @@ fn initialize_blr_data(params []Value) strings.Builder {
 	return b
 }
 
+// TODO link source
 fn initialize_values_data(params []Value) strings.Builder {
-	// TODO link source
 	mut b := strings.new_builder(0)
 	big256 := big.integer_from_i64(256)
 	mut null_indicator := big.integer_from_i64(0)

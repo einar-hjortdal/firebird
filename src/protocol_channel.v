@@ -42,17 +42,17 @@ fn new_wire_channel(conn net.TcpConn) WireChannel {
 fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8) ! {
 	c.plugin = plugin
 	match plugin {
-		'ChaCha64' {
-			return error(format_error_message('ChaCha64 crypt plugin not supported yet'))
+		chacha20_64_plugin_name {
+			return error(format_error_message('${plugin} crypt plugin not supported yet'))
 		}
-		'ChaCha' {
+		chacha20_32_plugin_name {
 			mut digest := sha256.new()
 			digest.write(session_key)!
 			key := digest.sum([]u8{})
 			c.crypto_reader = chacha20.new_cipher(key, nonce)!
 			c.crypto_writer = chacha20.new_cipher(key, nonce)!
 		}
-		'Arc4' {
+		rc4_plugin_name {
 			c.crypto_reader = rc4.new_cipher(session_key)!
 			c.crypto_writer = rc4.new_cipher(session_key)!
 		}

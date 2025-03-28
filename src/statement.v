@@ -48,5 +48,6 @@ pub fn (mut stmt Statement) close() ! {
 pub fn (mut stmt Statement) exec(args []Value) ![]Row {
 	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
 	stmt.tx.conn.p.generic_response()!
-	return new_row(stmt)
+	// return new_row(stmt)
+	return error('TODO')
 }
