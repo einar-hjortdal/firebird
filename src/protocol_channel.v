@@ -42,10 +42,7 @@ fn new_wire_channel(conn net.TcpConn) WireChannel {
 fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8) ! {
 	c.plugin = plugin
 	match plugin {
-		chacha20_64_plugin_name {
-			return error(format_error_message('${plugin} crypt plugin not supported yet'))
-		}
-		chacha20_32_plugin_name {
+		chacha20_64_plugin_name, chacha20_32_plugin_name {
 			mut digest := sha256.new()
 			digest.write(session_key)!
 			key := digest.sum([]u8{})
