@@ -79,7 +79,7 @@ pub const isolation_level_repeatable_read = 2
 pub const isolation_level_serializable = 3
 pub const isolation_level_read_commited_ro = 4 // read only
 
-// https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/BlrConstants.java
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/include/firebird/impl/blr.h#L45
 const blr_version5 = 5
 const blr_begin = 2
 const blr_message = 4

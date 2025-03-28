@@ -36,6 +36,10 @@ pub struct Row {
 	values []Value
 }
 
+fn new_row() !Row {
+	return error('TODO')
+}
+
 pub fn (r Row) values() []Value {
 	return r.values
 }
@@ -50,6 +54,13 @@ mut:
 }
 
 pub fn new_result(stmt Statement) Result {
+	// get all rows
+	// for ? {
+	// row_data, is_there_more := stmt.tx.conn.p.fetch_response(stmt.stmt_handle, stmt.tx.tx_handle, stmt.xsqlda)
+	//  }
+	// for ? {
+	//	new_row()
+	// }
 	return Result{
 		stmt: stmt
 	}
