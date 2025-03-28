@@ -28,13 +28,11 @@ fn new_transaction(mut conn Connection, isolation_level int, is_autocommit bool)
 pub fn (mut t Transaction) commit() ! {
 	t.conn.p.commit(t.tx_handle)!
 	_, _, _ := t.conn.p.generic_response()!
-	t.is_autocommit = t.conn.is_autocommit
 }
 
 pub fn (mut t Transaction) rollback() ! {
 	t.conn.p.rollback(t.tx_handle)!
 	_, _, _ := t.conn.p.generic_response()!
-	t.is_autocommit = t.conn.is_autocommit
 }
 
 pub fn (mut t Transaction) prepare_statement(query string) !Statement {

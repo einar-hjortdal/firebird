@@ -7,22 +7,6 @@ import os
 const lib = 'firebird'
 const low_priority_todo = 'https://github.com/einar-hjortdal/firebird/blob/pending/TODO.md#low-priority'
 
-pub struct Null {}
-
-pub struct Row {}
-
-// Value could be:
-// - Null
-// - i32
-// - i64
-// - f32
-// - f64
-// - bool
-// - []u8
-// - string
-// - time.Time
-pub interface Value {}
-
 fn format_error_message(message string) string {
 	return '[${lib}] ${message}'
 }
@@ -57,6 +41,7 @@ fn is_debug() bool {
 }
 
 // appends any number of arrays arrs to the array a
+// TODO remove, replace with strings.Builder
 fn append[T](a []T, arrs ...[]T) []T {
 	mut res := []T{}
 	res = arrays.append(res, a)
@@ -64,23 +49,6 @@ fn append[T](a []T, arrs ...[]T) []T {
 		res = arrays.append(res, arr)
 	}
 	return res
-}
-
-struct Buffer {
-mut:
-	buf []u8
-}
-
-fn (mut f Buffer) add_bytes(b []u8) {
-	f.buf = arrays.append(f.buf, b)
-}
-
-fn (mut f Buffer) add_byte(b u8) {
-	f.buf = arrays.append(f.buf, [b])
-}
-
-fn (f Buffer) res() []u8 {
-	return f.buf
 }
 
 // parse_bool returns true if the string represents a true bool, or false otherwise.
