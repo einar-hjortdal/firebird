@@ -89,23 +89,31 @@ fn marshal_string(s string) []u8 {
 	return marshal_bytes(s.bytes())
 }
 
-fn parse_i64(b []u8) i64 {
+fn parse_big_endian_i64(b []u8) i64 {
 	return i64(binary.big_endian_u64(b))
 }
 
-fn parse_i32(b []u8) i32 {
+fn parse_big_endian_i32(b []u8) i32 {
 	return i32(binary.big_endian_u32(b))
 }
 
-fn parse_i16(b []u8) i16 {
+fn parse_little_endian_i32(b []u8) i32 {
+	return i32(binary.little_endian_u32(b))
+}
+
+fn parse_little_endian_i16(b []u8) i16 {
 	return i16(binary.little_endian_u16(b))
 }
 
-fn parse_f32(b []u8) f32 {
+fn parse_big_endian_i16(b []u8) i16 {
+	return i16(binary.big_endian_u16(b))
+}
+
+fn parse_big_endian_f32(b []u8) f32 {
 	return math.f32_from_bits(binary.big_endian_u32(b))
 }
 
-fn parse_f64(b []u8) f64 {
+fn parse_big_endian_f64(b []u8) f64 {
 	return math.f64_from_bits(binary.big_endian_u64(b))
 }
 

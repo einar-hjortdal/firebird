@@ -2,7 +2,6 @@ module firebird
 
 import math
 import time
-import strings
 
 pub const charset_none = 'NONE'
 pub const charset_utf8 = 'UTF8'
@@ -189,7 +188,7 @@ fn (x XSQLVar) parse_string(raw_value []u8, charset string) !Value {
 
 // TODO eliminate floating point arithmetic
 fn (x XSQLVar) parse_short(raw_value []u8) Value {
-	i := i16(parse_i32(raw_value))
+	i := parse_big_endian_i16(raw_value)
 	if x.sql_scale != 0 {
 		return i16(i * i64(math.pow10(x.sql_scale)))
 	}
@@ -198,7 +197,7 @@ fn (x XSQLVar) parse_short(raw_value []u8) Value {
 
 // TODO eliminate floating point arithmetic
 fn (x XSQLVar) parse_long(raw_value []u8) Value {
-	i := parse_i32(raw_value)
+	i := parse_big_endian_i32(raw_value)
 	if x.sql_scale != 0 {
 		return i32(i * i64(math.pow10(x.sql_scale)))
 	}
@@ -207,7 +206,7 @@ fn (x XSQLVar) parse_long(raw_value []u8) Value {
 
 // TODO eliminate floating point arithmetic
 fn (x XSQLVar) parse_int64(raw_value []u8) Value {
-	i := parse_i64(raw_value)
+	i := parse_big_endian_i64(raw_value)
 	if x.sql_scale != 0 {
 		return i * i64(math.pow10(x.sql_scale))
 	}
@@ -244,10 +243,10 @@ fn (x XSQLVar) get_value(raw_value []u8, timezone string, charset string) !Value
 			return x.parse_timestamp_tz(raw_value)
 		}
 		sql_type_float {
-			return parse_f32(raw_value)
+			return parse_big_endian_f32(raw_value)
 		}
 		sql_type_double {
-			return parse_f64(raw_value)
+			return parse_big_endian_f64(raw_value)
 		}
 		sql_type_boolean {
 			return raw_value[0] != 0

@@ -133,12 +133,12 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 	mut message := ''
 
 	mut b := p.receive_packets(4)!
-	mut n := parse_i32(b)
+	mut n := parse_big_endian_i32(b)
 	for n != isc_arg_end {
 		match n {
 			isc_arg_gds {
 				b = p.receive_packets(4)!
-				gds_code = parse_i32(b)
+				gds_code = parse_big_endian_i32(b)
 				if gds_code != 0 {
 					gds_codes = arrays.concat(gds_codes, gds_code)
 					msg := get_error_message(gds_code) or { err.msg() }
@@ -148,7 +148,7 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 			}
 			isc_arg_number {
 				b = p.receive_packets(4)!
-				num := parse_i32(b)
+				num := parse_big_endian_i32(b)
 				if gds_code == 335544436 {
 					sql_code = num
 				}
@@ -157,7 +157,7 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 			}
 			isc_arg_string {
 				b = p.receive_packets(4)!
-				nbytes := parse_i32(b)
+				nbytes := parse_big_endian_i32(b)
 				b = p.receive_aligned_packets(nbytes)!
 				s := b.bytestr()
 				num_arg++
@@ -165,21 +165,21 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 			}
 			isc_arg_interpreted {
 				b = p.receive_packets(4)!
-				nbytes := parse_i32(b)
+				nbytes := parse_big_endian_i32(b)
 				b = p.receive_aligned_packets(nbytes)!
 				s := b.bytestr()
 				message += s
 			}
 			isc_arg_sql_state {
 				b = p.receive_packets(4)!
-				nbytes := parse_i32(b)
+				nbytes := parse_big_endian_i32(b)
 				b = p.receive_aligned_packets(nbytes)!
 				_ := b.bytestr() // skip status code
 			}
 			else {}
 		}
 		b = p.receive_packets(4)!
-		n = parse_i32(b)
+		n = parse_big_endian_i32(b)
 	}
 
 	return gds_codes, sql_code, message
@@ -188,9 +188,9 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 // https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
 fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 	b := p.receive_packets(16)!
-	object_handle := parse_i32(b[..4])
+	object_handle := parse_big_endian_i32(b[..4])
 	object_id := b[4..12]
-	response_buffer_length := parse_i32(b[12..])
+	response_buffer_length := parse_big_endian_i32(b[12..])
 	response_buffer := p.receive_aligned_packets(response_buffer_length)!
 
 	gds_code_list, sql_code, message := p.parse_status_vector()!
@@ -203,23 +203,23 @@ fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 // https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
 fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 	mut b := p.receive_packets(4)!
-	for parse_i32(b) == op_dummy {
+	for parse_big_endian_i32(b) == op_dummy {
 		b = p.receive_packets(4)!
 	}
 
-	for parse_i32(b) == op_crypt_key_callback {
+	for parse_big_endian_i32(b) == op_crypt_key_callback {
 		p.crypt_callback()!
 		p.receive_packets(12)!
 		b = p.receive_packets(4)!
 	}
 
-	for parse_i32(b) == op_response && p.lazy_response_count > 0 {
+	for parse_big_endian_i32(b) == op_response && p.lazy_response_count > 0 {
 		p.lazy_response_count--
 		p.parse_generic_response()!
 		b = p.receive_packets(4)!
 	}
 
-	op_error_code := parse_i32(b)
+	op_error_code := parse_big_endian_i32(b)
 	if op_error_code != op_response {
 		return error(format_op_error(op_error_code))
 	}
@@ -239,11 +239,11 @@ fn (mut p WireProtocol) get_encrypt_plugin_and_nonce(opcode i32, auth_data []u8,
 // TODO refactor, this function is too big.
 fn (mut p WireProtocol) parse_connect_response(user string, password string, options map[string]string, client_public_key big.Integer, client_secret_key big.Integer) ! {
 	mut b := p.receive_packets(4)!
-	mut opcode := parse_i32(b)
+	mut opcode := parse_big_endian_i32(b)
 
 	for opcode == op_dummy {
 		b = p.receive_packets(4) or { []u8{} }
-		opcode = parse_i32(b)
+		opcode = parse_big_endian_i32(b)
 	}
 
 	if opcode == op_reject {
@@ -256,26 +256,26 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 
 	b = p.receive_packets(12)! // if error next line causes out of bound memory access
 	p.protocol_version = i32(b[3]) // b[..3] are the taken by fb_protocol_flag
-	p.accept_architecture = parse_i32(b[4..8])
-	p.accept_type = parse_i32(b[8..12])
+	p.accept_architecture = parse_big_endian_i32(b[4..8])
+	p.accept_type = parse_big_endian_i32(b[8..12])
 	p.user = user
 	p.password = password
 
 	if opcode == op_cond_accept || opcode == op_accept_data {
 		b = p.receive_packets(4) or { []u8{} }
-		mut ln := parse_i32(b)
+		mut ln := parse_big_endian_i32(b)
 		mut data := p.receive_aligned_packets(ln) or { []u8{} }
 
 		b = p.receive_packets(4) or { []u8{} }
-		ln = parse_i32(b)
+		ln = parse_big_endian_i32(b)
 		plugin_name := p.receive_aligned_packets(ln) or { []u8{} }
 		p.plugin_name = plugin_name.bytestr()
 
 		b = p.receive_packets(4) or { []u8{} }
-		is_authenticated := parse_i32(b)
+		is_authenticated := parse_big_endian_i32(b)
 
 		b = p.receive_packets(4) or { []u8{} }
-		ln = parse_i32(b)
+		ln = parse_big_endian_i32(b)
 		p.receive_aligned_packets(ln)! // keys
 
 		mut auth_data := []u8{}
@@ -288,29 +288,29 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 					p.continue_authentication(big_integer_to_bytes(client_public_key),
 						p.plugin_name, '')!
 					b = p.receive_packets(4) or { []u8{} }
-					op := parse_i32(b)
+					op := parse_big_endian_i32(b)
 					if op == op_response {
 						p.parse_generic_response()! // error occurred
 					}
 
 					b = p.receive_packets(4) or { []u8{} }
-					ln = parse_i32(b)
+					ln = parse_big_endian_i32(b)
 					data = p.receive_aligned_packets(ln) or { []u8{} }
 
 					b = p.receive_packets(4) or { []u8{} }
-					ln = parse_i32(b)
+					ln = parse_big_endian_i32(b)
 					p.receive_aligned_packets(ln) or { []u8{} } // plugin_name
 
 					b = p.receive_packets(4) or { []u8{} }
-					ln = parse_i32(b)
+					ln = parse_big_endian_i32(b)
 					p.receive_aligned_packets(ln) or { []u8{} } // plugin_list
 
 					b = p.receive_packets(4) or { []u8{} }
-					ln = parse_i32(b)
+					ln = parse_big_endian_i32(b)
 					p.receive_aligned_packets(ln) or { []u8{} } // keys
 				}
 
-				ln = parse_i16(data[..2]) // server salt length
+				ln = parse_little_endian_i16(data[..2]) // server salt length
 				server_public_key := big.integer_from_radix(data[ln + 4..].bytestr(),
 					16)!
 				auth_data, session_key = get_client_proof(user.to_upper(), password, data[2..ln + 2],
@@ -492,8 +492,33 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 	return b, v
 }
 
-// fn (mut p WireProtocol) parse_xsqlda(buf []u8, stmt_handle i32) !(i32, []XSQLVariable) {
-// }
+fn (mut p WireProtocol) parse_select_items(buf []u8, xsqlda []XSQLVar) !int {
+	return error('TODO')
+}
+
+fn (mut p WireProtocol) parse_xsqlda(buf []u8, stmt_handle i32) !(i32, []XSQLVar) {
+	mut stmt_type := i32(0)
+	mut res := []XSQLVar{}
+	for i := 0; i < buf.len; {
+		if buf[i] == u8(isc_info_sql_stmt_type) && buf[i + 1] == 4 && buf[i + 2] == 0 {
+			i++
+			len := parse_little_endian_i16(buf[i..i + 2])
+			i += 2
+			stmt_type = parse_little_endian_i32(buf[i..i + len])
+			i += len
+		} else if buf[i] == u8(isc_info_sql_select) && buf[i + 1] == u8(isc_info_sql_describe_vars) {
+			i += 2
+			len := parse_little_endian_i16(buf[i..i + 2])
+			i += 2
+			col_len := parse_little_endian_i32(buf[i..i + len])
+			res = []XSQLVar{len: int(col_len)}
+			// TODO continue
+		} else {
+			break
+		}
+	}
+	return stmt_type, res
+}
 
 // fn (mut p WireProtocol) sql_response(xsqlda []XSQLVariable) ![]Value {
 // }
