@@ -32,7 +32,7 @@ fn new_statement(mut tx Transaction, query string) !Statement {
 	}
 	// TODO stored procedure
 	// stmt_type, xsqlda := tx.conn.p.parse_xsqlda(buf, stmt_handle)!
-	// blr = calculate_blr(xsqlda)
+	// blr = build_blr(xsqlda)
 	return Statement{
 		query:       query
 		tx:          tx
