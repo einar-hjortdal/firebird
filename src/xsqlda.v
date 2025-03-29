@@ -259,3 +259,18 @@ fn (x XSQLVar) get_value(raw_value []u8, timezone string, charset string) !Value
 		}
 	}
 }
+
+struct XSQLDA {
+mut:
+	vars []XSQLVar
+}
+
+fn new_xsqlda(len i32) XSQLDA {
+	return XSQLDA{
+		vars: []XSQLVar{len: int(len)}
+	}
+}
+
+fn (mut xsqlda XSQLDA) parse_select_items(buf []u8) !int {
+	return error('TODO')
+}
