@@ -493,24 +493,16 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 }
 
 fn (mut p WireProtocol) parse_xsqlda(buf []u8, stmt_handle i32) !(i32, XSQLDA) {
-	// TODO split stmt_type from parse_xsqlda
-	mut stmt_type := i32(0)
-	mut next_index := 0
+	stmt_type, parameter_description_index := parse_statement_type(buf)!
 	mut xsqlda := XSQLDA{}
-	for i := 0; i < buf.len; {
-		if buf[i] == u8(isc_info_sql_stmt_type) && buf[i + 1] == 4 && buf[i + 2] == 0 {
-			i++
-			len := parse_little_endian_i16(buf[i..i + 2])
-			i += 2
-			stmt_type = parse_little_endian_i32(buf[i..i + len])
-			i += len
-		} else if buf[i] == u8(isc_info_sql_select) && buf[i + 1] == u8(isc_info_sql_describe_vars) {
+	for i := parameter_description_index; i < buf.len; {
+		if buf[i] == u8(isc_info_sql_select) && buf[i + 1] == u8(isc_info_sql_describe_vars) {
 			i += 2
 			len := parse_little_endian_i16(buf[i..i + 2])
 			i += 2
 			col_len := parse_little_endian_i32(buf[i..i + len])
 			xsqlda = new_xsqlda(col_len)
-			next_index = xsqlda.parse_select_items(buf[i + len..])!
+			mut next_index := xsqlda.parse_select_items(buf[i + len..])!
 			for next_index > 0 {
 				// TODO continue
 			}

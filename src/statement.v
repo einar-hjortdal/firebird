@@ -10,6 +10,20 @@ mut:
 	is_closed bool
 }
 
+fn parse_statement_type(buf []u8) !(i32, int) {
+	for i := 0; i < buf.len; i++ {
+		if buf[i] == u8(isc_info_sql_stmt_type) && buf[i + 1] == 4 && buf[i + 2] == 0 {
+			i++
+			len := parse_little_endian_i16(buf[i..i + 2])
+			i += 2
+			stmt_type := parse_little_endian_i32(buf[i..i + len])
+			next_index := i + len
+			return stmt_type, next_index
+		}
+	}
+	return error(format_error_message('could not parse statement type, missing from buffer'))
+}
+
 fn new_statement(mut tx Transaction, query string) !Statement {
 	tx.conn.p.allocate_statement()!
 	mut stmt_handle := i32(0)
