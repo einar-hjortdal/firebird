@@ -149,15 +149,23 @@ fn (x XSQLVar) get_time(raw_value []u8) (int, int, int, int) {
 	return 0, 0, 0, 0 // TODO
 }
 
-fn (x XSQLVar) parse_date(raw_value []u8) time.Time {
+fn (x XSQLVar) parse_date(raw_value []u8, timezone string) time.Time {
 	return time.now() // TODO
 }
 
-fn (x XSQLVar) parse_time(raw_value []u8) time.Time {
+fn (x XSQLVar) parse_time(raw_value []u8, timezone string) time.Time {
 	return time.now() // TODO
 }
 
-fn (x XSQLVar) parse_timestamp(raw_value []u8) time.Time {
+fn (x XSQLVar) parse_time_tz(raw_value []u8) time.Time {
+	return time.now() // TODO
+}
+
+fn (x XSQLVar) parse_timestamp(raw_value []u8, timezone string) time.Time {
+	return time.now() // TODO
+}
+
+fn (x XSQLVar) parse_timestamp_tz(raw_value []u8) time.Time {
 	return time.now() // TODO
 }
 
@@ -221,21 +229,19 @@ fn (x XSQLVar) get_value(raw_value []u8, timezone string, charset string) !Value
 			return x.parse_int64(raw_value)
 		}
 		sql_type_date {
-			return x.parse_date(raw_value)
+			return x.parse_date(raw_value, timezone)
 		}
 		sql_type_time {
-			return x.parse_time(raw_value)
+			return x.parse_time(raw_value, timezone)
 		}
 		sql_type_timestamp {
-			return x.parse_timestamp(raw_value)
+			return x.parse_timestamp(raw_value, timezone)
 		}
 		sql_type_time_tz {
-			// return x.parse_time_tz(raw_value)
-			return error('TODO')
+			return x.parse_time_tz(raw_value)
 		}
 		sql_type_timestamp_tz {
-			// return x.parse_timestamp_tz(raw_value)
-			return error('TODO')
+			return x.parse_timestamp_tz(raw_value)
 		}
 		sql_type_float {
 			return parse_f32(raw_value)
@@ -250,120 +256,7 @@ fn (x XSQLVar) get_value(raw_value []u8, timezone string, charset string) !Value
 			return raw_value
 		}
 		else {
-			return error(format_error_message('Unsupported data type ${x.sql_type}: ${low_priority_todo}'))
+			return error(format_error_message('unsupported data type ${x.sql_type}: ${low_priority_todo}'))
 		}
 	}
-}
-
-fn get_sql_scale(sql_scale u8) u8 {
-	if sql_scale > 0 {
-		return sql_scale
-	}
-	return sql_scale + 256
-}
-
-// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/client/BlrFromMessage.cpp
-fn build_blr(xsqlda []XSQLVar) ![]u8 {
-	len := xsqlda.len
-	min_len := xsqlda.len * 3 + 8
-	mut blr := strings.new_builder(min_len)
-	// header: 4 bytes
-	blr.write_byte(blr_version5)
-	blr.write_byte(blr_begin)
-	blr.write_byte(blr_message)
-	blr.write_byte(0)
-	// length: 2 bytes
-	blr.write_byte(u8(len & 255))
-	blr.write_byte(u8(len >> 8))
-
-	for i := 0; i < len; i++ {
-		v := xsqlda[i]
-		sql_scale := get_sql_scale(v.sql_scale)
-		match v.sql_type {
-			sql_type_varying {
-				blr.write_byte(blr_varying) // TODO switch to blr_varying2
-				blr.write_byte(u8(v.sql_len & 255))
-				blr.write_byte(u8(v.sql_len >> 8))
-			}
-			sql_type_text {
-				blr.write_byte(blr_text) // TODO blr_text2
-				blr.write_byte(u8(v.sql_len & 255))
-				blr.write_byte(u8(v.sql_len >> 8))
-			}
-			sql_type_dec64 {
-				blr.write_byte(blr_dec64)
-			}
-			sql_type_dec128 {
-				blr.write_byte(blr_dec128)
-			}
-			sql_type_int128 {
-				blr.write_byte(blr_int128)
-				blr.write_byte(sql_scale)
-			}
-			sql_type_double {
-				blr.write_byte(blr_double)
-			}
-			sql_type_float {
-				blr.write_byte(blr_float)
-			}
-			sql_type_d_float {
-				blr.write_byte(blr_d_float)
-			}
-			sql_type_date {
-				blr.write_byte(blr_sql_date)
-			}
-			sql_type_time {
-				blr.write_byte(blr_sql_time)
-			}
-			sql_type_time_tz {
-				blr.write_byte(blr_sql_time_tz)
-			}
-			sql_type_timestamp {
-				blr.write_byte(blr_timestamp)
-			}
-			sql_type_timestamp_tz {
-				blr.write_byte(blr_timestamp_tz)
-			}
-			sql_type_blob {
-				blr.write_byte(blr_blob2)
-				blr.write_byte(0)
-			}
-			sql_type_array {
-				blr.write_byte(blr_quad)
-				blr.write_byte(0)
-			}
-			sql_type_long {
-				blr.write_byte(blr_long)
-				blr.write_byte(u8(sql_scale))
-			}
-			sql_type_short {
-				blr.write_byte(blr_short)
-				blr.write_byte(u8(sql_scale))
-			}
-			sql_type_int64 {
-				blr.write_byte(blr_int64)
-				blr.write_byte(sql_scale)
-			}
-			sql_type_quad {
-				blr.write_byte(blr_quad)
-				blr.write_byte(sql_scale)
-			}
-			sql_type_boolean {
-				blr.write_byte(blr_bool)
-			}
-			sql_type_null {
-				blr.write_byte(blr_text)
-				blr.write_byte(u8(v.sql_len & 255))
-				blr.write_byte(u8(v.sql_len >> 8))
-			}
-			else {
-				return error(format_error_message('Unsupported data type ${v.sql_type}: ${low_priority_todo}'))
-			}
-		}
-		blr.write_byte(blr_short)
-		blr.write_byte(0)
-	}
-	blr.write_byte(blr_end)
-	blr.write_byte(blr_eoc)
-	return blr
 }
