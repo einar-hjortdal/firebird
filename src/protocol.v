@@ -37,21 +37,20 @@ mut:
 	password    string
 	auth_data   []u8
 
-	charset          string
-	charset_byte_len int
-
 	timezone string
+	charset  string
+	// charset_byte_len int
 }
 
 fn new_wire_protocol(addr string, timezone string) !WireProtocol {
 	conn := net.dial_tcp(addr)!
 	return WireProtocol{
-		buf:              []u8{} // TODO performance enhancement: make it { len: buffer_length }
-		conn:             new_wire_channel(conn)
-		addr:             addr
-		charset:          'UTF8'
-		charset_byte_len: 4
-		timezone:         timezone
+		buf:      []u8{} // TODO performance enhancement: make it { len: buffer_length }
+		conn:     new_wire_channel(conn)
+		addr:     addr
+		timezone: timezone
+		charset:  charset_utf8
+		// charset_byte_len: 4
 	}
 }
 

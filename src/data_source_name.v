@@ -13,7 +13,6 @@ mut:
 
 const default_options = {
 	'auth_plugin_name':     'Srp256'
-	'charset':              'UTF8'
 	'column_name_to_lower': 'false'
 	'role':                 ''
 	'timezone':             ''

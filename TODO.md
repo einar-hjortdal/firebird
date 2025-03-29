@@ -27,6 +27,8 @@ I do not use the following features and will not support them. If you would like
 any of them, please open a pull request.
 
 - embedded
+- numeric
+- decimal
 - decfloat
 - int128
 - batches

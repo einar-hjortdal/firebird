@@ -89,6 +89,10 @@ fn marshal_string(s string) []u8 {
 	return marshal_bytes(s.bytes())
 }
 
+fn parse_i64(b []u8) i64 {
+	return i64(binary.big_endian_u64(b))
+}
+
 fn parse_i32(b []u8) i32 {
 	return i32(binary.big_endian_u32(b))
 }
