@@ -101,6 +101,14 @@ fn parse_i16(b []u8) i16 {
 	return i16(binary.little_endian_u16(b))
 }
 
+fn parse_f32(b []u8) f32 {
+	return math.f32_from_bits(binary.big_endian_u32(b))
+}
+
+fn parse_f64(b []u8) f64 {
+	return math.f64_from_bits(binary.big_endian_u64(b))
+}
+
 // Returns the executable file path, limiting the path to 255 characters.
 fn get_executable() string {
 	e := os.executable()

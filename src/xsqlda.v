@@ -241,12 +241,10 @@ fn (x XSQLVar) get_value(raw_value []u8, timezone string, charset string) !Value
 			return error('TODO')
 		}
 		sql_type_float {
-			// TODO encoding.binary lacks float functions
-			return error('TODO')
+			return parse_f32(raw_value)
 		}
 		sql_type_double {
-			// TODO encoding.binary lacks float functions
-			return error('TODO')
+			return parse_f64(raw_value)
 		}
 		sql_type_boolean {
 			return raw_value[0] != 0
