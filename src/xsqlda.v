@@ -281,33 +281,23 @@ fn build_blr(xsqlda []XSQLVar) ![]u8 {
 		sql_scale := get_sql_scale(v.sql_scale)
 		match v.sql_type {
 			sql_type_varying {
-				blr.write_byte(blr_varying)
+				blr.write_byte(blr_varying) // TODO switch to blr_varying2
 				blr.write_byte(u8(v.sql_len & 255))
 				blr.write_byte(u8(v.sql_len >> 8))
 			}
 			sql_type_text {
-				blr.write_byte(blr_text)
+				blr.write_byte(blr_text) // TODO blr_text2
 				blr.write_byte(u8(v.sql_len & 255))
 				blr.write_byte(u8(v.sql_len >> 8))
 			}
-			sql_type_long {
-				blr.write_byte(blr_long)
-				blr.write_byte(u8(sql_scale))
+			sql_type_dec64 {
+				blr.write_byte(blr_dec64)
 			}
-			sql_type_short {
-				blr.write_byte(blr_short)
-				blr.write_byte(u8(sql_scale))
-			}
-			sql_type_int64 {
-				blr.write_byte(blr_int64)
-				blr.write_byte(sql_scale)
+			sql_type_dec128 {
+				blr.write_byte(blr_dec128)
 			}
 			sql_type_int128 {
 				blr.write_byte(blr_int128)
-				blr.write_byte(sql_scale)
-			}
-			sql_type_quad {
-				blr.write_byte(blr_quad)
 				blr.write_byte(sql_scale)
 			}
 			sql_type_double {
@@ -325,8 +315,14 @@ fn build_blr(xsqlda []XSQLVar) ![]u8 {
 			sql_type_time {
 				blr.write_byte(blr_sql_time)
 			}
+			sql_type_time_tz {
+				blr.write_byte(blr_sql_time_tz)
+			}
 			sql_type_timestamp {
 				blr.write_byte(blr_timestamp)
+			}
+			sql_type_timestamp_tz {
+				blr.write_byte(blr_timestamp_tz)
 			}
 			sql_type_blob {
 				blr.write_byte(blr_blob2)
@@ -336,20 +332,29 @@ fn build_blr(xsqlda []XSQLVar) ![]u8 {
 				blr.write_byte(blr_quad)
 				blr.write_byte(0)
 			}
+			sql_type_long {
+				blr.write_byte(blr_long)
+				blr.write_byte(u8(sql_scale))
+			}
+			sql_type_short {
+				blr.write_byte(blr_short)
+				blr.write_byte(u8(sql_scale))
+			}
+			sql_type_int64 {
+				blr.write_byte(blr_int64)
+				blr.write_byte(sql_scale)
+			}
+			sql_type_quad {
+				blr.write_byte(blr_quad)
+				blr.write_byte(sql_scale)
+			}
 			sql_type_boolean {
 				blr.write_byte(blr_bool)
 			}
-			sql_type_dec64 {
-				blr.write_byte(blr_dec64)
-			}
-			sql_type_dec128 {
-				blr.write_byte(blr_dec128)
-			}
-			sql_type_time_tz {
-				blr.write_byte(blr_sql_time_tz)
-			}
-			sql_type_timestamp_tz {
-				blr.write_byte(blr_timestamp_tz)
+			sql_type_null {
+				blr.write_byte(blr_text)
+				blr.write_byte(u8(v.sql_len & 255))
+				blr.write_byte(u8(v.sql_len >> 8))
 			}
 			else {
 				return error(format_error_message('Unsupported data type ${v.sql_type}: ${low_priority_todo}'))
