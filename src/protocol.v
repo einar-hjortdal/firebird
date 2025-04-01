@@ -5,14 +5,26 @@ import math.big
 import net
 import os
 import time
+import strings
 
 const plugin_list = 'Srp256,Srp'
 const buffer_length = 1024
 const legacy_auth_error = 'LegacyAuth is not supported: ${low_priority_todo}'
-const info_sql_select_describe_vars = [u8(isc_info_sql_select), isc_info_sql_describe_vars,
-	isc_info_sql_sqlda_seq, isc_info_sql_type, isc_info_sql_sub_type, isc_info_sql_scale,
-	isc_info_sql_length, isc_info_sql_null_ind, isc_info_sql_field, isc_info_sql_relation,
-	isc_info_sql_owner, isc_info_sql_alias, isc_info_sql_describe_end]
+const info_sql_select_describe_vars = [
+	u8(isc_info_sql_select),
+	isc_info_sql_describe_vars,
+	isc_info_sql_sqlda_seq,
+	isc_info_sql_type,
+	isc_info_sql_sub_type,
+	isc_info_sql_scale,
+	isc_info_sql_length,
+	isc_info_sql_null_ind,
+	isc_info_sql_field,
+	isc_info_sql_relation,
+	isc_info_sql_owner,
+	isc_info_sql_alias,
+	isc_info_sql_describe_end,
+]
 
 // Protocol Types (accept_type)
 const ptype_batch_send = 3 // Batch sends, no asynchrony
@@ -492,10 +504,23 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 	return b, v
 }
 
+// https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-statements-information
+fn (mut p WireProtocol) information_request(stmt_handle i32, vars []u8) ! {
+	p.pack_i32(op_info_sql)
+	p.pack_i32(stmt_handle)
+	p.pack_i32(0)
+	p.pack_bytes(vars)
+	p.pack_i32(buffer_length)
+	p.send_packets()!
+}
+
+// TODO refactor
+// - remove mut sqlda declaration
+// - remove for loop nesting
 fn (mut p WireProtocol) parse_xsqlda(buf []u8, stmt_handle i32) !(i32, XSQLDA) {
-	stmt_type, parameter_description_index := parse_statement_type(buf)!
+	stmt_type, end_parameter_description_index := parse_statement_type(buf)!
 	mut xsqlda := XSQLDA{}
-	for i := parameter_description_index; i < buf.len; {
+	for i := end_parameter_description_index; i < buf.len; {
 		if buf[i] == u8(isc_info_sql_select) && buf[i + 1] == u8(isc_info_sql_describe_vars) {
 			i += 2
 			len := parse_little_endian_i16(buf[i..i + 2])
@@ -504,7 +529,14 @@ fn (mut p WireProtocol) parse_xsqlda(buf []u8, stmt_handle i32) !(i32, XSQLDA) {
 			xsqlda = new_xsqlda(col_len)
 			mut next_index := xsqlda.parse_select_items(buf[i + len..])!
 			for next_index > 0 {
-				// TODO continue
+				mut vars := strings.new_builder(2 + info_sql_select_describe_vars.len)
+				vars.write_u8(isc_info_sql_sqlda_start)
+				vars.write_u8(2)
+				vars.write(info_sql_select_describe_vars) or { panic(err) } // does not return any error
+				p.information_request(stmt_handle, vars)!
+				_, _, var_data := p.generic_response()!
+				var_len := parse_little_endian_i16(var_data[2..4])
+				next_index = xsqlda.parse_select_items(var_data[4 + var_len..])!
 			}
 		} else {
 			break

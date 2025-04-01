@@ -99,15 +99,16 @@ const xsqlvar_type_name = {
 
 // https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/jaybird-native/src/main/java/org/firebirdsql/jna/fbclient/XSQLVAR.java#L11
 struct XSQLVar {
-	alias_name  string
-	field_name  string
-	own_name    string
-	rel_name    string
-	sql_len     int
-	sql_scale   u8
-	sql_subtype int
-	sql_type    int
-	nullable    bool
+mut:
+	alias_name     string
+	field_name     string
+	own_name       string
+	relation_name  string
+	sql_len        int
+	sql_scale      u8
+	sql_subtype    int
+	sql_type       int
+	null_indicator bool
 }
 
 fn (x XSQLVar) io_length() int {
@@ -271,6 +272,83 @@ fn new_xsqlda(len i32) XSQLDA {
 	}
 }
 
+fn get_var_data(buf []u8, i int) ([]u8, int) {
+	n := i + 2
+	l := parse_little_endian_i16(buf[i..n]) // length of data
+	e := n + l
+	v := buf[n..e] // data
+	return v, e
+}
+
 fn (mut xsqlda XSQLDA) parse_select_items(buf []u8) !int {
-	return error('TODO')
+	mut index := 0
+	for i := 0; buf[i] != isc_info_end; i++ {
+		item := buf[i]
+		match item {
+			isc_info_sql_sqlda_seq {
+				v, e := get_var_data(buf, i)
+				i += e
+				index = parse_little_endian_i32(v)
+			}
+			isc_info_sql_type {
+				v, e := get_var_data(buf, i)
+				i += e
+				mut res := parse_little_endian_i32(v)
+				if res % 2 != 0 {
+					res--
+				}
+				xsqlda.vars[index - 1].sql_type = res
+			}
+			isc_info_sql_sub_type {
+				v, e := get_var_data(buf, i)
+				i += e
+				xsqlda.vars[index - 1].sql_subtype = parse_little_endian_i32(v)
+			}
+			isc_info_sql_scale {
+				v, e := get_var_data(buf, i)
+				i += e
+				xsqlda.vars[index - 1].sql_scale = u8(parse_little_endian_i32(v))
+			}
+			isc_info_sql_length {
+				v, e := get_var_data(buf, i)
+				i += e
+				xsqlda.vars[index - 1].sql_len = parse_little_endian_i32(v)
+			}
+			isc_info_sql_null_ind {
+				v, e := get_var_data(buf, i)
+				i += e
+				xsqlda.vars[index - 1].null_indicator = parse_little_endian_i32(v) != 0
+			}
+			isc_info_sql_field {
+				v, e := get_var_data(buf, i)
+				i += e
+				xsqlda.vars[index - 1].field_name = v.bytestr()
+			}
+			isc_info_sql_relation {
+				v, e := get_var_data(buf, i)
+				i += e
+				xsqlda.vars[index - 1].relation_name = v.bytestr()
+			}
+			isc_info_sql_owner {
+				v, e := get_var_data(buf, i)
+				i += e
+				xsqlda.vars[index - 1].own_name = v.bytestr()
+			}
+			isc_info_sql_alias {
+				v, e := get_var_data(buf, i)
+				i += e
+				xsqlda.vars[index - 1].alias_name = v.bytestr()
+			}
+			isc_info_truncated {
+				return index // more info at index
+			}
+			isc_info_sql_describe_end {
+				// nothing
+			}
+			else {
+				return error(format_error_message('Invalid item'))
+			}
+		}
+	}
+	return -1 // no more info
 }
