@@ -6,7 +6,7 @@ pub struct Statement {
 	stmt_type   i32  // isc_info_sql_stmt_type
 	stmt_handle i32
 mut:
-	tx        Transaction
+	tx        &Transaction
 	is_closed bool
 }
 
