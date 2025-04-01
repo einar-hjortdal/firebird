@@ -233,7 +233,7 @@ fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 
 	op_error_code := parse_big_endian_i32(b)
 	if op_error_code != op_response {
-		return error(format_op_error(op_error_code))
+		return error(format_error_message('op_response ${op_error_code}'))
 	}
 	return p.parse_generic_response()!
 }
@@ -402,6 +402,12 @@ fn (mut p WireProtocol) attach(database string, user string, password string, ro
 fn (mut p WireProtocol) detach() ! {
 	p.pack_i32(op_detach)
 	p.pack_i32(p.db_handle)
+	p.send_packets()!
+}
+
+// https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-databases-disconnect
+fn (mut p WireProtocol) disconnect() ! {
+	p.pack_i32(op_disconnect)
 	p.send_packets()!
 }
 

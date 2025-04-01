@@ -37,6 +37,7 @@ pub fn new_connection(s string) !Connection {
 pub fn (mut c Connection) close() ! {
 	c.p.detach()!
 	c.p.generic_response()!
+	c.p.disconnect()!
 	c.p.conn.close()!
 }
 

@@ -11,10 +11,6 @@ fn format_error_message(message string) string {
 	return '[${lib}] ${message}'
 }
 
-fn format_op_error(op_error_code i32) string {
-	return format_error_message('Error: op_response ${op_error_code}')
-}
-
 fn get_log_level() log.Level {
 	level_string := os.getenv('LOG_LEVEL')
 	if level_string == '' {
