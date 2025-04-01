@@ -41,18 +41,14 @@ fn new_statement(mut tx Transaction, query string) !Statement {
 	}
 
 	_, _, buf := tx.conn.p.generic_response()!
-	if buf.len > 0 {
-		println('xsqlda data received')
-	}
-	// TODO stored procedure
-	// stmt_type, xsqlda := tx.conn.p.parse_xsqlda(buf, stmt_handle)!
-	// blr = build_blr(xsqlda)
+	stmt_type, xsqlda := tx.conn.p.parse_xsqlda(buf, stmt_handle)!
+	blr := build_blr(xsqlda)!
 	return Statement{
 		query:       query
 		tx:          tx
 		stmt_handle: stmt_handle
-		// stmt_type: stmt_type
-		// blr:         blr
+		stmt_type:   stmt_type
+		blr:         blr
 	}
 }
 
