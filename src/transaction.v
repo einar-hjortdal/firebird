@@ -36,5 +36,5 @@ pub fn (mut t Transaction) rollback() ! {
 }
 
 pub fn (mut t Transaction) prepare_statement(query string) !Statement {
-	return error('TODO')
+	return new_statement(mut t, query)!
 }
