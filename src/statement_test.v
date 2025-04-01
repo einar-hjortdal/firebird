@@ -3,13 +3,19 @@ module firebird
 import tests
 
 fn test_new_statement() {
-	mut conn := new_connection(tests.url) or { panic(err) }
+	mut conn := new_connection(tests.url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 	mut stmt := tx.prepare_statement('CREATE TABLE foo (a INTEGER)')!
 	stmt.close()!
 	tx.rollback()!
-	conn.close() or { panic(err) }
+	conn.close()!
 }
 
 fn test_execute_statement() {
+}
+
+fn test_result_without_data() {
+}
+
+fn test_result_with_data() {
 }

@@ -551,7 +551,7 @@ fn (mut p WireProtocol) parse_xsqlda(buf []u8, stmt_handle i32) !(i32, XSQLDA) {
 	return stmt_type, xsqlda
 }
 
-// fn (mut p WireProtocol) sql_response(xsqlda []XSQLVariable) ![]Value {
+// fn (mut p WireProtocol) sql_response(xsqlda XSQLDA) ![]Value {
 // }
 
 fn (mut p WireProtocol) transaction(tpb []u8) ! {
