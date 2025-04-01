@@ -59,7 +59,7 @@ pub fn (mut stmt Statement) close() ! {
 		return
 	}
 
-	stmt.tx.conn.p.free_statement(stmt.stmt_handle, 2)!
+	stmt.tx.conn.p.free_statement(stmt.stmt_handle, dsql_drop)!
 	stmt.is_closed = true
 
 	if stmt.tx.conn.p.accept_type == ptype_lazy_send {

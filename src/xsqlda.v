@@ -3,6 +3,11 @@ module firebird
 import math
 import time
 
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/include/firebird/impl/sqlda_pub.h#L29
+const dsql_close = 1
+const dsql_drop = 2
+const dsql_unprepare = 4
+
 pub const charset_none = 'NONE'
 pub const charset_utf8 = 'UTF8'
 pub const charset_octets = 'OCTETS'
