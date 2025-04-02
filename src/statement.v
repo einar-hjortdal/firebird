@@ -77,13 +77,19 @@ pub fn (mut stmt Statement) exec(args []Value) !Result {
 		return error(format_error_message('failed to execute statement: stmt.is_closed is `true`'))
 	}
 
+	// TODO I'm not sure if any statement could be marked as isc_info_sql_stmt_exec_procedure
+	// If no statement is marked as such, remove p.execute_stored_procedure?
 	if stmt.stmt_type == isc_info_sql_stmt_exec_procedure {
-		stmt.tx.conn.p.execute_stored_procedure(stmt.stmt_handle, stmt.tx.tx_handle, args,
-			stmt.output_blr_params)!
-		data := stmt.tx.conn.p.sql_response(stmt.xsqlda)!
-		return new_result(stmt) // TODO use data
+		println('statement is isc_info_sql_stmt_exec_procedure')
+		// stmt.tx.conn.p.execute_stored_procedure(stmt.stmt_handle, stmt.tx.tx_handle, args,
+		// 	stmt.output_blr_params)!
+		// data := stmt.tx.conn.p.sql_response(stmt.xsqlda)!
+		// return new_result(stmt) // TODO use data
 	}
+	// isc_info_sql_stmt_ddl
 	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
+	// data sent to the server is correct, but server does not respond.
+	println('executed')
 	stmt.tx.conn.p.generic_response()!
 	return new_result(stmt)
 }

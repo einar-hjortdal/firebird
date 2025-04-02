@@ -215,6 +215,7 @@ fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 // https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
 fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 	mut b := p.receive_packets(4)!
+	println(b)
 	for parse_big_endian_i32(b) == op_dummy {
 		b = p.receive_packets(4)!
 	}
@@ -645,7 +646,7 @@ fn (mut p WireProtocol) execute(stmt_handle i32, tx_handle i32, params []Value) 
 	p.pack_i32(stmt_handle)
 	p.pack_i32(tx_handle)
 	if params.len == 0 {
-		p.pack_bytes([]u8{len: 0})
+		p.pack_i32(0)
 		p.pack_i32(0)
 		p.pack_i32(0)
 	} else {
