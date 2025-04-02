@@ -551,8 +551,56 @@ fn (mut p WireProtocol) parse_xsqlda(buf []u8, stmt_handle i32) !(i32, XSQLDA) {
 	return stmt_type, xsqlda
 }
 
-// fn (mut p WireProtocol) sql_response(xsqlda XSQLDA) ![]Value {
-// }
+// TODO refactor
+fn (mut p WireProtocol) sql_response(xsqlda XSQLDA) ![]Value {
+	mut b := p.receive_packets(4)!
+	for parse_big_endian_i32(b) == op_dummy {
+		b = p.receive_packets(4)!
+	}
+
+	response := parse_big_endian_i32(b)
+	if response != op_sql_response {
+		return error(format_error_message('received ${response}, not op_sql_response'))
+	}
+
+	b = p.receive_packets(4)!
+	count := parse_big_endian_i32(b)
+	if count == 0 {
+		return []Value{}
+	}
+
+	mut res := []Value{len: xsqlda.vars.len, init: Value(Null{})}
+
+	big256 := big.integer_from_i64(256)
+	mut n := xsqlda.vars.len / 8
+	if xsqlda.vars.len % 8 == 0 {
+		n++
+	}
+
+	mut null_indicator := big.integer_from_i64(0)
+	b = p.receive_aligned_packets(i32(n))!
+	for n = b.len; n > 0; n-- {
+		null_indicator = null_indicator * big256 + big.integer_from_i64(b[n - 1])
+	}
+
+	for i := 0; i < xsqlda.vars.len; i++ {
+		if null_indicator.get_bit(u32(i)) {
+			continue
+		}
+		x := xsqlda.vars[i]
+		mut len := i32(0)
+		if x.io_length() < 0 {
+			b = p.receive_packets(4)!
+			len = parse_big_endian_i32(b)
+		} else {
+			len = i32(x.io_length())
+		}
+		raw_value := p.receive_aligned_packets(len)!
+		res[i] = x.get_value(raw_value, p.timezone, p.charset)!
+	}
+
+	return res
+}
 
 fn (mut p WireProtocol) transaction(tpb []u8) ! {
 	p.pack_i32(op_transaction)
