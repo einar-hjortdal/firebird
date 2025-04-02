@@ -89,7 +89,9 @@ pub fn (mut stmt Statement) exec(args []Value) !Result {
 	}
 	// isc_info_sql_stmt_ddl
 	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
-	// data sent to the server with execute is correct (verified), but server does not respond.
+	// the data sent to the server with execute is correct (verified), but server does not respond.
+	// the data sent to the server with tx.prepare_statement is also correct (verified)
+	// I don't know where the problem is.
 	println('executed')
 	stmt.tx.conn.p.generic_response()!
 	return new_result(stmt)

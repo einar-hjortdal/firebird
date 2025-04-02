@@ -2,6 +2,8 @@ module firebird
 
 import tests
 
+const no_args = []Value{}
+
 // fn test_new_statement() {
 // 	mut conn := new_connection(tests.url)!
 // 	mut tx := conn.start_transaction(isolation_level_read_commited)!
@@ -15,7 +17,7 @@ fn test_execute_statement() {
 	mut conn := new_connection(tests.url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 	mut stmt := tx.prepare_statement('CREATE TABLE foo (a INTEGER)')!
-	r := stmt.exec([]Value{})!
+	r := stmt.exec(no_args)!
 	println(r)
 	stmt.close()!
 	tx.rollback()!

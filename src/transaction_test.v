@@ -8,3 +8,6 @@ fn test_new_transaction() {
 	tx.rollback()!
 	conn.close() or { panic(err) }
 }
+
+fn test_commit() {
+}
