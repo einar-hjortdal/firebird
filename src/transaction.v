@@ -16,8 +16,8 @@ fn (mut t Transaction) set() ! {
 	t.tx_handle = tx_handle
 }
 
-fn new_transaction(mut conn Connection, isolation_level int, is_autocommit bool) !Transaction {
-	mut t := Transaction{
+fn new_transaction(mut conn Connection, isolation_level int, is_autocommit bool) !&Transaction {
+	mut t := &Transaction{
 		conn:            conn
 		isolation_level: isolation_level
 		is_autocommit:   is_autocommit
@@ -36,6 +36,6 @@ pub fn (mut t Transaction) rollback() ! {
 	_, _, _ := t.conn.p.generic_response()!
 }
 
-pub fn (mut t Transaction) prepare_statement(query string) !Statement {
+pub fn (mut t Transaction) prepare_statement(query string) !&Statement {
 	return new_statement(mut t, query)!
 }

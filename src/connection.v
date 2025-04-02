@@ -44,7 +44,7 @@ pub fn (mut c Connection) close() ! {
 // Almost all operations in Firebird occur in the context of a transaction. Units of work are isolated
 // between a start point and end point. Changes to data remain reversible until the moment the client
 // application instructs the server to commit them.
-pub fn (mut c Connection) start_transaction(isolation_level int) !Transaction {
+pub fn (mut c Connection) start_transaction(isolation_level int) !&Transaction {
 	if isolation_level in [isolation_level_read_commited_ro, isolation_level_read_commited,
 		isolation_level_repeatable_read, isolation_level_serializable] {
 		return new_transaction(mut c, isolation_level, false)!

@@ -25,7 +25,7 @@ fn parse_statement_type(buf []u8) !(i32, int) {
 	return error(format_error_message('could not parse statement type, missing from buffer'))
 }
 
-fn new_statement(mut tx Transaction, query string) !Statement {
+fn new_statement(mut tx Transaction, query string) !&Statement {
 	tx.conn.p.allocate_statement()!
 	mut stmt_handle := i32(0)
 	if tx.conn.p.accept_type == ptype_lazy_send {
@@ -44,7 +44,7 @@ fn new_statement(mut tx Transaction, query string) !Statement {
 	_, _, buf := tx.conn.p.generic_response()!
 	stmt_type, xsqlda := tx.conn.p.parse_xsqlda(buf, stmt_handle)!
 	output_blr_params := build_blr(xsqlda)!
-	return Statement{
+	return &Statement{
 		query:             query
 		tx:                tx
 		stmt_handle:       stmt_handle
