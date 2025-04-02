@@ -35,7 +35,7 @@ struct WireProtocol {
 mut:
 	buf []u8
 
-	conn      WireChannel
+	conn      &WireChannel
 	db_handle i32
 	addr      string
 
@@ -54,9 +54,9 @@ mut:
 	// charset_byte_len int
 }
 
-fn new_wire_protocol(addr string, timezone string) !WireProtocol {
+fn new_wire_protocol(addr string, timezone string) !&WireProtocol {
 	conn := net.dial_tcp(addr)!
-	return WireProtocol{
+	return &WireProtocol{
 		buf:      []u8{} // TODO performance enhancement: make it { len: buffer_length }
 		conn:     new_wire_channel(conn)
 		addr:     addr

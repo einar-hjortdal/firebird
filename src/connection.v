@@ -10,12 +10,12 @@ struct Connection {
 	column_name_to_lower bool
 	is_autocommit        bool
 mut:
-	p WireProtocol
+	p &WireProtocol
 }
 
 // `s` is the dsn in the format [firebird://]<user>:<password>@<host><database>
 // see connection_text.v for an example.
-pub fn new_connection(s string) !Connection {
+pub fn new_connection(s string) !&Connection {
 	dsn := parse_dsn(s)!
 	mut p := new_wire_protocol(dsn.address, dsn.options['timezone'])!
 	client_public_key, client_secret_key := get_client_seed()
@@ -23,7 +23,7 @@ pub fn new_connection(s string) !Connection {
 	p.parse_connect_response(dsn.user, dsn.password, dsn.options, client_public_key, client_secret_key)!
 	p.attach(dsn.database, dsn.user, dsn.password, dsn.options['role'])!
 	p.db_handle, _, _ = p.generic_response()!
-	return Connection{
+	return &Connection{
 		p:                    p
 		dsn:                  dsn
 		column_name_to_lower: parse_bool(dsn.options['column_name_to_lower'])

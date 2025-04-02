@@ -12,15 +12,15 @@ const blob_segment_size = 32000
 
 struct WireChannel {
 mut:
-	conn          net.TcpConn
-	reader        io.BufferedReader
-	writer        io.BufferedWriter
+	conn          &net.TcpConn
+	reader        &io.BufferedReader
+	writer        &io.BufferedWriter
 	plugin        string
-	crypto_reader cipher.Stream
-	crypto_writer cipher.Stream
+	crypto_reader &cipher.Stream
+	crypto_writer &cipher.Stream
 }
 
-fn new_wire_channel(conn net.TcpConn) WireChannel {
+fn new_wire_channel(conn &net.TcpConn) &WireChannel {
 	brc := io.BufferedReaderConfig{
 		reader: conn
 	}
@@ -29,7 +29,7 @@ fn new_wire_channel(conn net.TcpConn) WireChannel {
 	}
 	new_reader := io.new_buffered_reader(brc)
 	new_writer := io.new_buffered_writer(bwc) or { panic(err) } // Will never panic because cap is not 0 (uses default cap)
-	wire_channel := WireChannel{
+	wire_channel := &WireChannel{
 		conn:          conn
 		reader:        new_reader
 		writer:        new_writer
@@ -50,8 +50,10 @@ fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8
 			c.crypto_writer = chacha20.new_cipher(key, nonce)!
 		}
 		rc4_plugin_name {
-			c.crypto_reader = rc4.new_cipher(session_key)!
-			c.crypto_writer = rc4.new_cipher(session_key)!
+			r := rc4.new_cipher(session_key)!
+			w := rc4.new_cipher(session_key)!
+			c.crypto_reader = &r
+			c.crypto_writer = &w
 		}
 		else {
 			return error(format_error_message('Unknown wire encryption plugin name: ${plugin}'))
