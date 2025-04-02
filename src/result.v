@@ -50,10 +50,10 @@ pub struct Result {
 	columns []Column
 	rows    []Row
 mut:
-	stmt Statement
+	stmt &Statement
 }
 
-pub fn new_result(stmt Statement) Result {
+pub fn new_result(stmt &Statement) Result {
 	// get all rows
 	// for ? {
 	// row_data, is_there_more := stmt.tx.conn.p.fetch_response(stmt.stmt_handle, stmt.tx.tx_handle, stmt.xsqlda)

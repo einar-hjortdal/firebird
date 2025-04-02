@@ -1,5 +1,6 @@
 module firebird
 
+@[heap]
 pub struct Statement {
 	query             string
 	output_blr_params []u8 // https://www.firebirdfaq.org/faq187/
