@@ -75,7 +75,7 @@ pub fn (mut stmt Statement) close() ! {
 // Executes the statement with the given args.
 pub fn (mut stmt Statement) exec(args []Value) !Result {
 	if stmt.is_closed {
-		return error(format_error_message('failed to execute statement: stmt.is_closed is `true`'))
+		return error(format_error_message('failed to execute statement: statement is closed'))
 	}
 
 	// TODO I'm not sure if any statement could be marked as isc_info_sql_stmt_exec_procedure
@@ -89,7 +89,7 @@ pub fn (mut stmt Statement) exec(args []Value) !Result {
 	}
 	// isc_info_sql_stmt_ddl
 	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
-	// data sent to the server is correct, but server does not respond.
+	// data sent to the server with execute is correct (verified), but server does not respond.
 	println('executed')
 	stmt.tx.conn.p.generic_response()!
 	return new_result(stmt)

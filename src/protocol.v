@@ -660,6 +660,8 @@ fn (mut p WireProtocol) execute(stmt_handle i32, tx_handle i32, params []Value) 
 	p.send_packets()!
 }
 
+// op_execute2 is used for stored procedures
+// TODO merge executes to reduce repetitions?
 fn (mut p WireProtocol) execute_stored_procedure(stmt_handle i32, tx_handle i32, params []Value, output_blr_params []u8) ! {
 	p.pack_i32(op_execute2)
 	p.pack_i32(stmt_handle)
@@ -696,3 +698,5 @@ fn (mut p WireProtocol) free_statement(stmt_handle i32, mode i32) ! {
 	p.pack_i32(mode)
 	p.send_packets()!
 }
+
+// TODO op_cancel
