@@ -649,12 +649,33 @@ fn (mut p WireProtocol) execute(stmt_handle i32, tx_handle i32, params []Value) 
 		p.pack_i32(0)
 		p.pack_i32(0)
 	} else {
-		blr, values := p.params_to_blr(tx_handle, params, p.protocol_version)
-		p.pack_bytes(blr)
+		b, v := p.params_to_blr(tx_handle, params, p.protocol_version)
+		p.pack_bytes(b)
 		p.pack_i32(0)
 		p.pack_i32(1)
-		p.append_bytes(values)
+		p.append_bytes(v)
 	}
+	p.append_bytes(marshal_i32_big_endian(0))
+	p.send_packets()!
+}
+
+fn (mut p WireProtocol) execute_stored_procedure(stmt_handle i32, tx_handle i32, params []Value, output_blr_params []u8) ! {
+	p.pack_i32(op_execute2)
+	p.pack_i32(stmt_handle)
+	p.pack_i32(tx_handle)
+	if params.len == 0 {
+		p.pack_i32(0)
+		p.pack_i32(0)
+		p.pack_i32(0)
+	} else {
+		b, v := p.params_to_blr(tx_handle, params, p.protocol_version)
+		p.pack_bytes(b)
+		p.pack_i32(0)
+		p.pack_i32(1)
+		p.append_bytes(v)
+	}
+	p.append_bytes(output_blr_params)
+	p.pack_i32(0)
 	p.append_bytes(marshal_i32_big_endian(0))
 	p.send_packets()!
 }

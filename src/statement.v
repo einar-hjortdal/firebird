@@ -1,10 +1,11 @@
 module firebird
 
 pub struct Statement {
-	query       string
-	blr         []u8 // https://www.firebirdfaq.org/faq187/
-	stmt_type   i32  // isc_info_sql_stmt_type
-	stmt_handle i32
+	query             string
+	output_blr_params []u8 // https://www.firebirdfaq.org/faq187/
+	xsqlda            XSQLDA
+	stmt_type         i32 // isc_info_sql_stmt_type
+	stmt_handle       i32
 mut:
 	tx        &Transaction
 	is_closed bool
@@ -42,13 +43,14 @@ fn new_statement(mut tx Transaction, query string) !Statement {
 
 	_, _, buf := tx.conn.p.generic_response()!
 	stmt_type, xsqlda := tx.conn.p.parse_xsqlda(buf, stmt_handle)!
-	blr := build_blr(xsqlda)!
+	output_blr_params := build_blr(xsqlda)!
 	return Statement{
-		query:       query
-		tx:          tx
-		stmt_handle: stmt_handle
-		stmt_type:   stmt_type
-		blr:         blr
+		query:             query
+		tx:                tx
+		stmt_handle:       stmt_handle
+		stmt_type:         stmt_type
+		output_blr_params: output_blr_params
+		xsqlda:            xsqlda
 	}
 }
 
@@ -76,7 +78,10 @@ pub fn (mut stmt Statement) exec(args []Value) !Result {
 	}
 
 	if stmt.stmt_type == isc_info_sql_stmt_exec_procedure {
-		// TODO
+		stmt.tx.conn.p.execute_stored_procedure(stmt.stmt_handle, stmt.tx.tx_handle, args,
+			stmt.output_blr_params)!
+		data := stmt.tx.conn.p.sql_response(stmt.xsqlda)!
+		return new_result(stmt) // TODO use data
 	}
 	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
 	stmt.tx.conn.p.generic_response()!

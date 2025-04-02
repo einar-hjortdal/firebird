@@ -109,10 +109,10 @@ mut:
 	field_name     string
 	own_name       string
 	relation_name  string
-	sql_len        int
-	sql_scale      u8
-	sql_subtype    int
-	sql_type       int
+	sql_len        i32
+	sql_scale      i32
+	sql_subtype    i32
+	sql_type       i32
 	null_indicator bool
 }
 
@@ -312,7 +312,7 @@ fn (mut xsqlda XSQLDA) parse_select_items(buf []u8) !int {
 			isc_info_sql_scale {
 				v, e := get_var_data(buf, i)
 				i += e
-				xsqlda.vars[index - 1].sql_scale = u8(parse_little_endian_i32(v))
+				xsqlda.vars[index - 1].sql_scale = parse_little_endian_i32(v)
 			}
 			isc_info_sql_length {
 				v, e := get_var_data(buf, i)

@@ -65,7 +65,7 @@ fn build_blr(xsqlda XSQLDA) ![]u8 {
 
 	for i := 0; i < len; i++ {
 		v := xsqlda.vars[i]
-		sql_scale := get_sql_scale(v.sql_scale)
+		sql_scale := get_sql_scale(u8(v.sql_scale))
 		match v.sql_type {
 			sql_type_varying {
 				blr.write_byte(blr_varying) // TODO switch to blr_varying2
