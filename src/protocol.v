@@ -722,6 +722,12 @@ fn (mut p WireProtocol) execute_stored_procedure(stmt_handle i32, tx_handle i32,
 	p.send_packets()!
 }
 
+fn (mut p WireProtocol) cancel(kind i32) ! {
+	p.pack_i32(op_cancel)
+	p.pack_i32(kind)
+	p.send_packets()!
+}
+
 fn (mut p WireProtocol) fetch(stmt_handle i32, blr []u8) ! {
 	p.pack_i32(op_fetch)
 	p.pack_i32(stmt_handle)
