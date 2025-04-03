@@ -412,7 +412,7 @@ fn (mut p WireProtocol) attach(database string, user string, password string, ro
 	dpb.write_u8(u8(executable_bytes.len))
 	dpb.write(executable_bytes) or { panic(err) } // does not return any error
 
-	dpb.write_u8(u8(isc_dpb_utf8_filename))
+	dpb.write_u8(isc_dpb_utf8_filename)
 	dpb.write_u8(1)
 	dpb.write_u8(1)
 

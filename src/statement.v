@@ -73,7 +73,7 @@ pub fn (mut stmt Statement) close() ! {
 }
 
 // Executes the statement with the given args.
-pub fn (mut stmt Statement) exec(args []Value) !Result {
+pub fn (mut stmt Statement) execute(args []Value) !Result {
 	if stmt.is_closed {
 		return error(format_error_message('failed to execute statement: statement is closed'))
 	}
