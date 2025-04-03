@@ -81,3 +81,8 @@ pub const isolation_level_read_commited_ro = 4 // read only
 
 // https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/jdbc/FBFetcher.java#L27
 const default_fetch_rows = 400
+
+const fb_cancel_disable = 1
+const fb_cancel_enable = 2
+const fb_cancel_raise = 3
+const fb_cancel_abort = 4

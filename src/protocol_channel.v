@@ -50,10 +50,8 @@ fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8
 			c.crypto_writer = chacha20.new_cipher(key, nonce)!
 		}
 		rc4_plugin_name {
-			r := rc4.new_cipher(session_key)!
-			w := rc4.new_cipher(session_key)!
-			c.crypto_reader = &r
-			c.crypto_writer = &w
+			c.crypto_reader = rc4.new_cipher(session_key)!
+			c.crypto_writer = rc4.new_cipher(session_key)!
 		}
 		else {
 			return error(format_error_message('Unknown wire encryption plugin name: ${plugin}'))
