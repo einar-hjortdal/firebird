@@ -89,7 +89,7 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 	}
 	// isc_info_sql_stmt_ddl
 	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
-	// TODO protocol 18 expects something before sending a response
+	// TODO protocol 18 expects fetch_scroll: figure out correct value to use
 	stmt.tx.conn.p.generic_response()!
 	return new_result(stmt)
 }

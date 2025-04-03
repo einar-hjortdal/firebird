@@ -695,7 +695,8 @@ fn (mut p WireProtocol) execute(stmt_handle i32, tx_handle i32, params []Value) 
 		p.pack_i32(1)
 		p.append_bytes(v)
 	}
-	p.append_bytes(marshal_i32_big_endian(0))
+	p.append_bytes(marshal_i32_big_endian(0)) // timeout https://github.com/FirebirdSQL/firebird/blob/08cb3f94e96fc80ed4ec786d31def367e8e58d7c/src/remote/protocol.cpp#L668
+	p.append_bytes(marshal_i32_big_endian(0)) // fetch_scroll https://github.com/FirebirdSQL/firebird/blob/08cb3f94e96fc80ed4ec786d31def367e8e58d7c/src/remote/protocol.cpp#L670
 	p.send_packets()!
 }
 
@@ -718,7 +719,8 @@ fn (mut p WireProtocol) execute_stored_procedure(stmt_handle i32, tx_handle i32,
 	}
 	p.append_bytes(output_blr_params)
 	p.pack_i32(0)
-	p.append_bytes(marshal_i32_big_endian(0))
+	p.append_bytes(marshal_i32_big_endian(0)) // timeout https://github.com/FirebirdSQL/firebird/blob/08cb3f94e96fc80ed4ec786d31def367e8e58d7c/src/remote/protocol.cpp#L668
+	p.append_bytes(marshal_i32_big_endian(0)) // fetch_scroll https://github.com/FirebirdSQL/firebird/blob/08cb3f94e96fc80ed4ec786d31def367e8e58d7c/src/remote/protocol.cpp#L670
 	p.send_packets()!
 }
 
