@@ -20,12 +20,12 @@ const fb_protocol_flag = i32(0b0000_0000_0000_0000_1000_0000_0000_0000)
 
 // https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-databases-attach-identification
 fn build_protocol(protocol_version i32, architecture_type i32, minimum_type i32, maximum_type i32, preference_weight i32) []u8 {
-	mut res := []u8{}
-	res = arrays.append(res, marshal_i32_big_endian(fb_protocol_flag | protocol_version))
-	res = arrays.append(res, marshal_i32_big_endian(architecture_type))
-	res = arrays.append(res, marshal_i32_big_endian(minimum_type))
-	res = arrays.append(res, marshal_i32_big_endian(maximum_type))
-	res = arrays.append(res, marshal_i32_big_endian(preference_weight))
+	mut res := strings.new_builder(20)
+	res.write(marshal_i32_big_endian(fb_protocol_flag | protocol_version)) or { panic(err) } // does not return any error
+	res.write(marshal_i32_big_endian(architecture_type)) or { panic(err) } // does not return any error
+	res.write(marshal_i32_big_endian(minimum_type)) or { panic(err) } // does not return any error
+	res.write(marshal_i32_big_endian(maximum_type)) or { panic(err) } // does not return any error
+	res.write(marshal_i32_big_endian(preference_weight)) or { panic(err) } // does not return any error
 	return res
 }
 
@@ -146,6 +146,7 @@ fn get_wire_crypt_u8(wire_crypt bool) u8 {
 	return u8(0)
 }
 
+// TODO refactor with strings.builder
 fn get_srp_client_public_key_bytes(client_public_key big.Integer) []u8 {
 	b := client_public_key.hex().bytes()
 	len := b.len
@@ -171,6 +172,7 @@ fn get_specific_data(auth_plugin_name string, client_public_key big.Integer) []u
 	panic(format_error_message('Unknown plugin name: ${auth_plugin_name}'))
 }
 
+// TODO refactor with strings.builder
 fn user_identification(user string, auth_plugin_name string, wire_crypt bool, client_public_key big.Integer) []u8 {
 	user_name_bytes := user.to_upper().bytes()
 	user_name := arrays.append([u8(cnct_login), u8(user_name_bytes.len)], user_name_bytes)
