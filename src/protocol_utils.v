@@ -2,7 +2,6 @@ module firebird
 
 import arrays
 import encoding.binary
-import encoding.hex
 import math
 import math.big
 import os
@@ -125,26 +124,6 @@ fn get_executable() string {
 		return e[len - 255..]
 	}
 	return e
-}
-
-fn attach_append_auth_data(a []u8, auth_data []u8) []u8 {
-	if auth_data.len == 0 {
-		return a
-	}
-	specific_auth_data_bytes := hex.encode(auth_data).bytes()
-	dpb_specific_auth_data := arrays.append([u8(isc_dpb_specific_auth_data),
-		u8(specific_auth_data_bytes.len)], specific_auth_data_bytes)
-	return arrays.append(a, dpb_specific_auth_data)
-}
-
-fn attach_append_timezone(a []u8, timezone string) []u8 {
-	if timezone == '' {
-		return a
-	}
-	timezone_bytes := timezone.bytes()
-	dpb_session_time_zone := arrays.append([u8(isc_dpb_session_time_zone), u8(timezone_bytes.len)],
-		timezone_bytes)
-	return arrays.append(a, dpb_session_time_zone)
 }
 
 fn get_system_user() []u8 {

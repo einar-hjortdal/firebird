@@ -73,6 +73,7 @@ fn (mut c WireChannel) read(mut buf []u8) !int {
 }
 
 fn (mut c WireChannel) write(buf []u8) !int {
+	println(buf)
 	if c.plugin == '' {
 		return c.writer.write(buf)!
 	}

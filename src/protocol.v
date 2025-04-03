@@ -1,11 +1,12 @@
 module firebird
 
 import arrays
+import encoding.hex
 import math.big
 import net
 import os
-import time
 import strings
+import time
 
 const plugin_list = 'Srp256,Srp'
 const buffer_length = 1024
@@ -215,7 +216,6 @@ fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 // https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
 fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 	mut b := p.receive_packets(4)!
-	println(b)
 	for parse_big_endian_i32(b) == op_dummy {
 		b = p.receive_packets(4)!
 	}
@@ -378,20 +378,59 @@ fn (mut p WireProtocol) attach(database string, user string, password string, ro
 
 	// https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-databases-attach-attachment
 	// https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/impl/ParameterBufferBase.java
-	dpb_version := [u8(isc_dpb_version1)]
-	dpb_sql_dialect := arrays.append([u8(isc_dpb_sql_dialect), 4], marshal_i32_small_endian(3))
-	dpb_lc_type := arrays.append([u8(isc_dpb_lc_ctype), u8(charset_bytes.len)], charset_bytes)
-	dpb_user_name := arrays.append([u8(isc_dpb_user_name), u8(user_bytes.len)], user_bytes)
-	dpb_password := arrays.append([u8(isc_dpb_password), u8(password_bytes.len)], password_bytes)
-	dpb_role_name := arrays.append([u8(isc_dpb_sql_role_name), u8(role_bytes.len)], role_bytes)
-	dpb_process_id := arrays.append([u8(isc_dpb_process_id), 4], marshal_i32_small_endian(pid))
-	dpb_process_name := arrays.append([u8(isc_dpb_process_name), u8(executable_bytes.len)],
-		executable_bytes)
-	dpb_utf8_filename := [u8(isc_dpb_utf8_filename), 1, 1]
+	mut dpb := strings.new_builder(31)
+	dpb.write_u8(isc_dpb_version1)
+	dpb.write_u8(isc_dpb_sql_dialect)
+	dpb.write_u8(4)
+	dpb.write(marshal_i32_small_endian(3)) or { panic(err) } // does not return any error
 
-	dpb := attach_append_timezone(attach_append_auth_data(append(dpb_version, dpb_sql_dialect,
-		dpb_lc_type, dpb_user_name, dpb_password, dpb_role_name, dpb_process_id, dpb_process_name,
-		dpb_utf8_filename), p.auth_data), p.timezone)
+	dpb.write_u8(isc_dpb_lc_ctype)
+	dpb.write_u8(u8(charset_bytes.len))
+	dpb.write(charset_bytes) or { panic(err) } // does not return any error
+
+	dpb.write_u8(isc_dpb_user_name)
+	dpb.write_u8(u8(user_bytes.len))
+	dpb.write(user_bytes) or { panic(err) } // does not return any error
+
+	dpb.write_u8(isc_dpb_user_name)
+	dpb.write_u8(u8(user_bytes.len))
+	dpb.write(user_bytes) or { panic(err) } // does not return any error
+
+	dpb.write_u8(isc_dpb_password)
+	dpb.write_u8(u8(password_bytes.len))
+	dpb.write(password_bytes) or { panic(err) } // does not return any error
+
+	dpb.write_u8(isc_dpb_sql_role_name)
+	dpb.write_u8(u8(role_bytes.len))
+	dpb.write(role_bytes) or { panic(err) } // does not return any error
+
+	dpb.write_u8(isc_dpb_process_id)
+	dpb.write_u8(4)
+	dpb.write(marshal_i32_small_endian(pid)) or { panic(err) } // does not return any error
+
+	dpb.write_u8(isc_dpb_process_name)
+	dpb.write_u8(u8(executable_bytes.len))
+	dpb.write(executable_bytes) or { panic(err) } // does not return any error
+
+	dpb.write_u8(u8(isc_dpb_utf8_filename))
+	dpb.write_u8(1)
+	dpb.write_u8(1)
+
+	if p.timezone != '' {
+		timezone_bytes := p.timezone.bytes()
+
+		dpb.write_u8(isc_dpb_session_time_zone)
+		dpb.write_u8(u8(timezone_bytes.len))
+		dpb.write(timezone_bytes) or { panic(err) } // does not return any error
+	}
+
+	if p.auth_data.len != 0 {
+		specific_auth_data_bytes := hex.encode(p.auth_data).bytes()
+
+		dpb.write_u8(isc_dpb_specific_auth_data)
+		dpb.write_u8(u8(specific_auth_data_bytes.len))
+		dpb.write(specific_auth_data_bytes) or { panic(err) } // does not return any error
+	}
 
 	p.pack_i32(op_attach)
 	p.pack_i32(0) // Database Object ID
