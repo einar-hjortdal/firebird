@@ -7,7 +7,7 @@
 - ~~connect to Firebird~~
 - ~~support Secure Remote Password auth plugin~~
 - ~~support arc4 crypt plugin~~
-- perform queries
+- ~~perform queries~~
 - parse responses
 
 ### High
