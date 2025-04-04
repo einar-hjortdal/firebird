@@ -25,7 +25,7 @@ const no_args = []Value{}
 // }
 
 // test_execute_statement verifies that a statement can be executed
-fn test_execute_statement_no_args() {
+fn test_execute_statement_ddl_no_args() {
 	mut conn := new_connection(tests.url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
@@ -57,7 +57,14 @@ fn test_execute_statement_no_args() {
 	}
 	stmt.close()!
 
-	stmt = tx.prepare_statement("
+	tx.rollback()!
+	conn.close()!
+}
+
+fn test_execute_statement_dml_no_args() {
+	mut conn := new_connection(tests.url)!
+	mut tx := conn.start_transaction(isolation_level_read_commited)!
+	mut stmt := tx.prepare_statement("
 		CREATE TABLE foo (
 			a INTEGER NOT NULL,
 			b VARCHAR(30) NOT NULL UNIQUE,
@@ -72,20 +79,21 @@ fn test_execute_statement_no_args() {
 			PRIMARY KEY (a),
 			CONSTRAINT CHECK_A CHECK (a <> 0)
 			)")!
-	stmt.execute(no_args) or {
-		tx.rollback()!
-		panic(err)
-	}
+	stmt.execute(no_args)!
 	stmt.close()!
 
 	tx.commit()!
 	tx = conn.start_transaction(isolation_level_read_commited)!
 
+	mut cleanup_stmt := tx.prepare_statement('DROP TABLE foo')!
 	stmt = tx.prepare_statement("
 		INSERT INTO foo (a, b, c, h) 
 			VALUES (1, 'a', 'b', 'This is a test')")!
 	stmt.execute(no_args) or {
-		tx.rollback()!
+		// cleanup
+		stmt.cleanup_stmt(no_args)!
+		tx.commit()!
+		conn.close()!
 		panic(err)
 	}
 	stmt.execute(no_args) or {
@@ -95,13 +103,8 @@ fn test_execute_statement_no_args() {
 	}
 	stmt.close()!
 
-	stmt = tx.prepare_statement('DROP TABLE foo')!
-	stmt.execute(no_args) or {
-		tx.rollback()!
-		panic(err)
-	}
-	stmt.close()!
-
+	cleanup_stmt.execute(no_args)!
+	cleanup_stmt.close()!
 	tx.commit()!
 	conn.close()!
 }
