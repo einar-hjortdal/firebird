@@ -78,19 +78,25 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 		return error(format_error_message('failed to execute statement: statement is closed'))
 	}
 
-	// TODO I'm not sure if any statement could be marked as isc_info_sql_stmt_exec_procedure
-	// If no statement is marked as such, remove p.execute_stored_procedure?
-	// When RETURNING is used? Test
+	// TODO handle isc_info_sql_stmt_exec_procedure
+	// When does this happen? When RETURNING is used? Test
 	if stmt.stmt_type == isc_info_sql_stmt_exec_procedure {
 		println('statement is isc_info_sql_stmt_exec_procedure')
 		// stmt.tx.conn.p.execute_stored_procedure(stmt.stmt_handle, stmt.tx.tx_handle, args,
 		// 	stmt.output_blr_params)!
 		// data := stmt.tx.conn.p.sql_response(stmt.xsqlda)!
-		// return new_result(stmt) // TODO use data
+		return new_result(stmt) // TODO use data
 	}
 
-	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
-	// TODO protocol 18 expects fetch_scroll: figure out correct value to use
-	stmt.tx.conn.p.generic_response()!
+	if stmt.stmt_type == isc_info_sql_stmt_select {
+		// Get data
+		stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
+		// TODO protocol 18 expects fetch_scroll: figure out correct value to use
+		stmt.tx.conn.p.generic_response()!
+		stmt.tx.conn.p.fetch(stmt.stmt_handle, stmt.output_blr_params)!
+		data := stmt.tx.conn.p.parse_fetch_response(stmt.stmt_handle, stmt.tx.tx_handle,
+			stmt.xsqlda)!
+		return new_result(stmt)
+	}
 	return new_result(stmt)
 }

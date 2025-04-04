@@ -46,7 +46,8 @@ pub fn (r Row) values() []Value {
 
 // Result contains all rows
 pub struct Result {
-	status  string // TODO
+	// status?
+	// rows affected?
 	columns []Column
 	rows    []Row
 mut:
@@ -64,10 +65,6 @@ pub fn new_result(stmt &Statement) Result {
 	return Result{
 		stmt: stmt
 	}
-}
-
-pub fn (r Result) status() string {
-	return r.status
 }
 
 pub fn (r Result) columns() []Column {

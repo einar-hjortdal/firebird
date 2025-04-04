@@ -740,6 +740,10 @@ fn (mut p WireProtocol) fetch(stmt_handle i32, blr []u8) ! {
 	p.send_packets()!
 }
 
+fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsqlda XSQLDA) ![]u8 {
+	return error('TODO')
+}
+
 fn (mut p WireProtocol) free_statement(stmt_handle i32, mode i32) ! {
 	p.pack_i32(op_free_statement)
 	p.pack_i32(stmt_handle)
