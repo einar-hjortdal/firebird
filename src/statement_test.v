@@ -30,7 +30,10 @@ fn test_execute_statement_no_args() {
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
 	mut stmt := tx.prepare_statement('CREATE TABLE foo (a INTEGER)')!
-	stmt.execute(no_args)!
+	stmt.execute(no_args) or {
+		tx.rollback()!
+		panic(err)
+	}
 	stmt.execute(no_args) or {
 		// [firebird] unsuccessful metadata update
 		// CREATE TABLE FOO failed
@@ -40,7 +43,10 @@ fn test_execute_statement_no_args() {
 	stmt.close()!
 
 	stmt = tx.prepare_statement('DROP TABLE foo')!
-	stmt.execute(no_args)!
+	stmt.execute(no_args) or {
+		tx.rollback()!
+		panic(err)
+	}
 	stmt.execute(no_args) or {
 		// [firebird] unsuccessful metadata update
 		// DROP TABLE FOO failed
@@ -66,7 +72,10 @@ fn test_execute_statement_no_args() {
 			PRIMARY KEY (a),
 			CONSTRAINT CHECK_A CHECK (a <> 0)
 			)")!
-	stmt.execute(no_args)!
+	stmt.execute(no_args) or {
+		tx.rollback()!
+		panic(err)
+	}
 	stmt.close()!
 
 	tx.commit()!
@@ -75,7 +84,10 @@ fn test_execute_statement_no_args() {
 	stmt = tx.prepare_statement("
 		INSERT INTO foo (a, b, c, h) 
 			VALUES (1, 'a', 'b', 'This is a test')")!
-	stmt.execute(no_args)!
+	stmt.execute(no_args) or {
+		tx.rollback()!
+		panic(err)
+	}
 	stmt.execute(no_args) or {
 		// [firebird] violation of PRIMARY or UNIQUE KEY constraint "INTEG_83" on table "FOO"
 		// Problematic key value is ("B" = 'a')
@@ -84,7 +96,10 @@ fn test_execute_statement_no_args() {
 	stmt.close()!
 
 	stmt = tx.prepare_statement('DROP TABLE foo')!
-	stmt.execute(no_args)!
+	stmt.execute(no_args) or {
+		tx.rollback()!
+		panic(err)
+	}
 	stmt.close()!
 
 	tx.commit()!
