@@ -125,7 +125,6 @@ fn test_execute_statement_dml_no_args() {
 	tx = conn.start_transaction(isolation_level_read_commited)!
 	cleanup_stmt = tx.prepare_statement('DROP TABLE foo')!
 	stmt = tx.prepare_statement('SELECT a, b, c, h FROM foo') or {
-		println(err)
 		cleanup_stmt.execute(no_args)!
 		cleanup_stmt.close()!
 		tx.commit()!

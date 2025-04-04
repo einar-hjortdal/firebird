@@ -80,6 +80,7 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 
 	// TODO I'm not sure if any statement could be marked as isc_info_sql_stmt_exec_procedure
 	// If no statement is marked as such, remove p.execute_stored_procedure?
+	// When RETURNING is used? Test
 	if stmt.stmt_type == isc_info_sql_stmt_exec_procedure {
 		println('statement is isc_info_sql_stmt_exec_procedure')
 		// stmt.tx.conn.p.execute_stored_procedure(stmt.stmt_handle, stmt.tx.tx_handle, args,
