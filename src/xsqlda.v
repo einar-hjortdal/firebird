@@ -278,26 +278,32 @@ fn new_xsqlda(len i32) XSQLDA {
 }
 
 fn get_var_data(buf []u8, i int) ([]u8, int) {
-	n := i + 2
+	n := i + 2 // first index of data
 	l := parse_little_endian_i16(buf[i..n]) // length of data
-	e := n + l
+	e := n + l // last index of data
 	v := buf[n..e] // data
 	return v, e
 }
 
+// TODO refactor loop
 fn (mut xsqlda XSQLDA) parse_select_items(buf []u8) !int {
 	mut index := 0
-	for i := 0; buf[i] != isc_info_end; i++ {
+	mut i := 0
+	for i < buf.len {
 		item := buf[i]
+		if item == isc_info_end {
+			break
+		}
+		i++ // skip item byte
 		match item {
 			isc_info_sql_sqlda_seq {
 				v, e := get_var_data(buf, i)
-				i += e
+				i = e
 				index = parse_little_endian_i32(v)
 			}
 			isc_info_sql_type {
 				v, e := get_var_data(buf, i)
-				i += e
+				i = e
 				mut res := parse_little_endian_i32(v)
 				if res % 2 != 0 {
 					res--
@@ -306,42 +312,42 @@ fn (mut xsqlda XSQLDA) parse_select_items(buf []u8) !int {
 			}
 			isc_info_sql_sub_type {
 				v, e := get_var_data(buf, i)
-				i += e
+				i = e
 				xsqlda.vars[index - 1].sql_subtype = parse_little_endian_i32(v)
 			}
 			isc_info_sql_scale {
 				v, e := get_var_data(buf, i)
-				i += e
+				i = e
 				xsqlda.vars[index - 1].sql_scale = parse_little_endian_i32(v)
 			}
 			isc_info_sql_length {
 				v, e := get_var_data(buf, i)
-				i += e
+				i = e
 				xsqlda.vars[index - 1].sql_len = parse_little_endian_i32(v)
 			}
 			isc_info_sql_null_ind {
 				v, e := get_var_data(buf, i)
-				i += e
+				i = e
 				xsqlda.vars[index - 1].null_indicator = parse_little_endian_i32(v) != 0
 			}
 			isc_info_sql_field {
 				v, e := get_var_data(buf, i)
-				i += e
+				i = e
 				xsqlda.vars[index - 1].field_name = v.bytestr()
 			}
 			isc_info_sql_relation {
 				v, e := get_var_data(buf, i)
-				i += e
+				i = e
 				xsqlda.vars[index - 1].relation_name = v.bytestr()
 			}
 			isc_info_sql_owner {
 				v, e := get_var_data(buf, i)
-				i += e
+				i = e
 				xsqlda.vars[index - 1].own_name = v.bytestr()
 			}
 			isc_info_sql_alias {
 				v, e := get_var_data(buf, i)
-				i += e
+				i = e
 				xsqlda.vars[index - 1].alias_name = v.bytestr()
 			}
 			isc_info_truncated {
@@ -351,7 +357,7 @@ fn (mut xsqlda XSQLDA) parse_select_items(buf []u8) !int {
 				// nothing
 			}
 			else {
-				return error(format_error_message('Invalid item'))
+				return error(format_error_message('Unable to parse XSQLDA item'))
 			}
 		}
 	}

@@ -1,10 +1,6 @@
 module firebird
 
-import tests
-
-const no_args = []Value{}
-
-// To investigate manually:
+// To manually fix issues:
 // sudo docker run \
 //   --rm \
 //   -it \
@@ -13,8 +9,29 @@ const no_args = []Value{}
 //   firebirdsql/firebird \
 //   isql -u fbusr -p fbpwd localhost:/var/lib/firebird/data/firebird.fdb
 
+const protocol = 'firebird://'
+const user = 'fbusr'
+const password = 'fbpwd'
+const host = '127.0.0.1:3050'
+const database = '/var/lib/firebird/data/firebird.fdb'
+const url = '${protocol}${user}:${password}@${host}${database}'
+const no_args = []Value{}
+
+// fn test_open_no_db() {
+// 	mut conn := new_connection('${protocol}${user}@${host}') or {
+// 		assert true // protocol error: no database is provided
+// 		return
+// 	}
+// 	conn.close() or { panic(err) }
+// }
+
+// fn test_open_() {
+// 	mut conn := new_connection(url) or { panic(err) }
+// 	conn.close() or { panic(err) }
+// }
+
 // fn test_new_statement() {
-// 	mut conn := new_connection(tests.url)!
+// 	mut conn := new_connection(url)!
 // 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
 // 	mut stmt := tx.prepare_statement('CREATE TABLE foo (a INTEGER)')!
@@ -26,7 +43,7 @@ const no_args = []Value{}
 
 // test_execute_statement verifies that a statement can be executed
 fn test_execute_statement_ddl_no_args() {
-	mut conn := new_connection(tests.url)!
+	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
 	mut stmt := tx.prepare_statement('CREATE TABLE foo (a INTEGER)')!
@@ -62,7 +79,8 @@ fn test_execute_statement_ddl_no_args() {
 }
 
 fn test_execute_statement_dml_no_args() {
-	mut conn := new_connection(tests.url)!
+	mut conn := new_connection(url)!
+
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 	mut stmt := tx.prepare_statement("
 		CREATE TABLE foo (
@@ -81,17 +99,17 @@ fn test_execute_statement_dml_no_args() {
 			)")!
 	stmt.execute(no_args)!
 	stmt.close()!
-
 	tx.commit()!
-	tx = conn.start_transaction(isolation_level_read_commited)!
 
+	tx = conn.start_transaction(isolation_level_read_commited)!
 	mut cleanup_stmt := tx.prepare_statement('DROP TABLE foo')!
 	stmt = tx.prepare_statement("
 		INSERT INTO foo (a, b, c, h) 
 			VALUES (1, 'a', 'b', 'This is a test')")!
 	stmt.execute(no_args) or {
-		// cleanup
-		stmt.cleanup_stmt(no_args)!
+		stmt.close()!
+		cleanup_stmt.execute(no_args)!
+		cleanup_stmt.close()!
 		tx.commit()!
 		conn.close()!
 		panic(err)
@@ -102,18 +120,34 @@ fn test_execute_statement_dml_no_args() {
 		assert err.msg().contains('violation of PRIMARY or UNIQUE KEY constraint')
 	}
 	stmt.close()!
+	tx.commit()!
+
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	cleanup_stmt = tx.prepare_statement('DROP TABLE foo')!
+	stmt = tx.prepare_statement('SELECT a, b, c, h FROM foo') or {
+		println(err)
+		cleanup_stmt.execute(no_args)!
+		cleanup_stmt.close()!
+		tx.commit()!
+		conn.close()!
+		panic(err)
+	}
+	result := stmt.execute(no_args) or {
+		stmt.close()!
+		cleanup_stmt.execute(no_args)!
+		cleanup_stmt.close()!
+		tx.commit()!
+		conn.close()!
+		panic(err)
+	}
+	stmt.close()!
 
 	cleanup_stmt.execute(no_args)!
 	cleanup_stmt.close()!
 	tx.commit()!
+
 	conn.close()!
 }
 
 // fn test_execute_statement_with_args() {
-// }
-
-// fn test_result_without_data() {
-// }
-
-// fn test_result_with_data() {
 // }

@@ -87,7 +87,7 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 		// data := stmt.tx.conn.p.sql_response(stmt.xsqlda)!
 		// return new_result(stmt) // TODO use data
 	}
-	// isc_info_sql_stmt_ddl
+
 	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
 	// TODO protocol 18 expects fetch_scroll: figure out correct value to use
 	stmt.tx.conn.p.generic_response()!

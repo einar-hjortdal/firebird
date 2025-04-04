@@ -563,6 +563,7 @@ fn (mut p WireProtocol) information_request(stmt_handle i32, vars []u8) ! {
 // TODO refactor
 // - remove mut sqlda declaration
 // - remove for loop nesting
+// Note: it seems like buf always starts with 21 (isc_info_sql_stmt_type)
 fn (mut p WireProtocol) parse_xsqlda(buf []u8, stmt_handle i32) !(i32, XSQLDA) {
 	stmt_type, end_parameter_description_index := parse_statement_type(buf)!
 	mut xsqlda := XSQLDA{}
