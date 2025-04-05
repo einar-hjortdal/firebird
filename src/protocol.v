@@ -768,7 +768,6 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 		return error(format_error_message('parse_fetch_response internal error'))
 	}
 
-	// TODO hangs here
 	b = p.receive_packets(8)!
 	mut status := parse_big_endian_i32(b[..4])
 	mut count := parse_big_endian_i32(b[4..])
@@ -806,21 +805,17 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 
 		rows = arrays.concat(rows, row)
 
-		// protocol 18 fun? TODO
 		b = p.receive_packets(16)!
-		println('b: ${b}')
-		println('1: ${parse_little_endian_i32(b[..2])}')
-		println('1: ${parse_little_endian_i16(b[2..4])}')
-		println('2: ${parse_big_endian_i32(b[4..8])}')
-		println('3: ${parse_big_endian_i32(b[8..12])}')
-		println('4: ${parse_big_endian_i32(b[12..16])}')
-		// op := parse_big_endian_i32(b[..4]) // what this now?
-		status = parse_big_endian_i32(b[4..8]) // what this now?
+		// TODO unknown data b[..4]
+		// op := parse_big_endian_i32(b[4..8]) // 66 (op_fetch_response)
+		status = parse_big_endian_i32(b[8..12])
 		count = parse_big_endian_i32(b[12..])
 	}
 
+	// Status is 100 after the last row is fetched
 	if status != 100 {
 		// TODO handle more data
+		println('more data must be fetched')
 	}
 
 	return rows
