@@ -51,7 +51,7 @@ fn get_sql_scale(sql_scale u8) u8 {
 
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/client/BlrFromMessage.cpp
 fn build_blr(xsqlda XSQLDA) ![]u8 {
-	len := xsqlda.vars.len
+	len := xsqlda.vars.len * 2
 	min_len := xsqlda.vars.len * 3 + 8
 	mut blr := strings.new_builder(min_len)
 	// header: 4 bytes
@@ -63,7 +63,7 @@ fn build_blr(xsqlda XSQLDA) ![]u8 {
 	blr.write_byte(u8(len & 255))
 	blr.write_byte(u8(len >> 8))
 
-	for i := 0; i < len; i++ {
+	for i := 0; i < xsqlda.vars.len; i++ {
 		v := xsqlda.vars[i]
 		sql_scale := get_sql_scale(u8(v.sql_scale))
 		match v.sql_type {

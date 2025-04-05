@@ -77,6 +77,7 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 	if stmt.is_closed {
 		return error(format_error_message('failed to execute statement: statement is closed'))
 	}
+
 	// TODO handle isc_info_sql_stmt_exec_procedure
 	// When does this happen? When RETURNING is used? Test
 	if stmt.stmt_type == isc_info_sql_stmt_exec_procedure {
@@ -86,25 +87,23 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 		// data := stmt.tx.conn.p.sql_response(stmt.xsqlda)!
 		return new_result(stmt) // TODO use data
 	}
+
 	if stmt.stmt_type == isc_info_sql_stmt_select {
-		// return a result with column/row data
 		stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
-		// TODO protocol 18 expects fetch_scroll: figure out correct value to use
 		stmt.tx.conn.p.generic_response()!
+		println('stmt.output_blr_params: ${stmt.output_blr_params}')
 		stmt.tx.conn.p.fetch(stmt.stmt_handle, stmt.output_blr_params)!
-		data, more := stmt.tx.conn.p.parse_fetch_response(stmt.stmt_handle, stmt.tx.tx_handle,
+		data := stmt.tx.conn.p.parse_fetch_response(stmt.stmt_handle, stmt.tx.tx_handle,
 			stmt.xsqlda)!
 		println(data)
-		println(more)
 		return new_result(stmt)
 	}
 
 	// isc_info_sql_stmt_insert
 	// isc_info_sql_stmt_update
-	// isc_info_sql_stmt_delete,
+	// isc_info_sql_stmt_delete
 	// isc_info_sql_stmt_ddl
-	// return a result with no column/row data
-	println(stmt.stmt_type)
+	println('stmt_type; ${stmt.stmt_type}') // verify which other isc_info_sql_stmt_ happens and when
 	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
 	stmt.tx.conn.p.generic_response()!
 	return new_result(stmt)

@@ -701,6 +701,7 @@ fn (mut p WireProtocol) execute(stmt_handle i32, tx_handle i32, params []Value) 
 		p.append_bytes(v)
 	}
 	p.append_bytes(marshal_i32_big_endian(0)) // timeout https://github.com/FirebirdSQL/firebird/blob/08cb3f94e96fc80ed4ec786d31def367e8e58d7c/src/remote/protocol.cpp#L668
+	// TODO proper fetch_scroll value?
 	p.append_bytes(marshal_i32_big_endian(0)) // fetch_scroll https://github.com/FirebirdSQL/firebird/blob/08cb3f94e96fc80ed4ec786d31def367e8e58d7c/src/remote/protocol.cpp#L670
 	p.send_packets()!
 }
@@ -745,7 +746,7 @@ fn (mut p WireProtocol) fetch(stmt_handle i32, blr []u8) ! {
 }
 
 // TODO fetch all rows, not just some (return no bool)
-fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsqlda XSQLDA) !([][]Value, bool) {
+fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsqlda XSQLDA) ![][]Value {
 	mut b := p.receive_packets(4)!
 	for parse_big_endian_i32(b) == op_dummy {
 		b = p.receive_packets(4)!
@@ -764,6 +765,7 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 		return error(format_error_message('parse_fetch_response internal error'))
 	}
 
+	// TODO hangs here
 	b = p.receive_packets(8)!
 	mut status := parse_big_endian_i32(b[..4])
 	mut count := parse_big_endian_i32(b[4..])
@@ -807,7 +809,11 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 		count = parse_big_endian_i32(b[8..])
 	}
 
-	return rows, status != 100
+	if status != 100 {
+		// TODO handle more data
+	}
+
+	return rows
 }
 
 fn (mut p WireProtocol) free_statement(stmt_handle i32, mode i32) ! {
