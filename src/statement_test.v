@@ -107,7 +107,7 @@ fn test_execute_statement_dml_no_args() {
 	stmt.close()!
 
 	stmt = tx.prepare_statement('SELECT a, b, c, h FROM foo')!
-	result := stmt.execute(no_args)!
+	result := stmt.execute(no_args)! // TODO fix SQLDA error
 	stmt.close()!
 
 	stmt = tx.prepare_statement('DROP TABLE foo')!
