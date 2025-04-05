@@ -82,52 +82,52 @@ fn test_execute_select() {
 	conn.close()!
 }
 
-// fn test_execute_dml_no_args() {
-// 	mut conn := new_connection(url)!
+fn test_execute_dml_no_args() {
+	mut conn := new_connection(url)!
 
-// 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-// 	mut stmt := tx.prepare_statement("
-// 		CREATE TABLE foo (
-// 			a INTEGER NOT NULL,
-// 			b VARCHAR(30) NOT NULL UNIQUE,
-// 			c VARCHAR(1024),
-// 			d DECIMAL(16,3) DEFAULT -0.123,
-// 			e DATE DEFAULT '1967-08-11',
-// 			f TIMESTAMP DEFAULT '1967-08-11 23:45:01',
-// 			g TIME DEFAULT '23:45:01',
-// 			h BLOB SUB_TYPE 1,
-// 			i DOUBLE PRECISION DEFAULT 0.0,
-// 			j FLOAT DEFAULT 0.0,
-// 			PRIMARY KEY (a),
-// 			CONSTRAINT CHECK_A CHECK (a <> 0)
-// 			)")!
-// 	stmt.execute(no_args)!
-// 	stmt.close()!
-// 	tx.commit()!
+	mut tx := conn.start_transaction(isolation_level_read_commited)!
+	mut stmt := tx.prepare_statement("
+		CREATE TABLE foo (
+			a INTEGER NOT NULL,
+			b VARCHAR(30) NOT NULL UNIQUE,
+			c VARCHAR(1024),
+			d DECIMAL(16,3) DEFAULT -0.123,
+			e DATE DEFAULT '1967-08-11',
+			f TIMESTAMP DEFAULT '1967-08-11 23:45:01',
+			g TIME DEFAULT '23:45:01',
+			h BLOB SUB_TYPE 1,
+			i DOUBLE PRECISION DEFAULT 0.0,
+			j FLOAT DEFAULT 0.0,
+			PRIMARY KEY (a),
+			CONSTRAINT CHECK_A CHECK (a <> 0)
+			)")!
+	stmt.execute(no_args)!
+	stmt.close()!
+	tx.commit()!
 
-// 	tx = conn.start_transaction(isolation_level_read_commited)!
-// 	stmt = tx.prepare_statement("
-// 		INSERT INTO foo (a, b, c, h)
-// 			VALUES (1, 'a', 'b', 'This is a test')")!
-// 	stmt.execute(no_args)!
-// 	stmt.execute(no_args) or {
-// 		// [firebird] violation of PRIMARY or UNIQUE KEY constraint "INTEG_83" on table "FOO"
-// 		// Problematic key value is ("B" = 'a')
-// 		assert err.msg().contains('violation of PRIMARY or UNIQUE KEY constraint')
-// 	}
-// 	stmt.close()!
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	stmt = tx.prepare_statement("
+		INSERT INTO foo (a, b, c, h)
+			VALUES (1, 'a', 'b', 'This is a test')")!
+	stmt.execute(no_args)!
+	stmt.execute(no_args) or {
+		// [firebird] violation of PRIMARY or UNIQUE KEY constraint "INTEG_83" on table "FOO"
+		// Problematic key value is ("B" = 'a')
+		assert err.msg().contains('violation of PRIMARY or UNIQUE KEY constraint')
+	}
+	stmt.close()!
 
-// 	stmt = tx.prepare_statement('SELECT a, b, c, h FROM foo')!
-// 	result := stmt.execute(no_args)!
-// 	stmt.close()!
+	stmt = tx.prepare_statement('SELECT a, b, c, h FROM foo')!
+	result := stmt.execute(no_args)!
+	stmt.close()!
 
-// 	stmt = tx.prepare_statement('DROP TABLE foo')!
-// 	stmt.execute(no_args)!
-// 	stmt.close()!
+	stmt = tx.prepare_statement('DROP TABLE foo')!
+	stmt.execute(no_args)!
+	stmt.close()!
 
-// 	tx.commit()!
-// 	conn.close()!
-// }
+	tx.commit()!
+	conn.close()!
+}
 
 // fn test_execute_statement_with_args() {
 // }
