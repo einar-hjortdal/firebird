@@ -91,7 +91,6 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 	if stmt.stmt_type == isc_info_sql_stmt_select {
 		stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
 		stmt.tx.conn.p.generic_response()!
-		println('stmt.output_blr_params: ${stmt.output_blr_params}')
 		stmt.tx.conn.p.fetch(stmt.stmt_handle, stmt.output_blr_params)!
 		data := stmt.tx.conn.p.parse_fetch_response(stmt.stmt_handle, stmt.tx.tx_handle,
 			stmt.xsqlda)!

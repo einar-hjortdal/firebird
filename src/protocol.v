@@ -726,6 +726,7 @@ fn (mut p WireProtocol) execute_stored_procedure(stmt_handle i32, tx_handle i32,
 	p.append_bytes(output_blr_params)
 	p.pack_i32(0)
 	p.append_bytes(marshal_i32_big_endian(0)) // timeout https://github.com/FirebirdSQL/firebird/blob/08cb3f94e96fc80ed4ec786d31def367e8e58d7c/src/remote/protocol.cpp#L668
+	// TODO value from https://github.com/FirebirdSQL/jaybird/blob/c152a12d8dec10a3f7bf4013b4b39ad5dfed85b6/src/main/org/firebirdsql/gds/ng/wire/version18/V18Statement.java#L107
 	p.append_bytes(marshal_i32_big_endian(0)) // fetch_scroll https://github.com/FirebirdSQL/firebird/blob/08cb3f94e96fc80ed4ec786d31def367e8e58d7c/src/remote/protocol.cpp#L670
 	p.send_packets()!
 }
@@ -744,6 +745,8 @@ fn (mut p WireProtocol) fetch(stmt_handle i32, blr []u8) ! {
 	p.pack_i32(default_fetch_rows)
 	p.send_packets()!
 }
+
+// TODO protocol 18 op_fetch_scroll?
 
 // TODO fetch all rows, not just some (return no bool)
 fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsqlda XSQLDA) ![][]Value {
@@ -803,10 +806,17 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 
 		rows = arrays.concat(rows, row)
 
-		b = p.receive_packets(12)!
-		// op := parse_big_endian_i32(b[..4])
-		status = parse_big_endian_i32(b[4..8])
-		count = parse_big_endian_i32(b[8..])
+		// protocol 18 fun? TODO
+		b = p.receive_packets(16)!
+		println('b: ${b}')
+		println('1: ${parse_little_endian_i32(b[..2])}')
+		println('1: ${parse_little_endian_i16(b[2..4])}')
+		println('2: ${parse_big_endian_i32(b[4..8])}')
+		println('3: ${parse_big_endian_i32(b[8..12])}')
+		println('4: ${parse_big_endian_i32(b[12..16])}')
+		// op := parse_big_endian_i32(b[..4]) // what this now?
+		status = parse_big_endian_i32(b[4..8]) // what this now?
+		count = parse_big_endian_i32(b[12..])
 	}
 
 	if status != 100 {
