@@ -216,6 +216,8 @@ fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 // https://firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-responses-generic
 fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 	mut b := p.receive_packets(4)!
+
+	// TODO this is repeated in parse_fetch_response, extract as utility function
 	for parse_big_endian_i32(b) == op_dummy {
 		b = p.receive_packets(4)!
 	}
@@ -226,6 +228,7 @@ fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 		b = p.receive_packets(4)!
 	}
 
+	// TODO this is repeated in parse_fetch_response, extract as utility function
 	for parse_big_endian_i32(b) == op_response && p.lazy_response_count > 0 {
 		p.lazy_response_count--
 		p.parse_generic_response()!
@@ -612,6 +615,7 @@ fn (mut p WireProtocol) sql_response(xsqlda XSQLDA) ![]Value {
 
 	mut res := []Value{len: xsqlda.vars.len, init: Value(Null{})}
 
+	// TODO this part is repeated in parse_fetch_response. Abstract to utility function
 	big256 := big.integer_from_i64(256)
 	mut n := xsqlda.vars.len / 8
 	if xsqlda.vars.len % 8 == 0 {
@@ -740,8 +744,70 @@ fn (mut p WireProtocol) fetch(stmt_handle i32, blr []u8) ! {
 	p.send_packets()!
 }
 
-fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsqlda XSQLDA) ![]u8 {
-	return error('TODO')
+// TODO fetch all rows, not just some (return no bool)
+fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsqlda XSQLDA) !([][]Value, bool) {
+	mut b := p.receive_packets(4)!
+	for parse_big_endian_i32(b) == op_dummy {
+		b = p.receive_packets(4)!
+	}
+
+	for parse_big_endian_i32(b) == op_response && p.lazy_response_count > 0 {
+		p.lazy_response_count--
+		p.parse_generic_response()!
+		b = p.receive_packets(4)!
+	}
+
+	if parse_big_endian_i32(b) != op_fetch_response {
+		if parse_big_endian_i32(b) == op_response {
+			p.parse_generic_response()!
+		}
+		return error(format_error_message('parse_fetch_response internal error'))
+	}
+
+	b = p.receive_packets(8)!
+	mut status := parse_big_endian_i32(b[..4])
+	mut count := parse_big_endian_i32(b[4..])
+	mut rows := [][]Value{}
+
+	for count > 0 {
+		mut row := []Value{len: xsqlda.vars.len, init: Value(Null{})}
+		big256 := big.integer_from_i64(256)
+		mut n := xsqlda.vars.len / 8
+		if xsqlda.vars.len % 8 == 0 {
+			n++
+		}
+
+		mut null_indicator := big.integer_from_i64(0)
+		b = p.receive_aligned_packets(i32(n))!
+		for n = b.len; n > 0; n-- {
+			null_indicator = null_indicator * big256 + big.integer_from_i64(b[n - 1])
+		}
+
+		for i := 0; i < xsqlda.vars.len; i++ {
+			if null_indicator.get_bit(u32(i)) {
+				continue
+			}
+			x := xsqlda.vars[i]
+			mut len := i32(0)
+			if x.io_length() < 0 {
+				b = p.receive_packets(4)!
+				len = parse_big_endian_i32(b)
+			} else {
+				len = i32(x.io_length())
+			}
+			raw_value := p.receive_aligned_packets(len)!
+			row[i] = x.get_value(raw_value, p.timezone, p.charset)!
+		}
+
+		rows = arrays.concat(rows, row)
+
+		b = p.receive_packets(12)!
+		// op := parse_big_endian_i32(b[..4])
+		status = parse_big_endian_i32(b[4..8])
+		count = parse_big_endian_i32(b[8..])
+	}
+
+	return rows, status != 100
 }
 
 fn (mut p WireProtocol) free_statement(stmt_handle i32, mode i32) ! {

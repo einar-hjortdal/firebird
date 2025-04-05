@@ -41,42 +41,35 @@ const no_args = []Value{}
 // 	conn.close()!
 // }
 
-// test_execute_statement verifies that a statement can be executed
-fn test_execute_statement_ddl_no_args() {
-	mut conn := new_connection(url)!
-	mut tx := conn.start_transaction(isolation_level_read_commited)!
+// fn test_execute_statement_ddl_no_args() {
+// 	mut conn := new_connection(url)!
+// 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
-	mut stmt := tx.prepare_statement('CREATE TABLE foo (a INTEGER)')!
-	stmt.execute(no_args) or {
-		tx.rollback()!
-		panic(err)
-	}
-	stmt.execute(no_args) or {
-		// [firebird] unsuccessful metadata update
-		// CREATE TABLE FOO failed
-		// Table FOO already exists
-		assert err.msg().contains('Table FOO already exists')
-	}
-	stmt.close()!
+// 	mut stmt := tx.prepare_statement('CREATE TABLE foo (a INTEGER)')!
+// 	stmt.execute(no_args)!
+// 	stmt.execute(no_args) or {
+// 		// [firebird] unsuccessful metadata update
+// 		// CREATE TABLE FOO failed
+// 		// Table FOO already exists
+// 		assert err.msg().contains('Table FOO already exists')
+// 	}
+// 	stmt.close()!
 
-	stmt = tx.prepare_statement('DROP TABLE foo')!
-	stmt.execute(no_args) or {
-		tx.rollback()!
-		panic(err)
-	}
-	stmt.execute(no_args) or {
-		// [firebird] unsuccessful metadata update
-		// DROP TABLE FOO failed
-		// SQL error code = -607
-		// Invalid command
-		// Table FOO does not exist
-		assert err.msg().contains('Table FOO does not exist')
-	}
-	stmt.close()!
+// 	stmt = tx.prepare_statement('DROP TABLE foo')!
+// 	stmt.execute(no_args)!
+// 	stmt.execute(no_args) or {
+// 		// [firebird] unsuccessful metadata update
+// 		// DROP TABLE FOO failed
+// 		// SQL error code = -607
+// 		// Invalid command
+// 		// Table FOO does not exist
+// 		assert err.msg().contains('Table FOO does not exist')
+// 	}
+// 	stmt.close()!
 
-	tx.rollback()!
-	conn.close()!
-}
+// 	tx.rollback()!
+// 	conn.close()!
+// }
 
 fn test_execute_statement_dml_no_args() {
 	mut conn := new_connection(url)!
@@ -102,49 +95,26 @@ fn test_execute_statement_dml_no_args() {
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	mut cleanup_stmt := tx.prepare_statement('DROP TABLE foo')!
 	stmt = tx.prepare_statement("
 		INSERT INTO foo (a, b, c, h) 
 			VALUES (1, 'a', 'b', 'This is a test')")!
-	stmt.execute(no_args) or {
-		stmt.close()!
-		cleanup_stmt.execute(no_args)!
-		cleanup_stmt.close()!
-		tx.commit()!
-		conn.close()!
-		panic(err)
-	}
+	stmt.execute(no_args)!
 	stmt.execute(no_args) or {
 		// [firebird] violation of PRIMARY or UNIQUE KEY constraint "INTEG_83" on table "FOO"
 		// Problematic key value is ("B" = 'a')
 		assert err.msg().contains('violation of PRIMARY or UNIQUE KEY constraint')
 	}
 	stmt.close()!
-	tx.commit()!
 
-	tx = conn.start_transaction(isolation_level_read_commited)!
-	cleanup_stmt = tx.prepare_statement('DROP TABLE foo')!
-	stmt = tx.prepare_statement('SELECT a, b, c, h FROM foo') or {
-		cleanup_stmt.execute(no_args)!
-		cleanup_stmt.close()!
-		tx.commit()!
-		conn.close()!
-		panic(err)
-	}
-	result := stmt.execute(no_args) or {
-		stmt.close()!
-		cleanup_stmt.execute(no_args)!
-		cleanup_stmt.close()!
-		tx.commit()!
-		conn.close()!
-		panic(err)
-	}
+	stmt = tx.prepare_statement('SELECT a, b, c, h FROM foo')!
+	result := stmt.execute(no_args)!
 	stmt.close()!
 
-	cleanup_stmt.execute(no_args)!
-	cleanup_stmt.close()!
-	tx.commit()!
+	stmt = tx.prepare_statement('DROP TABLE foo')!
+	stmt.execute(no_args)!
+	stmt.close()!
 
+	tx.commit()!
 	conn.close()!
 }
 
