@@ -776,14 +776,14 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 	for count > 0 {
 		mut row := []Value{len: xsqlda.vars.len, init: Value(Null{})}
 		big256 := big.integer_from_i64(256)
-		mut n := xsqlda.vars.len / 8
+		mut n := i32(xsqlda.vars.len) / 8
 		if xsqlda.vars.len % 8 == 0 {
 			n++
 		}
 
 		mut null_indicator := big.integer_from_i64(0)
-		b = p.receive_aligned_packets(i32(n))!
-		for n = b.len; n > 0; n-- {
+		b = p.receive_aligned_packets(n)!
+		for n = i32(b.len); n > 0; n-- {
 			null_indicator = null_indicator * big256 + big.integer_from_i64(b[n - 1])
 		}
 
@@ -795,17 +795,23 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 			mut len := i32(0)
 			if x.io_length() < 0 {
 				b = p.receive_packets(4)!
-				if b[0] == 97 {
-					g := p.receive_packets(4)!
-					println(g) // this is [0, 0, 0, 1] as expetced. There is an extra i32 to parse. What is it?
-				}
-				println(b) // Third column is VARYING (-1), I am getting [97, 0, 0, 0] instead of expected [0, 0, 0, 1] ('b')
+				println('b: ${b}')
+				// the second time it is 1644167168 [97, 0, 0, 0], this is the character a, plus padding
+				// the third time it is 1644167168 [98, 0, 0, 0], this is the character b, plus padding
 				len = parse_big_endian_i32(b)
 			} else {
 				len = i32(x.io_length())
 			}
 			println('receiving len ${len}') // 4, 1, 1627389952. clearly the issue is here. Should be 4, 1, 1, 8
 			raw_value := p.receive_aligned_packets(len)!
+			println(raw_value)
+			// 4 -> [0, 0, 0, 1], gotten [0, 0, 0, 0] this is the problem, but how did we get here?
+			// p.receive_aligned_packets correctly gets 4 bytes, the only explanation is the server is sending
+			// more bytes than expected, but only sometimes
+			// The next 4 bytes are the expected [0, 0, 0, 1]
+			// 1 -> [97 0 0 0], correct if getting 8 bytes instead of 4 when len is 4
+			// 1 -> [98 0 0 0], correct if getting 8 bytes instead of 4 when len is 4
+			// 8 -> [0 0 0 216 0 0 0 0], gotten [0, 0, 0, 220, 0, 0, 0, 0]
 			row[i] = x.get_value(raw_value, p.timezone, p.charset)!
 		}
 
