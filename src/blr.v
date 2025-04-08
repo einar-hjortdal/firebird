@@ -112,7 +112,7 @@ fn build_blr(xsqlda XSQLDA) ![]u8 {
 				blr.write_byte(blr_timestamp_tz)
 			}
 			sql_type_blob {
-				blr.write_byte(blr_blob2)
+				blr.write_byte(blr_quad) // blr_blob2 causes errors, why?
 				blr.write_byte(0)
 			}
 			sql_type_array {
