@@ -795,6 +795,10 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 			mut len := i32(0)
 			if x.io_length() < 0 {
 				b = p.receive_packets(4)!
+				if b[0] == 97 {
+					g := p.receive_packets(4)!
+					println(g) // this is [0, 0, 0, 1] as expetced. There is an extra i32 to parse. What is it?
+				}
 				println(b) // Third column is VARYING (-1), I am getting [97, 0, 0, 0] instead of expected [0, 0, 0, 1] ('b')
 				len = parse_big_endian_i32(b)
 			} else {
