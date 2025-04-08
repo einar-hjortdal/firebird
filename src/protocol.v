@@ -768,9 +768,7 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 		return error(format_error_message('parse_fetch_response internal error'))
 	}
 
-	println('receiving 8')
 	b = p.receive_packets(8)!
-	println('received 8')
 	mut status := parse_big_endian_i32(b[..4])
 	mut count := parse_big_endian_i32(b[4..])
 	mut rows := [][]Value{}
@@ -796,25 +794,20 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 			x := xsqlda.vars[i]
 			mut len := i32(0)
 			if x.io_length() < 0 {
-				println('receiving 4')
 				b = p.receive_packets(4)!
-				println('received 4')
+				println(b) // I am getting [97, 0, 0, 0] instead of [0, 0, 0, 1]
 				len = parse_big_endian_i32(b)
 			} else {
 				len = i32(x.io_length())
 			}
-			println('receiving len ${len}') // 1627389952 clearly the issue is here
+			println('receiving len ${len}') // 4, 1, 1627389952. clearly the issue is here. Should be 4, 1, 1, 8
 			raw_value := p.receive_aligned_packets(len)!
-			println('received len ${len}')
 			row[i] = x.get_value(raw_value, p.timezone, p.charset)!
 		}
 
 		rows = arrays.concat(rows, row)
 
-		println('receiving 16')
 		b = p.receive_packets(16)!
-		println('received 16')
-
 		// TODO unknown data b[..4]
 		// op := parse_big_endian_i32(b[4..8]) // 66 (op_fetch_response)
 		status = parse_big_endian_i32(b[8..12])
