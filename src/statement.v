@@ -94,7 +94,7 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 		stmt.tx.conn.p.fetch(stmt.stmt_handle, stmt.output_blr_params)!
 		data := stmt.tx.conn.p.parse_fetch_response(stmt.stmt_handle, stmt.tx.tx_handle,
 			stmt.xsqlda)!
-		println(data)
+		println('parse_fetch_response data: ${data}')
 		return new_result(stmt)
 	}
 
