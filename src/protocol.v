@@ -795,7 +795,7 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 			mut len := i32(0)
 			if x.io_length() < 0 {
 				b = p.receive_packets(4)!
-				println(b) // I am getting [97, 0, 0, 0] instead of [0, 0, 0, 1]
+				println(b) // Third column is VARYING (-1), I am getting [97, 0, 0, 0] instead of expected [0, 0, 0, 1] ('b')
 				len = parse_big_endian_i32(b)
 			} else {
 				len = i32(x.io_length())
