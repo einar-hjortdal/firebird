@@ -152,7 +152,7 @@ fn parse_timezone(raw_value []u8) !string {
 
 // returns year, month, day
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/classes/NoThrowTimeStamp.cpp#L178
-fn (x XSQLVar) get_date(raw_value []u8) (int, int, int) {
+fn get_date(raw_value []u8) (int, int, int) {
 	mut nday := parse_big_endian_i32(raw_value) + 678882
 	century := 4 * nday / 146097
 	nday = 4 * nday - 1 - 146097 * century
@@ -178,7 +178,7 @@ fn (x XSQLVar) get_date(raw_value []u8) (int, int, int) {
 
 // returns hours, minutes, seconds and fractions
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/classes/NoThrowTimeStamp.cpp#L260
-fn (x XSQLVar) get_time(raw_value []u8) (int, int, int, int) {
+fn get_time(raw_value []u8) (int, int, int, int) {
 	mut n := parse_big_endian_i32(raw_value)
 	h := n / (3600 * isc_time_seconds_precision)
 	n %= 3600 * isc_time_seconds_precision
@@ -198,26 +198,33 @@ fn (x XSQLVar) parse_time(raw_value []u8, timezone string) time.Time {
 }
 
 fn (x XSQLVar) parse_time_tz(raw_value []u8) !time.Time {
-	hours, minutes, seconds, fractions := x.get_time(raw_value[..4])
+	hours, minutes, seconds, fractions := get_time(raw_value[..4])
 	timezone := parse_timezone(raw_value[4..6])!
 	offset := parse_timezone(raw_value[6..8])!
 	return time.now() // TODO
 }
 
 fn (x XSQLVar) parse_timestamp(raw_value []u8, timezone string) time.Time {
-	year, month, day := x.get_date(raw_value[..4])
-	hours, minutes, seconds, fractions := x.get_time(raw_value[4..8])
+	year, month, day := get_date(raw_value[..4])
+	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
 	return time.now() // TODO
 }
 
 fn (x XSQLVar) parse_timestamp_tz(raw_value []u8) !time.Time {
-	year, month, day := x.get_date(raw_value[..4])
-	println(year)
-	println(month)
-	println(day)
-	hours, minutes, seconds, fractions := x.get_time(raw_value[4..8])
+	year, month, day := get_date(raw_value[..4])
+	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
 	timezone := parse_timezone(raw_value[8..10])!
 	offset := parse_timezone(raw_value[10..12])!
+	println('year: ${year}')
+	println('month: ${month}')
+	println('day: ${day}')
+	println('hours: ${hours}')
+	println('minutes: ${minutes}')
+	println('seconds: ${seconds}')
+	println('fractions: ${fractions}')
+	println('timezone: ${timezone}')
+	println('offset: ${offset}')
+
 	return time.now() // TODO
 }
 
