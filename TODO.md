@@ -12,6 +12,10 @@
 
 ### High
 
+- queries with parameters
+- date
+- time
+- tests
 - never panic
 
 ### Medium

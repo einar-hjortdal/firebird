@@ -243,7 +243,7 @@ fn (x XSQLVar) parse_string(raw_value []u8, charset string) !Value {
 }
 
 // TODO eliminate floating point arithmetic
-fn (x XSQLVar) parse_short(raw_value []u8) Value {
+fn (x XSQLVar) parse_short(raw_value []u8) i16 {
 	i := parse_big_endian_i16(raw_value)
 	if x.sql_scale != 0 {
 		return i16(i * i64(math.pow10(x.sql_scale)))
@@ -252,7 +252,7 @@ fn (x XSQLVar) parse_short(raw_value []u8) Value {
 }
 
 // TODO eliminate floating point arithmetic
-fn (x XSQLVar) parse_long(raw_value []u8) Value {
+fn (x XSQLVar) parse_long(raw_value []u8) i32 {
 	i := parse_big_endian_i32(raw_value)
 	if x.sql_scale != 0 {
 		return i32(i * i64(math.pow10(x.sql_scale)))
@@ -261,7 +261,7 @@ fn (x XSQLVar) parse_long(raw_value []u8) Value {
 }
 
 // TODO eliminate floating point arithmetic
-fn (x XSQLVar) parse_int64(raw_value []u8) Value {
+fn (x XSQLVar) parse_int64(raw_value []u8) i64 {
 	i := parse_big_endian_i64(raw_value)
 	if x.sql_scale != 0 {
 		return i * i64(math.pow10(x.sql_scale))

@@ -85,7 +85,7 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 		// stmt.tx.conn.p.execute_stored_procedure(stmt.stmt_handle, stmt.tx.tx_handle, args,
 		// 	stmt.output_blr_params)!
 		// data := stmt.tx.conn.p.sql_response(stmt.xsqlda)!
-		return new_result(stmt) // TODO use data
+		return new_basic_result(stmt) // TODO use data
 	}
 
 	if stmt.stmt_type == isc_info_sql_stmt_select {
@@ -94,8 +94,7 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 		stmt.tx.conn.p.fetch(stmt.stmt_handle, stmt.output_blr_params)!
 		data := stmt.tx.conn.p.parse_fetch_response(stmt.stmt_handle, stmt.tx.tx_handle,
 			stmt.xsqlda)!
-		println('parse_fetch_response data: ${data}')
-		return new_result(stmt)
+		return new_result(stmt, data)
 	}
 
 	// isc_info_sql_stmt_insert
@@ -105,5 +104,5 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 	println('stmt_type: ${stmt.stmt_type}') // verify which other isc_info_sql_stmt_ happens and when
 	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
 	stmt.tx.conn.p.generic_response()!
-	return new_result(stmt)
+	return new_basic_result(stmt)
 }

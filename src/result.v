@@ -36,8 +36,19 @@ pub struct Row {
 	values []Value
 }
 
-fn new_row() !Row {
-	return error('TODO')
+fn new_row(row_data []Value) Row {
+	return Row{
+		values: row_data
+	}
+}
+
+fn new_rows(data [][]Value) []Row {
+	mut res := []Row{len: data.len}
+	for i := 0; i < data.len; i++ {
+		row_data := data[i]
+		res[i] = new_row(row_data)
+	}
+	return res
 }
 
 pub fn (r Row) values() []Value {
@@ -46,7 +57,7 @@ pub fn (r Row) values() []Value {
 
 // Result contains all rows
 pub struct Result {
-	// status?
+pub:
 	// rows affected?
 	columns []Column
 	rows    []Row
@@ -54,17 +65,22 @@ mut:
 	stmt &Statement
 }
 
-pub fn new_result(stmt &Statement) Result {
-	// get all rows
-	// for ? {
-	// row_data, is_there_more := stmt.tx.conn.p.fetch_response(stmt.stmt_handle, stmt.tx.tx_handle, stmt.xsqlda)
-	//  }
-	// for ? {
-	//	new_row()
-	// }
+fn new_result(stmt &Statement, data [][]Value) Result {
+	if data.len == 0 {
+		return Result{
+			stmt: stmt
+		}
+	}
+
+	rows := new_rows(data)
 	return Result{
+		rows: rows
 		stmt: stmt
 	}
+}
+
+fn new_basic_result(stmt &Statement) Result {
+	return new_result(stmt, [][]Value{})
 }
 
 pub fn (r Result) columns() []Column {
