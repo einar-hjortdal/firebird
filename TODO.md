@@ -29,6 +29,7 @@ any of them, please open a pull request.
 - embedded
 - numeric
 - decimal
+- timezones
 - decfloat
 - int128
 - batches
