@@ -105,11 +105,17 @@ fn build_blr(xsqlda XSQLDA) ![]u8 {
 			sql_type_time_tz {
 				blr.write_byte(blr_sql_time_tz)
 			}
+			sql_type_time_tz_ex {
+				blr.write_byte(blr_ex_time_tz)
+			}
 			sql_type_timestamp {
 				blr.write_byte(blr_timestamp)
 			}
 			sql_type_timestamp_tz {
 				blr.write_byte(blr_timestamp_tz)
+			}
+			sql_type_timestamp_tz_ex {
+				blr.write_byte(blr_ex_timestamp_tz)
 			}
 			sql_type_blob {
 				blr.write_byte(blr_quad) // blr_blob2 causes errors, why?

@@ -29,6 +29,8 @@ const sql_type_quad = 550
 const sql_type_time = 560
 const sql_type_date = 570
 const sql_type_int64 = 580
+const sql_type_timestamp_tz_ex = 32748 // why not happening? TODO
+const sql_type_time_tz_ex = 32750
 const sql_type_int128 = 32752
 const sql_type_timestamp_tz = 32754
 const sql_type_time_tz = 32756
@@ -38,25 +40,27 @@ const sql_type_boolean = 32764
 const sql_type_null = 32766
 
 const xsqlvar_type_length = {
-	sql_type_text:         -1
-	sql_type_varying:      -1
-	sql_type_short:        4
-	sql_type_long:         4
-	sql_type_float:        4
-	sql_type_time:         4
-	sql_type_date:         4
-	sql_type_double:       8
-	sql_type_timestamp:    8
-	sql_type_blob:         8
-	sql_type_array:        8
-	sql_type_quad:         8
-	sql_type_int64:        8
-	sql_type_int128:       16
-	sql_type_timestamp_tz: 12
-	sql_type_time_tz:      8
-	sql_type_dec64:        8
-	sql_type_dec128:       16
-	sql_type_boolean:      1
+	sql_type_text:            -1
+	sql_type_varying:         -1
+	sql_type_short:           4
+	sql_type_long:            4
+	sql_type_float:           4
+	sql_type_time:            4
+	sql_type_date:            4
+	sql_type_double:          8
+	sql_type_timestamp:       8
+	sql_type_blob:            8
+	sql_type_array:           8
+	sql_type_quad:            8
+	sql_type_int64:           8
+	sql_type_int128:          16
+	sql_type_timestamp_tz:    12 // should be 10
+	sql_type_timestamp_tz_ex: 12
+	sql_type_time_tz:         8 // should be 6
+	sql_type_time_tz_ex:      8
+	sql_type_dec64:           8
+	sql_type_dec128:          16
+	sql_type_boolean:         1
 }
 
 const xsqlvar_type_display_length = {
@@ -190,41 +194,33 @@ fn get_time(raw_value []u8) (int, int, int, int) {
 }
 
 fn (x XSQLVar) parse_date(raw_value []u8, timezone string) time.Time {
+	// year, month, day := get_date(raw_value[..4])
 	return time.now() // TODO
 }
 
 fn (x XSQLVar) parse_time(raw_value []u8, timezone string) time.Time {
+	// hours, minutes, seconds, fractions := get_time(raw_value[..4])
 	return time.now() // TODO
 }
 
 fn (x XSQLVar) parse_time_tz(raw_value []u8) !time.Time {
-	hours, minutes, seconds, fractions := get_time(raw_value[..4])
-	timezone := parse_timezone(raw_value[4..6])!
-	offset := parse_timezone(raw_value[6..8])!
+	// hours, minutes, seconds, fractions := get_time(raw_value[..4])
+	// timezone := parse_timezone(raw_value[4..6])!
+	// offset := i16(binary.big_endian_u16(raw_value[6..8]))
 	return time.now() // TODO
 }
 
 fn (x XSQLVar) parse_timestamp(raw_value []u8, timezone string) time.Time {
-	year, month, day := get_date(raw_value[..4])
-	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
+	// year, month, day := get_date(raw_value[..4])
+	// hours, minutes, seconds, fractions := get_time(raw_value[4..8])
 	return time.now() // TODO
 }
 
 fn (x XSQLVar) parse_timestamp_tz(raw_value []u8) !time.Time {
-	year, month, day := get_date(raw_value[..4])
-	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
-	timezone := parse_timezone(raw_value[8..10])!
-	offset := parse_timezone(raw_value[10..12])!
-	println('year: ${year}')
-	println('month: ${month}')
-	println('day: ${day}')
-	println('hours: ${hours}')
-	println('minutes: ${minutes}')
-	println('seconds: ${seconds}')
-	println('fractions: ${fractions}')
-	println('timezone: ${timezone}')
-	println('offset: ${offset}')
-
+	// year, month, day := get_date(raw_value[..4])
+	// hours, minutes, seconds, fractions := get_time(raw_value[4..8])
+	// timezone := parse_timezone(raw_value[8..10])!
+	// offset := i16(binary.big_endian_u16(raw_value[10..12]))
 	return time.now() // TODO
 }
 

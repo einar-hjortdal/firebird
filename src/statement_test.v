@@ -76,11 +76,13 @@ const no_args = []Value{}
 fn test_execute_select() {
 	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare_statement('SELECT current_timestamp FROM RDB\$DATABASE')!
 	stmt.execute(no_args)!
 	tx.rollback()!
 	conn.close()!
 }
+
+// fn test_timestamp_tz_ex() {
+// }
 
 fn test_execute_dml_no_args() {
 	mut conn := new_connection(url)!
