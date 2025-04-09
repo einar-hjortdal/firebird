@@ -1,5 +1,6 @@
 module firebird
 
+import encoding.binary
 import math
 import time
 
@@ -51,8 +52,8 @@ const xsqlvar_type_length = {
 	sql_type_quad:         8
 	sql_type_int64:        8
 	sql_type_int128:       16
-	sql_type_timestamp_tz: 10
-	sql_type_time_tz:      6
+	sql_type_timestamp_tz: 12
+	sql_type_time_tz:      8
 	sql_type_dec64:        8
 	sql_type_dec128:       16
 	sql_type_boolean:      1
@@ -141,17 +142,51 @@ fn (x XSQLVar) type_name() string {
 	return xsqlvar_type_name[x.sql_type]
 }
 
-fn (x XSQLVar) parse_timezone(raw_value []u8) {
-	// raw_value is i16 big endian
-	// vlib time does not have timezone functions
+fn parse_timezone(raw_value []u8) !string {
+	timezone_id := binary.big_endian_u16(raw_value)
+	if timezone_id in timezones {
+		return timezones[timezone_id]
+	}
+	return error(format_error_message('Unsupported timezone'))
 }
 
+// returns year, month, day
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/classes/NoThrowTimeStamp.cpp#L178
 fn (x XSQLVar) get_date(raw_value []u8) (int, int, int) {
-	return 0, 0, 0 // TODO
+	mut nday := parse_big_endian_i32(raw_value) + 678882
+	century := 4 * nday / 146097
+	nday = 4 * nday - 1 - 146097 * century
+	mut day := nday / 4
+
+	nday = (4 * day + 3) / 1461
+	day = 4 * day + 3 - 1461 * nday
+	day = (day + 4) / 4
+
+	mut month := (5 * day - 3) / 153
+	day = 5 * day - 3 - 153 * month
+	day = (day + 5) / 5
+
+	mut year := 100 * century + nday
+	if month < 10 {
+		month += 3
+	} else {
+		month -= 9
+		year++
+	}
+	return year, month, day
 }
 
+// returns hours, minutes, seconds and fractions
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/classes/NoThrowTimeStamp.cpp#L260
 fn (x XSQLVar) get_time(raw_value []u8) (int, int, int, int) {
-	return 0, 0, 0, 0 // TODO
+	mut n := parse_big_endian_i32(raw_value)
+	h := n / (3600 * isc_time_seconds_precision)
+	n %= 3600 * isc_time_seconds_precision
+	m := n / (60 * isc_time_seconds_precision)
+	n %= 60 * isc_time_seconds_precision
+	s := n / isc_time_seconds_precision
+	f := n % isc_time_seconds_precision
+	return h, m, s, f
 }
 
 fn (x XSQLVar) parse_date(raw_value []u8, timezone string) time.Time {
@@ -162,15 +197,27 @@ fn (x XSQLVar) parse_time(raw_value []u8, timezone string) time.Time {
 	return time.now() // TODO
 }
 
-fn (x XSQLVar) parse_time_tz(raw_value []u8) time.Time {
+fn (x XSQLVar) parse_time_tz(raw_value []u8) !time.Time {
+	hours, minutes, seconds, fractions := x.get_time(raw_value[..4])
+	timezone := parse_timezone(raw_value[4..6])!
+	offset := parse_timezone(raw_value[6..8])!
 	return time.now() // TODO
 }
 
 fn (x XSQLVar) parse_timestamp(raw_value []u8, timezone string) time.Time {
+	year, month, day := x.get_date(raw_value[..4])
+	hours, minutes, seconds, fractions := x.get_time(raw_value[4..8])
 	return time.now() // TODO
 }
 
-fn (x XSQLVar) parse_timestamp_tz(raw_value []u8) time.Time {
+fn (x XSQLVar) parse_timestamp_tz(raw_value []u8) !time.Time {
+	year, month, day := x.get_date(raw_value[..4])
+	println(year)
+	println(month)
+	println(day)
+	hours, minutes, seconds, fractions := x.get_time(raw_value[4..8])
+	timezone := parse_timezone(raw_value[8..10])!
+	offset := parse_timezone(raw_value[10..12])!
 	return time.now() // TODO
 }
 
@@ -243,10 +290,10 @@ fn (x XSQLVar) get_value(raw_value []u8, timezone string, charset string) !Value
 			return x.parse_timestamp(raw_value, timezone)
 		}
 		sql_type_time_tz {
-			return x.parse_time_tz(raw_value)
+			return x.parse_time_tz(raw_value)!
 		}
 		sql_type_timestamp_tz {
-			return x.parse_timestamp_tz(raw_value)
+			return x.parse_timestamp_tz(raw_value)!
 		}
 		sql_type_float {
 			return parse_big_endian_f32(raw_value)

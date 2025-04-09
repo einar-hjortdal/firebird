@@ -613,18 +613,14 @@ fn (mut p WireProtocol) sql_response(xsqlda XSQLDA) ![]Value {
 		return []Value{}
 	}
 
-	mut res := []Value{len: xsqlda.vars.len, init: Value(Null{})}
-
 	// TODO this part is repeated in parse_fetch_response. Abstract to utility function
+	mut res := []Value{len: xsqlda.vars.len, init: Value(Null{})}
 	big256 := big.integer_from_i64(256)
-	mut n := xsqlda.vars.len / 8
-	if xsqlda.vars.len % 8 == 0 {
-		n++
-	}
+	mut n := (i32(xsqlda.vars.len) + 7) / 8
 
 	mut null_indicator := big.integer_from_i64(0)
-	b = p.receive_aligned_packets(i32(n))!
-	for n = b.len; n > 0; n-- {
+	b = p.receive_aligned_packets(n)!
+	for n = i32(b.len); n > 0; n-- {
 		null_indicator = null_indicator * big256 + big.integer_from_i64(b[n - 1])
 	}
 
@@ -798,7 +794,6 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 			}
 
 			raw_value := p.receive_aligned_packets(len)!
-			println('raw_value: ${raw_value}')
 			row[i] = x.get_value(raw_value, p.timezone, p.charset)!
 		}
 

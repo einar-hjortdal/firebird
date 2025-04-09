@@ -333,3 +333,6 @@ const isc_arg_netware = 16
 const isc_arg_win32 = 17
 const isc_arg_warning = 18
 const isc_arg_sql_state = 19
+
+const isc_time_seconds_precision = 10000
+const isc_time_seconds_precision_scale = -4
