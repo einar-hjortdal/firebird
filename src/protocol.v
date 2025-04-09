@@ -776,10 +776,7 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 	for count > 0 {
 		mut row := []Value{len: xsqlda.vars.len, init: Value(Null{})}
 		big256 := big.integer_from_i64(256)
-		mut n := i32(xsqlda.vars.len) / 8
-		if xsqlda.vars.len % 8 == 0 {
-			n++
-		}
+		mut n := (i32(xsqlda.vars.len) + 7) / 8 // Thanks https://github.com/mrotteveel https://github.com/FirebirdSQL/firebird-documentation/issues/216#issuecomment-2788453130
 
 		mut null_indicator := big.integer_from_i64(0)
 		b = p.receive_aligned_packets(n)!
@@ -800,30 +797,9 @@ fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsq
 				len = i32(x.io_length())
 			}
 
-			// len should be 4 1 1 8
-			// 4 -> [0, 0, 0, 1], gotten [0, 0, 0, 0] this is the problem, but how did we get here?
-			// p.receive_aligned_packets correctly gets 4 bytes, the only explanation is the server is sending
-			// more bytes than expected, but only sometimes
-			// The next 4 bytes are the expected [0, 0, 0, 1]
-			// 1 -> [97 0 0 0], correct if getting 8 bytes instead of 4 when len is 4
-			// 1 -> [98 0 0 0], correct if getting 8 bytes instead of 4 when len is 4
-			// 8 -> changes at every query? [0, 0, 0, some-value, 0, 0, 0, 0]
-
-			// TODO verify somehow: find source
-			// could it be sql_type_long became 8 bytes long instead of 4?
-			// But then even sql_type_timestamp_tz is larger than expected. Did they change the buffer size?
-			println(x.sql_type)
-			if x.sql_type == sql_type_long || x.sql_type == sql_type_timestamp_tz {
-				data := p.receive_aligned_packets(len + 4)!
-				raw_value := data[4..]
-				println('raw_value: ${raw_value}')
-				// unknown_data := parse_big_endian_i32(data[..4])
-				row[i] = x.get_value(raw_value, p.timezone, p.charset)!
-			} else {
-				raw_value := p.receive_aligned_packets(len)!
-				println('raw_value: ${raw_value}')
-				row[i] = x.get_value(raw_value, p.timezone, p.charset)!
-			}
+			raw_value := p.receive_aligned_packets(len)!
+			println('raw_value: ${raw_value}')
+			row[i] = x.get_value(raw_value, p.timezone, p.charset)!
 		}
 
 		rows = arrays.concat(rows, row)
