@@ -12,6 +12,7 @@ pub struct Null {}
 // - []u8
 // - string
 // - time.Time
+// This is not a sum type because I am still deciding what types some data should be parsed to.
 pub interface Value {}
 
 pub struct Column {

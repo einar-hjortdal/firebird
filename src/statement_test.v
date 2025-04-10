@@ -122,6 +122,19 @@ fn test_execute_dml_no_args() {
 
 	stmt = tx.prepare_statement('SELECT a, b, c, h FROM foo')!
 	result := stmt.execute(no_args)!
+
+	rows := result.rows()
+	row := rows[0].values()
+
+	a_value := row[0]
+	assert a_value is i32 && a_value == 1
+
+	b_value := row[1]
+	assert b_value is string && b_value == 'a'
+
+	c_value := row[2]
+	assert c_value is string && c_value == 'b'
+
 	stmt.close()!
 
 	stmt = tx.prepare_statement('DROP TABLE foo')!
