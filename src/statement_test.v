@@ -128,6 +128,64 @@ fn test_at_time_zone() {
 	conn.close()!
 }
 
+fn test_time_zone() {
+	mut conn := new_connection(url)!
+	mut tx := conn.start_transaction(isolation_level_read_commited)!
+	mut stmt := tx.prepare_statement('
+		CREATE TABLE foo (
+		id INT PRIMARY KEY,
+		time_with_timezone_col TIME WITH TIME ZONE,
+		timestamp_with_timezone_col TIMESTAMP WITH TIME ZONE
+		)')!
+	stmt.execute(no_args)!
+	stmt.close()!
+	tx.commit()!
+
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	stmt = tx.prepare_statement("
+		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
+		VALUES (1, '16:03:00 +02:00', '2025-04-15 16:03:00 +14:00')
+		")!
+	stmt.execute(no_args)!
+	stmt.close()!
+
+	stmt = tx.prepare_statement("
+		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
+		VALUES (2, '00:00:00 -05:00', '2000-01-01 00:00:00 +10:00')
+		")!
+	stmt.execute(no_args)!
+	stmt.close()!
+
+	stmt = tx.prepare_statement("
+		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
+		VALUES (3, '23:59:59 Europe/Rome', '1999-12-31 23:59:59 Europe/Rome')
+		")!
+	stmt.execute(no_args)!
+	stmt.close()!
+
+	stmt = tx.prepare_statement('
+		SELECT id, time_with_timezone_col, timestamp_with_timezone_col FROM foo')!
+	result := stmt.execute(no_args)!
+	rows := result.rows() // TODO get all rows
+	// assert rows.len == 3
+
+	mut row := rows[0].values()
+	assert row.len == 3
+
+	println(row)
+
+	stmt.close()!
+	tx.rollback()!
+
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	stmt = tx.prepare_statement('DROP TABLE foo')!
+	stmt.execute(no_args)!
+	stmt.close()!
+
+	tx.commit()!
+	conn.close()!
+}
+
 // fn test_timestamp_tz_ex() {
 // }
 
