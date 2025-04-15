@@ -1,5 +1,7 @@
 module firebird
 
+import time
+
 // To manually fix issues:
 // sudo docker run \
 //   --rm \
@@ -77,7 +79,15 @@ fn test_execute_select() {
 	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 	mut stmt := tx.prepare_statement('SELECT current_timestamp FROM RDB\$DATABASE')!
-	stmt.execute(no_args)!
+
+	result := stmt.execute(no_args)!
+	rows := result.rows()
+	assert rows.len == 1
+
+	row := rows[0].values()
+	timestamp := row[0]
+	assert timestamp is time.Time
+
 	tx.rollback()!
 	conn.close()!
 }
@@ -134,6 +144,11 @@ fn test_execute_dml_no_args() {
 
 	c_value := row[2]
 	assert c_value is string && c_value == 'b'
+
+	// TODO
+	h_value := row[3]
+	println(h_value) // blob id? TODO get blob
+	//	h_value := row[3]
 
 	stmt.close()!
 
