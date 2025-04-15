@@ -147,7 +147,7 @@ fn (x XSQLVar) type_name() string {
 }
 
 // Because the time module in vlib does not contain functions that map timezone strings to offsets,
-// timezone strings is given to the users as-is.
+// timezone strings are given to the users separate from timestamps.
 pub struct Time {
 	timestamp time.Time
 	timezone  string
@@ -161,11 +161,16 @@ fn parse_timezone(raw_value []u8) !string {
 	return error(format_error_message('Unsupported timezone'))
 }
 
-fn parse_offset(raw_value []u8) (i16, i16) {
-	offset := i16(binary.big_endian_u16(raw_value))
+fn parse_offset(raw_value []u8) (string, i16, i16) {
+	mut offset := i16(binary.big_endian_u16(raw_value))
+	mut sign := '+'
+	if offset < 0 {
+		sign = '-'
+		offset = -offset
+	}
 	hours := offset / 60
-	minutes := math.abs(offset % 60)
-	return hours, minutes
+	minutes := offset % 60
+	return sign, hours, minutes
 }
 
 // returns year, month, day
@@ -207,35 +212,60 @@ fn get_time(raw_value []u8) (int, int, int, int) {
 	return h, m, s, f
 }
 
-fn (x XSQLVar) parse_date(raw_value []u8, timezone string) time.Time {
-	// year, month, day := get_date(raw_value[..4])
-	return time.now() // TODO
+fn get_default_timezone(timezone string) string {
+	if timezone == '' {
+		return 'UTC'
+	}
+	return timezone
 }
 
-fn (x XSQLVar) parse_time(raw_value []u8, timezone string) time.Time {
-	// hours, minutes, seconds, fractions := get_time(raw_value[..4])
-	return time.now() // TODO
+fn parse_date(raw_value []u8, timezone string) !Time {
+	year, month, day := get_date(raw_value[..4])
+	timestamp := time.parse_iso8601('${year}-${month}-${day}')!
+	return Time{
+		timestamp: timestamp
+		timezone:  get_default_timezone(timezone)
+	}
 }
 
-fn (x XSQLVar) parse_time_tz(raw_value []u8) !time.Time {
-	// hours, minutes, seconds, fractions := get_time(raw_value[..4])
-	// timezone := parse_timezone(raw_value[4..6])!
-	// offset := i16(binary.big_endian_u16(raw_value[6..8]))
-	return time.now() // TODO
+fn parse_time(raw_value []u8, timezone string) !Time {
+	hours, minutes, seconds, fractions := get_time(raw_value[..4])
+	now := time.now()
+	timestamp := time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}')!
+	return Time{
+		timestamp: timestamp
+		timezone:  get_default_timezone(timezone)
+	}
 }
 
-fn (x XSQLVar) parse_timestamp(raw_value []u8, timezone string) time.Time {
-	// year, month, day := get_date(raw_value[..4])
-	// hours, minutes, seconds, fractions := get_time(raw_value[4..8])
-	return time.now() // TODO
+fn parse_time_tz(raw_value []u8) !Time {
+	hours, minutes, seconds, fractions := get_time(raw_value[..4])
+	now := time.now()
+	timezone := parse_timezone(raw_value[4..6])!
+	offset_sign, offset_hours, offset_minutes := parse_offset(raw_value[6..8])
+	timestamp := time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}${offset_sign}${offset_hours}:${offset_minutes}')!
+	return Time{
+		timestamp: timestamp
+		timezone:  timezone
+	}
+}
+
+fn parse_timestamp(raw_value []u8, timezone string) !Time {
+	year, month, day := get_date(raw_value[..4])
+	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
+	timestamp := time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}')!
+	return Time{
+		timestamp: timestamp
+		timezone:  timezone
+	}
 }
 
 fn parse_timestamp_tz(raw_value []u8) !Time {
 	year, month, day := get_date(raw_value[..4])
 	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
 	timezone := parse_timezone(raw_value[8..10])!
-	offset_hours, offset_minutes := parse_offset(raw_value[10..12])
-	timestamp := time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}${offset_hours}:${offset_minutes}')!
+	offset_sign, offset_hours, offset_minutes := parse_offset(raw_value[10..12])
+	timestamp := time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}${offset_sign}${offset_hours}:${offset_minutes}')!
 	return Time{
 		timestamp: timestamp
 		timezone:  timezone
@@ -302,16 +332,16 @@ fn (x XSQLVar) get_value(raw_value []u8, timezone string, charset string) !Value
 			return x.parse_int64(raw_value)
 		}
 		sql_type_date {
-			return x.parse_date(raw_value, timezone)
+			return parse_date(raw_value, timezone)!
 		}
 		sql_type_time {
-			return x.parse_time(raw_value, timezone)
+			return parse_time(raw_value, timezone)!
 		}
 		sql_type_timestamp {
-			return x.parse_timestamp(raw_value, timezone)
+			return parse_timestamp(raw_value, timezone)!
 		}
 		sql_type_time_tz {
-			return x.parse_time_tz(raw_value)!
+			return parse_time_tz(raw_value)!
 		}
 		sql_type_timestamp_tz {
 			return parse_timestamp_tz(raw_value)!
