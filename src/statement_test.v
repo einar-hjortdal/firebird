@@ -1,7 +1,5 @@
 module firebird
 
-import time
-
 // To manually fix issues:
 // sudo docker run \
 //   --rm \
@@ -85,9 +83,12 @@ fn test_execute_select() {
 	assert rows.len == 1
 
 	row := rows[0].values()
-	timestamp := row[0]
-	assert timestamp is time.Time
+	assert row.len == 1
 
+	timestamp := row[0]
+	assert timestamp is Time
+
+	stmt.close()!
 	tx.rollback()!
 	conn.close()!
 }

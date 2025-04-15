@@ -146,12 +146,26 @@ fn (x XSQLVar) type_name() string {
 	return xsqlvar_type_name[x.sql_type]
 }
 
+// Because the time module in vlib does not contain functions that map timezone strings to offsets,
+// timezone strings is given to the users as-is.
+pub struct Time {
+	timestamp time.Time
+	timezone  string
+}
+
 fn parse_timezone(raw_value []u8) !string {
 	timezone_id := binary.big_endian_u16(raw_value)
 	if timezone_id in timezones {
 		return timezones[timezone_id]
 	}
 	return error(format_error_message('Unsupported timezone'))
+}
+
+fn parse_offset(raw_value []u8) (i16, i16) {
+	offset := i16(binary.big_endian_u16(raw_value))
+	hours := offset / 60
+	minutes := math.abs(offset % 60)
+	return hours, minutes
 }
 
 // returns year, month, day
@@ -216,12 +230,16 @@ fn (x XSQLVar) parse_timestamp(raw_value []u8, timezone string) time.Time {
 	return time.now() // TODO
 }
 
-fn (x XSQLVar) parse_timestamp_tz(raw_value []u8) !time.Time {
-	// year, month, day := get_date(raw_value[..4])
-	// hours, minutes, seconds, fractions := get_time(raw_value[4..8])
-	// timezone := parse_timezone(raw_value[8..10])!
-	// offset := i16(binary.big_endian_u16(raw_value[10..12]))
-	return time.now() // TODO
+fn parse_timestamp_tz(raw_value []u8) !Time {
+	year, month, day := get_date(raw_value[..4])
+	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
+	timezone := parse_timezone(raw_value[8..10])!
+	offset_hours, offset_minutes := parse_offset(raw_value[10..12])
+	timestamp := time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}${offset_hours}:${offset_minutes}')!
+	return Time{
+		timestamp: timestamp
+		timezone:  timezone
+	}
 }
 
 // https://www.firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/firebird-50-language-reference.html#fblangref50-datatypes-chartypes-unicode
@@ -296,7 +314,7 @@ fn (x XSQLVar) get_value(raw_value []u8, timezone string, charset string) !Value
 			return x.parse_time_tz(raw_value)!
 		}
 		sql_type_timestamp_tz {
-			return x.parse_timestamp_tz(raw_value)!
+			return parse_timestamp_tz(raw_value)!
 		}
 		sql_type_float {
 			return parse_big_endian_f32(raw_value)
