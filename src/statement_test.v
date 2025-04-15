@@ -141,6 +141,7 @@ fn test_time_zone() {
 	stmt.close()!
 	tx.commit()!
 
+	// TODO use prepared statement params
 	tx = conn.start_transaction(isolation_level_read_commited)!
 	stmt = tx.prepare_statement("
 		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
