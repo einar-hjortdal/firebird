@@ -33,7 +33,8 @@ any of them, please open a pull request.
 - embedded
 - numeric
 - decimal
-- timezones
+- extended time with timezone
+- extended timestamp with timezone
 - decfloat
 - int128
 - batches

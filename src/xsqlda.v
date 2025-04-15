@@ -107,14 +107,6 @@ const xsqlvar_type_name = {
 	sql_type_boolean:      'BOOLEAN'
 }
 
-// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZoneUtil.cpp#L302
-const one_day = 24 * 60 - 1
-
-// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZoneUtil.cpp#L1145
-fn is_offset(timezone i16) bool {
-	return timezone <= one_day * 2
-}
-
 // https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/jaybird-native/src/main/java/org/firebirdsql/jna/fbclient/XSQLVAR.java#L11
 struct XSQLVar {
 mut:
@@ -159,26 +151,19 @@ fn (x XSQLVar) type_name() string {
 pub struct Time {
 	timestamp time.Time
 	timezone  string
+	offset    string
 }
 
-fn parse_timezone(raw_value []u8) !string {
-	timezone_id := binary.big_endian_u16(raw_value)
-	if timezone_id in timezones {
-		return timezones[timezone_id]
-	}
-	return error(format_error_message('Unsupported timezone'))
+pub fn (t Time) timestamp() time.Time {
+	return t.timestamp
 }
 
-fn parse_offset(raw_value []u8) (string, i16, i16) {
-	mut offset := i16(binary.big_endian_u16(raw_value))
-	mut sign := '+'
-	if offset < 0 {
-		sign = '-'
-		offset = -offset
-	}
-	hours := offset / 60
-	minutes := offset % 60
-	return sign, hours, minutes
+pub fn (t Time) timezone() string {
+	return t.timezone
+}
+
+pub fn (t Time) offset() string {
+	return t.offset
 }
 
 // returns year, month, day
@@ -222,7 +207,7 @@ fn get_time(raw_value []u8) (int, int, int, int) {
 
 fn get_default_timezone(timezone string) string {
 	if timezone == '' {
-		return 'UTC'
+		return timezones[gmt_zone]
 	}
 	return timezone
 }
@@ -249,12 +234,20 @@ fn parse_time(raw_value []u8, timezone string) !Time {
 fn parse_time_tz(raw_value []u8) !Time {
 	hours, minutes, seconds, fractions := get_time(raw_value[..4])
 	now := time.now()
-	timezone := parse_timezone(raw_value[4..6])!
-	offset_sign, offset_hours, offset_minutes := parse_offset(raw_value[6..8])
-	timestamp := time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}${offset_sign}${offset_hours}:${offset_minutes}')!
+	timestamp := time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}')!
+	timezone := binary.big_endian_u16(raw_value[4..6])
+	if timezone == 0 {
+		return Time{
+			timestamp: timestamp
+			timezone:  timezones[gmt_zone]
+		}
+	}
+
+	offset := binary.big_endian_u16(raw_value[6..8])
 	return Time{
 		timestamp: timestamp
-		timezone:  timezone
+		timezone:  timezones[gmt_zone]
+		offset:    timezones[offset]
 	}
 }
 
@@ -271,12 +264,20 @@ fn parse_timestamp(raw_value []u8, timezone string) !Time {
 fn parse_timestamp_tz(raw_value []u8) !Time {
 	year, month, day := get_date(raw_value[..4])
 	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
-	timezone := parse_timezone(raw_value[8..10])!
-	offset_sign, offset_hours, offset_minutes := parse_offset(raw_value[10..12])
-	timestamp := time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}${offset_sign}${offset_hours}:${offset_minutes}')!
+	timezone := binary.big_endian_u16(raw_value[8..10])
+	timestamp := time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}')!
+	if timezone == 0 {
+		return Time{
+			timestamp: timestamp
+			timezone:  timezones[gmt_zone]
+		}
+	}
+
+	offset := binary.big_endian_u16(raw_value[10..12])
 	return Time{
 		timestamp: timestamp
-		timezone:  timezone
+		timezone:  timezones[gmt_zone]
+		offset:    timezones[offset]
 	}
 }
 

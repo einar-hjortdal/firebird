@@ -93,6 +93,41 @@ fn test_execute_select() {
 	conn.close()!
 }
 
+fn test_at_time_zone() {
+	mut conn := new_connection(url)!
+	mut tx := conn.start_transaction(isolation_level_read_commited)!
+	mut stmt := tx.prepare_statement("
+	SELECT current_timestamp AT TIME ZONE 'America/Sao_Paulo' 
+	FROM RDB\$DATABASE
+	")!
+	mut result := stmt.execute(no_args)!
+	mut rows := result.rows()
+	assert rows.len == 1
+
+	mut row := rows[0].values()
+	assert row.len == 1
+
+	mut t := row[0]
+	assert t is Time && t.timezone() == 'GMT' && t.offset() == 'America/Sao_Paulo'
+
+	stmt.close()!
+
+	stmt = tx.prepare_statement("SELECT TIME '12:00 GMT' AT TIME ZONE '-05:00' FROM RDB\$DATABASE")!
+	result = stmt.execute(no_args)!
+	rows = result.rows()
+	assert rows.len == 1
+
+	row = rows[0].values()
+	assert row.len == 1
+
+	t = row[0]
+	assert t is Time && t.timezone() == 'GMT' && t.offset() == ''
+
+	stmt.close()!
+	tx.rollback()!
+	conn.close()!
+}
+
 // fn test_timestamp_tz_ex() {
 // }
 
@@ -160,6 +195,3 @@ fn test_execute_dml_no_args() {
 	tx.commit()!
 	conn.close()!
 }
-
-// fn test_execute_statement_with_args() {
-// }

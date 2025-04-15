@@ -1,5 +1,7 @@
 module firebird
 
+const gmt_zone = 65535
+
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZones.h#L6
 const timezones = {
 	65535: 'GMT' // fb_tzid_gmt
