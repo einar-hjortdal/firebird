@@ -107,6 +107,14 @@ const xsqlvar_type_name = {
 	sql_type_boolean:      'BOOLEAN'
 }
 
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZoneUtil.cpp#L302
+const one_day = 24 * 60 - 1
+
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZoneUtil.cpp#L1145
+fn is_offset(timezone i16) bool {
+	return timezone <= one_day * 2
+}
+
 // https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/jaybird-native/src/main/java/org/firebirdsql/jna/fbclient/XSQLVAR.java#L11
 struct XSQLVar {
 mut:
