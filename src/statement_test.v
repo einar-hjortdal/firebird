@@ -73,33 +73,12 @@ const no_args = []Value{}
 // 	conn.close()!
 // }
 
-fn test_execute_select() {
-	mut conn := new_connection(url)!
-	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare_statement('SELECT current_timestamp FROM RDB\$DATABASE')!
-
-	result := stmt.execute(no_args)!
-	rows := result.rows()
-	assert rows.len == 1
-
-	row := rows[0].values()
-	assert row.len == 1
-
-	timestamp := row[0]
-	assert timestamp is Time
-
-	stmt.close()!
-	tx.rollback()!
-	conn.close()!
-}
-
 fn test_at_time_zone() {
 	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare_statement("
-	SELECT current_timestamp AT TIME ZONE 'America/Sao_Paulo' 
-	FROM RDB\$DATABASE
-	")!
+
+	mut stmt := tx.prepare_statement('SELECT current_timestamp FROM RDB\$DATABASE')!
+
 	mut result := stmt.execute(no_args)!
 	mut rows := result.rows()
 	assert rows.len == 1
@@ -108,7 +87,23 @@ fn test_at_time_zone() {
 	assert row.len == 1
 
 	mut t := row[0]
-	assert t is Time && t.timezone() == 'GMT' && t.offset() == 'America/Sao_Paulo'
+	assert t is Time && t.named_zone() == 'Etc/UTC'
+
+	stmt.close()!
+
+	stmt = tx.prepare_statement("
+	SELECT current_timestamp AT TIME ZONE 'America/Sao_Paulo'
+	FROM RDB\$DATABASE
+	")!
+	result = stmt.execute(no_args)!
+	rows = result.rows()
+	assert rows.len == 1
+
+	row = rows[0].values()
+	assert row.len == 1
+
+	t = row[0]
+	assert t is Time && t.named_zone() == 'America/Sao_Paulo'
 
 	stmt.close()!
 
@@ -121,7 +116,7 @@ fn test_at_time_zone() {
 	assert row.len == 1
 
 	t = row[0]
-	assert t is Time && t.timezone() == 'GMT' && t.offset() == ''
+	assert t is Time && t.offset() == -300
 
 	stmt.close()!
 	tx.rollback()!
@@ -152,14 +147,14 @@ fn test_time_zone() {
 
 	stmt = tx.prepare_statement("
 		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
-		VALUES (2, '00:00:00 -05:00', '2000-01-01 00:00:00 +10:00')
+		VALUES (2, '00:00:00 -05:30', '2000-01-01 00:00:00 -10:30')
 		")!
 	stmt.execute(no_args)!
 	stmt.close()!
 
 	stmt = tx.prepare_statement("
 		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
-		VALUES (3, '23:59:59 Europe/Rome', '1999-12-31 23:59:59 Europe/Rome')
+		VALUES (3, '23:59:59 Europe/Brussels', '1999-12-31 23:59:59 Europe/Brussels')
 		")!
 	stmt.execute(no_args)!
 	stmt.close()!
@@ -173,7 +168,8 @@ fn test_time_zone() {
 	mut row := rows[0].values()
 	assert row.len == 3
 
-	println(row)
+	mut id := row[0]
+	// assert id is i32 && id == 1
 
 	stmt.close()!
 	tx.rollback()!
