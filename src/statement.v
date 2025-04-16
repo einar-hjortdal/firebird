@@ -94,7 +94,6 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 		stmt.tx.conn.p.fetch(stmt.stmt_handle, stmt.output_blr_params)!
 		data := stmt.tx.conn.p.parse_fetch_response(stmt.xsqlda)!
 		// TODO fetch blobs
-		// TODO column data?
 		return new_result(stmt, stmt.xsqlda, data)
 	}
 

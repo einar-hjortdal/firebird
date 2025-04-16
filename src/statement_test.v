@@ -169,6 +169,26 @@ fn test_time_zone() {
 	stmt = tx.prepare_statement('
 		SELECT id, time_with_timezone_col, timestamp_with_timezone_col FROM foo')!
 	result := stmt.execute(no_args)!
+
+	columns := result.columns()
+	assert columns.len == 3
+
+	id_col := columns[0]
+	t_tz_col := columns[1]
+	ts_tz_col := columns[2]
+
+	assert id_col.field_name() == 'ID'
+	assert id_col.sql_type() == 'LONG'
+	assert id_col.null_indicator() == false
+
+	assert t_tz_col.field_name() == 'TIME_WITH_TIMEZONE_COL'
+	assert t_tz_col.sql_type() == 'TIME WITH TIMEZONE'
+	assert t_tz_col.null_indicator() == true
+
+	assert ts_tz_col.field_name() == 'TIMESTAMP_WITH_TIMEZONE_COL'
+	assert ts_tz_col.sql_type() == 'TIMESTAMP WITH TIMEZONE'
+	assert ts_tz_col.null_indicator() == true
+
 	rows := result.rows()
 	assert rows.len == 3
 
