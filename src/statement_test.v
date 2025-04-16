@@ -19,59 +19,59 @@ const no_args = []Value{}
 
 // TODO cleanup functions: ensure manual intervention is never needed.
 
-// fn test_open_no_db() {
-// 	mut conn := new_connection('${protocol}${user}@${host}') or {
-// 		assert true // protocol error: no database is provided
-// 		return
-// 	}
-// 	conn.close() or { panic(err) }
-// }
+fn test_open_no_db() {
+	mut conn := new_connection('${protocol}${user}@${host}') or {
+		assert true // protocol error: no database is provided
+		return
+	}
+	conn.close() or { panic(err) }
+}
 
-// fn test_open_() {
-// 	mut conn := new_connection(url) or { panic(err) }
-// 	conn.close() or { panic(err) }
-// }
+fn test_open_() {
+	mut conn := new_connection(url) or { panic(err) }
+	conn.close() or { panic(err) }
+}
 
-// fn test_new_statement() {
-// 	mut conn := new_connection(url)!
-// 	mut tx := conn.start_transaction(isolation_level_read_commited)!
+fn test_new_statement() {
+	mut conn := new_connection(url)!
+	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
-// 	mut stmt := tx.prepare_statement('CREATE TABLE foo (a INTEGER)')!
-// 	stmt.close()!
+	mut stmt := tx.prepare_statement('CREATE TABLE foo (a INTEGER)')!
+	stmt.close()!
 
-// 	tx.rollback()!
-// 	conn.close()!
-// }
+	tx.rollback()!
+	conn.close()!
+}
 
-// fn test_execute_statement_ddl_no_args() {
-// 	mut conn := new_connection(url)!
-// 	mut tx := conn.start_transaction(isolation_level_read_commited)!
+fn test_execute_statement_ddl_no_args() {
+	mut conn := new_connection(url)!
+	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
-// 	mut stmt := tx.prepare_statement('CREATE TABLE foo (a INTEGER)')!
-// 	stmt.execute(no_args)!
-// 	stmt.execute(no_args) or {
-// 		// [firebird] unsuccessful metadata update
-// 		// CREATE TABLE FOO failed
-// 		// Table FOO already exists
-// 		assert err.msg().contains('Table FOO already exists')
-// 	}
-// 	stmt.close()!
+	mut stmt := tx.prepare_statement('CREATE TABLE foo (a INTEGER)')!
+	stmt.execute(no_args)!
+	stmt.execute(no_args) or {
+		// [firebird] unsuccessful metadata update
+		// CREATE TABLE FOO failed
+		// Table FOO already exists
+		assert err.msg().contains('Table FOO already exists')
+	}
+	stmt.close()!
 
-// 	stmt = tx.prepare_statement('DROP TABLE foo')!
-// 	stmt.execute(no_args)!
-// 	stmt.execute(no_args) or {
-// 		// [firebird] unsuccessful metadata update
-// 		// DROP TABLE FOO failed
-// 		// SQL error code = -607
-// 		// Invalid command
-// 		// Table FOO does not exist
-// 		assert err.msg().contains('Table FOO does not exist')
-// 	}
-// 	stmt.close()!
+	stmt = tx.prepare_statement('DROP TABLE foo')!
+	stmt.execute(no_args)!
+	stmt.execute(no_args) or {
+		// [firebird] unsuccessful metadata update
+		// DROP TABLE FOO failed
+		// SQL error code = -607
+		// Invalid command
+		// Table FOO does not exist
+		assert err.msg().contains('Table FOO does not exist')
+	}
+	stmt.close()!
 
-// 	tx.rollback()!
-// 	conn.close()!
-// }
+	tx.rollback()!
+	conn.close()!
+}
 
 fn test_at_time_zone() {
 	mut conn := new_connection(url)!
@@ -303,4 +303,5 @@ fn test_execute_dml_no_args() {
 	conn.close()!
 }
 
-// TODO test NULL
+// TODO test Null
+// TODO test Null blobs
