@@ -744,7 +744,6 @@ fn (mut p WireProtocol) fetch(stmt_handle i32, blr []u8) ! {
 
 // TODO protocol 18 op_fetch_scroll?
 
-// TODO fetch all rows, not just some (return no bool)
 fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsqlda XSQLDA) ![][]Value {
 	mut rows := [][]Value{}
 	for {

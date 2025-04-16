@@ -8,13 +8,13 @@
 - ~~support Secure Remote Password auth plugin~~
 - ~~support arc4 crypt plugin~~
 - ~~perform queries~~
-- parse responses
+- ~~parse responses~~
 
 ### High
 
 - queries with parameters
-- date
-- time
+- ~~date~~
+- ~~time~~
 - tests
 - never panic
 
