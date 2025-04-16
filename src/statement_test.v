@@ -85,6 +85,8 @@ fn test_at_time_zone() {
 
 	mut column := columns[0]
 	assert column.field_name() == 'CURRENT_TIMESTAMP'
+	assert column.sql_type() == 'TIMESTAMP WITH TIMEZONE'
+	assert column.null_indicator == false
 
 	mut rows := result.rows()
 	assert rows.len == 1
