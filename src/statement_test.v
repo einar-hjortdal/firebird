@@ -253,7 +253,7 @@ fn test_execute_dml_no_args() {
 			e DATE DEFAULT '1967-08-11',
 			f TIMESTAMP DEFAULT '1967-08-11 23:45:01',
 			g TIME DEFAULT '23:45:01',
-			h BLOB SUB_TYPE 1,
+			h BLOB SUB_TYPE TEXT,
 			i DOUBLE PRECISION DEFAULT 0.0,
 			j FLOAT DEFAULT 0.0,
 			PRIMARY KEY (a),
@@ -279,7 +279,10 @@ fn test_execute_dml_no_args() {
 	result := stmt.execute(no_args)!
 
 	rows := result.rows()
+	assert rows.len == 1
+
 	row := rows[0].values()
+	assert row.len == 4
 
 	a_value := row[0]
 	assert a_value is i32 && a_value == 1
@@ -303,5 +306,57 @@ fn test_execute_dml_no_args() {
 	conn.close()!
 }
 
-// TODO test Null
-// TODO test Null blobs
+fn test_null () {
+	mut conn := new_connection(url)!
+
+	mut tx := conn.start_transaction(isolation_level_read_commited)!
+	mut stmt := tx.prepare_statement("
+		CREATE TABLE foo (
+			id INT PRIMARY KEY,
+			a INTEGER,
+			b VARCHAR(1024),
+			c DECIMAL(16,3),
+			d DATE,
+			e TIMESTAMP,
+			f BLOB SUB_TYPE TEXT,
+			g DOUBLE PRECISION,
+			h REAL
+			)")!
+	stmt.execute(no_args)!
+	stmt.close()!
+	tx.commit()!
+
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	stmt = tx.prepare_statement("INSERT INTO foo (id) VALUES (1)")!
+	stmt.execute(no_args)!
+	stmt.close()!
+
+	stmt = tx.prepare_statement('SELECT a, b, c, d, e, f, g, h FROM foo')!
+	result := stmt.execute(no_args)!
+
+	rows := result.rows()
+	assert rows.len == 1
+
+	row := rows[0].values()
+	assert row.len == 8
+
+	for i:=0; i<row.len; i++ {
+		match row[i] {
+			Null {
+				assert true
+			}
+			else {
+				assert false
+			}
+		}
+	}
+
+	stmt.close()!
+
+	stmt = tx.prepare_statement('DROP TABLE foo')!
+	stmt.execute(no_args)!
+	stmt.close()!
+
+	tx.commit()!
+	conn.close()!
+}
