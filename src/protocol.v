@@ -746,71 +746,71 @@ fn (mut p WireProtocol) fetch(stmt_handle i32, blr []u8) ! {
 
 // TODO fetch all rows, not just some (return no bool)
 fn (mut p WireProtocol) parse_fetch_response(stmt_handle i32, tx_handle i32, xsqlda XSQLDA) ![][]Value {
-	mut b := p.receive_packets(4)!
-	for parse_big_endian_i32(b) == op_dummy {
-		b = p.receive_packets(4)!
-	}
-
-	for parse_big_endian_i32(b) == op_response && p.lazy_response_count > 0 {
-		p.lazy_response_count--
-		p.parse_generic_response()!
-		b = p.receive_packets(4)!
-	}
-
-	if parse_big_endian_i32(b) != op_fetch_response {
-		if parse_big_endian_i32(b) == op_response {
-			p.parse_generic_response()!
-		}
-		return error(format_error_message('parse_fetch_response internal error'))
-	}
-
-	b = p.receive_packets(8)!
-	mut status := parse_big_endian_i32(b[..4])
-	mut count := parse_big_endian_i32(b[4..])
 	mut rows := [][]Value{}
-
-	for count > 0 {
-		mut row := []Value{len: xsqlda.vars.len, init: Value(Null{})}
-		big256 := big.integer_from_i64(256)
-		mut n := (i32(xsqlda.vars.len) + 7) / 8 // Thanks https://github.com/mrotteveel https://github.com/FirebirdSQL/firebird-documentation/issues/216#issuecomment-2788453130
-
-		mut null_indicator := big.integer_from_i64(0)
-		b = p.receive_aligned_packets(n)!
-		for n = i32(b.len); n > 0; n-- {
-			null_indicator = null_indicator * big256 + big.integer_from_i64(b[n - 1])
+	for {
+		mut b := p.receive_packets(4)!
+		for parse_big_endian_i32(b) == op_dummy {
+			b = p.receive_packets(4)!
 		}
 
-		for i := 0; i < xsqlda.vars.len; i++ {
-			if null_indicator.get_bit(u32(i)) {
-				continue
-			}
-			x := xsqlda.vars[i]
-			mut len := i32(0)
-			if x.io_length() < 0 {
-				b = p.receive_packets(4)!
-				len = parse_big_endian_i32(b)
-			} else {
-				len = i32(x.io_length())
-			}
-
-			raw_value := p.receive_aligned_packets(len)!
-			row[i] = x.get_value(raw_value, p.timezone, p.charset)!
+		for parse_big_endian_i32(b) == op_response && p.lazy_response_count > 0 {
+			p.lazy_response_count--
+			p.parse_generic_response()!
+			b = p.receive_packets(4)!
 		}
 
-		rows = arrays.concat(rows, row)
+		if parse_big_endian_i32(b) != op_fetch_response {
+			if parse_big_endian_i32(b) == op_response {
+				p.parse_generic_response()!
+			}
+			return error(format_error_message('parse_fetch_response internal error'))
+		}
 
-		b = p.receive_packets(12)!
-		// op := parse_big_endian_i32(b[..4]) // 66 (op_fetch_response)
-		status = parse_big_endian_i32(b[4..8])
-		count = parse_big_endian_i32(b[8..])
+		b = p.receive_packets(8)!
+		mut status := parse_big_endian_i32(b[..4])
+		mut count := parse_big_endian_i32(b[4..])
+
+		for count > 0 {
+			mut row := []Value{len: xsqlda.vars.len, init: Value(Null{})}
+			big256 := big.integer_from_i64(256)
+			mut n := (i32(xsqlda.vars.len) + 7) / 8 // Thanks https://github.com/mrotteveel https://github.com/FirebirdSQL/firebird-documentation/issues/216#issuecomment-2788453130
+
+			mut null_indicator := big.integer_from_i64(0)
+			b = p.receive_aligned_packets(n)!
+			for n = i32(b.len); n > 0; n-- {
+				null_indicator = null_indicator * big256 + big.integer_from_i64(b[n - 1])
+			}
+
+			for i := 0; i < xsqlda.vars.len; i++ {
+				if null_indicator.get_bit(u32(i)) {
+					continue
+				}
+				x := xsqlda.vars[i]
+				mut len := i32(0)
+				if x.io_length() < 0 {
+					b = p.receive_packets(4)!
+					len = parse_big_endian_i32(b)
+				} else {
+					len = i32(x.io_length())
+				}
+
+				raw_value := p.receive_aligned_packets(len)!
+				row[i] = x.get_value(raw_value, p.timezone, p.charset)!
+			}
+
+			rows = arrays.concat(rows, row)
+
+			b = p.receive_packets(12)!
+			// op := parse_big_endian_i32(b[..4]) // 66 (op_fetch_response)
+			status = parse_big_endian_i32(b[4..8])
+			count = parse_big_endian_i32(b[8..])
+		}
+
+		// Status is 100 after the last row is fetched
+		if status == 100 {
+			break
+		}
 	}
-
-	// Status is 100 after the last row is fetched
-	if status != 100 {
-		// TODO handle more data
-		println('more data must be fetched')
-	}
-
 	return rows
 }
 

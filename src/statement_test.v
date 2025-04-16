@@ -136,7 +136,6 @@ fn test_time_zone() {
 	stmt.close()!
 	tx.commit()!
 
-	// TODO use prepared statement params
 	tx = conn.start_transaction(isolation_level_read_commited)!
 	stmt = tx.prepare_statement("
 		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
@@ -163,13 +162,40 @@ fn test_time_zone() {
 		SELECT id, time_with_timezone_col, timestamp_with_timezone_col FROM foo')!
 	result := stmt.execute(no_args)!
 	rows := result.rows() // TODO get all rows
-	// assert rows.len == 3
+	assert rows.len == 3
 
 	mut row := rows[0].values()
 	assert row.len == 3
 
 	mut id := row[0]
-	// assert id is i32 && id == 1
+	mut t_tz := row[1]
+	mut ts_tz := row[2]
+
+	assert id is i32 && id == 1
+	assert t_tz is Time && t_tz.offset() == 120
+	assert ts_tz is Time && ts_tz.offset() == 840
+
+	row = rows[1].values()
+	assert row.len == 3
+
+	id = row[0]
+	t_tz = row[1]
+	ts_tz = row[2]
+
+	assert id is i32 && id == 2
+	assert t_tz is Time && t_tz.offset() == -330
+	assert ts_tz is Time && ts_tz.offset() == -630
+
+	row = rows[2].values()
+	assert row.len == 3
+
+	id = row[0]
+	t_tz = row[1]
+	ts_tz = row[2]
+
+	assert id is i32 && id == 3
+	assert t_tz is Time && t_tz.named_zone() == 'Europe/Brussels'
+	assert ts_tz is Time && ts_tz.named_zone() == 'Europe/Brussels'
 
 	stmt.close()!
 	tx.rollback()!
