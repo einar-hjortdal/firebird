@@ -290,10 +290,8 @@ fn test_execute_dml_no_args() {
 	c_value := row[2]
 	assert c_value is string && c_value == 'b'
 
-	// TODO
 	h_value := row[3]
-	println(h_value) // blob id? TODO get blob
-	//	h_value := row[3]
+	assert h_value is string && h_value == 'This is a test'
 
 	stmt.close()!
 

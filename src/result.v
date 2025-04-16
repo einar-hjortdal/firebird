@@ -82,15 +82,15 @@ mut:
 	stmt &Statement
 }
 
-fn new_result(stmt &Statement, xsqlda XSQLDA, data [][]Value) Result {
-	if data.len == 0 {
+fn new_result(stmt &Statement, xsqlda XSQLDA, rows_data [][]Value) Result {
+	if rows_data.len == 0 {
 		return Result{
 			stmt: stmt
 		}
 	}
 
 	columns := new_columns(xsqlda)
-	rows := new_rows(data)
+	rows := new_rows(rows_data)
 	return Result{
 		columns: columns
 		rows:    rows

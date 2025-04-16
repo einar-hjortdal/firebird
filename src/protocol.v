@@ -813,6 +813,60 @@ fn (mut p WireProtocol) parse_fetch_response(xsqlda XSQLDA) ![][]Value {
 	return rows
 }
 
+fn (mut p WireProtocol) open_blob(blob_id []u8, tx_handle i32) ! {
+	p.pack_i32(op_open_blob)
+	p.pack_i32(tx_handle)
+	p.append_bytes(blob_id)
+	p.send_packets()!
+}
+
+fn (mut p WireProtocol) close_blob(blob_handle i32) ! {
+	p.pack_i32(op_close_blob)
+	p.pack_i32(blob_handle)
+	p.send_packets()!
+}
+
+fn (mut p WireProtocol) get_segment(blob_handle i32) ! {
+	p.pack_i32(op_get_segment)
+	p.pack_i32(blob_handle)
+	p.pack_i32(buffer_length)
+	p.pack_i32(0)
+	p.send_packets()!
+}
+
+fn (mut p WireProtocol) get_blob_segments(blob_id []u8, tx_handle i32) ![]u8 {
+	suspended_buf := p.suspend_buffer()
+	defer {
+		p.resume_buffer(suspended_buf)
+	}
+
+	mut res := strings.new_builder(0)
+	p.open_blob(blob_id, tx_handle)!
+	blob_handle, _, _ := p.generic_response()!
+
+	for {
+		p.get_segment(blob_handle)!
+		more_data, _, buf := p.generic_response()!
+		for i := 0; i < buf.len; {
+			data_len := parse_little_endian_i16(buf[i..i + 2])
+			res.write(buf[i + 2..data_len + 2])!
+			i = i + 2 + data_len
+		}
+		if more_data == 2 {
+			break
+		}
+	}
+
+	p.close_blob(blob_handle)!
+	if p.accept_type == ptype_lazy_send {
+		p.lazy_response_count++
+	} else {
+		p.generic_response()!
+	}
+
+	return res
+}
+
 fn (mut p WireProtocol) free_statement(stmt_handle i32, mode i32) ! {
 	p.pack_i32(op_free_statement)
 	p.pack_i32(stmt_handle)

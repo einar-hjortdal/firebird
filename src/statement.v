@@ -92,9 +92,34 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 		stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
 		stmt.tx.conn.p.generic_response()!
 		stmt.tx.conn.p.fetch(stmt.stmt_handle, stmt.output_blr_params)!
-		data := stmt.tx.conn.p.parse_fetch_response(stmt.xsqlda)!
-		// TODO fetch blobs
-		return new_result(stmt, stmt.xsqlda, data)
+		mut rows_data := stmt.tx.conn.p.parse_fetch_response(stmt.xsqlda)!
+		// handle blobs
+		for i := 0; i < rows_data.len; i++ {
+			row := rows_data[i]
+			for k := 0; k < row.len; k++ {
+				value := row[k]
+				value_type := stmt.xsqlda.vars[k].sql_type
+				value_subtype := stmt.xsqlda.vars[k].sql_subtype
+
+				if value_type == sql_type_blob {
+					match value {
+						[]u8 {
+							blob := stmt.tx.conn.p.get_blob_segments(*value, stmt.tx.tx_handle)!
+							if value_subtype == 1 {
+								rows_data[i][k] = blob.bytestr()
+							} else {
+								rows_data[i][k] = blob
+							}
+						}
+						else {
+							continue
+						}
+					}
+				}
+			}
+		}
+
+		return new_result(stmt, stmt.xsqlda, rows_data)
 	}
 
 	// isc_info_sql_stmt_insert
