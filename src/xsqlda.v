@@ -232,8 +232,8 @@ fn parse_date(raw_value []u8, timezone string) !Time {
 	year, month, day := get_date(raw_value[..4])
 	timestamp := time.parse_iso8601('${year}-${month}-${day}')!
 	return Time{
-		timestamp: timestamp
-		// timezone:  get_default_timezone(timezone)
+		timestamp:  timestamp
+		named_zone: get_default_timezone(timezone)
 	}
 }
 
@@ -242,8 +242,8 @@ fn parse_time(raw_value []u8, timezone string) !Time {
 	now := time.now()
 	timestamp := time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}')!
 	return Time{
-		timestamp: timestamp
-		// timezone:  get_default_timezone(timezone)
+		timestamp:  timestamp
+		named_zone: get_default_timezone(timezone)
 	}
 }
 
