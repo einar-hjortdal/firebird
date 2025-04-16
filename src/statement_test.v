@@ -80,6 +80,12 @@ fn test_at_time_zone() {
 	mut stmt := tx.prepare_statement('SELECT current_timestamp FROM RDB\$DATABASE')!
 
 	mut result := stmt.execute(no_args)!
+	mut columns := result.columns()
+	assert columns.len == 1
+
+	mut column := columns[0]
+	assert column.field_name() == 'CURRENT_TIMESTAMP'
+
 	mut rows := result.rows()
 	assert rows.len == 1
 
@@ -161,7 +167,7 @@ fn test_time_zone() {
 	stmt = tx.prepare_statement('
 		SELECT id, time_with_timezone_col, timestamp_with_timezone_col FROM foo')!
 	result := stmt.execute(no_args)!
-	rows := result.rows() // TODO get all rows
+	rows := result.rows()
 	assert rows.len == 3
 
 	mut row := rows[0].values()
@@ -276,3 +282,5 @@ fn test_execute_dml_no_args() {
 	tx.commit()!
 	conn.close()!
 }
+
+// TODO test NULL

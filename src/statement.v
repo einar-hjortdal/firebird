@@ -92,9 +92,10 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 		stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
 		stmt.tx.conn.p.generic_response()!
 		stmt.tx.conn.p.fetch(stmt.stmt_handle, stmt.output_blr_params)!
-		data := stmt.tx.conn.p.parse_fetch_response(stmt.stmt_handle, stmt.tx.tx_handle,
-			stmt.xsqlda)!
-		return new_result(stmt, data)
+		data := stmt.tx.conn.p.parse_fetch_response(stmt.xsqlda)!
+		// TODO fetch blobs
+		// TODO column data?
+		return new_result(stmt, stmt.xsqlda, data)
 	}
 
 	// isc_info_sql_stmt_insert
