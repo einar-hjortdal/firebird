@@ -136,7 +136,7 @@ fn test_time_zone() {
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 	mut stmt := tx.prepare_statement('
 		CREATE TABLE foo (
-		id INT PRIMARY KEY,
+		id INTEGER PRIMARY KEY,
 		time_with_timezone_col TIME WITH TIME ZONE,
 		timestamp_with_timezone_col TIMESTAMP WITH TIME ZONE
 		)')!
@@ -306,13 +306,13 @@ fn test_execute_dml_no_args() {
 	conn.close()!
 }
 
-fn test_null () {
+fn test_null() {
 	mut conn := new_connection(url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare_statement("
+	mut stmt := tx.prepare_statement('
 		CREATE TABLE foo (
-			id INT PRIMARY KEY,
+			id INTEGER PRIMARY KEY,
 			a INTEGER,
 			b VARCHAR(1024),
 			c DECIMAL(16,3),
@@ -321,13 +321,13 @@ fn test_null () {
 			f BLOB SUB_TYPE TEXT,
 			g DOUBLE PRECISION,
 			h REAL
-			)")!
+			)')!
 	stmt.execute(no_args)!
 	stmt.close()!
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	stmt = tx.prepare_statement("INSERT INTO foo (id) VALUES (1)")!
+	stmt = tx.prepare_statement('INSERT INTO foo (id) VALUES (1)')!
 	stmt.execute(no_args)!
 	stmt.close()!
 
@@ -340,19 +340,67 @@ fn test_null () {
 	row := rows[0].values()
 	assert row.len == 8
 
-	for i:=0; i<row.len; i++ {
-		match row[i] {
-			Null {
-				assert true
-			}
-			else {
-				assert false
-			}
-		}
+	for i := 0; i < row.len; i++ {
+		assert row[i] is Null
 	}
 
 	stmt.close()!
+	tx.rollback()!
 
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	stmt = tx.prepare_statement('DROP TABLE foo')!
+	stmt.execute(no_args)!
+	stmt.close()!
+
+	tx.commit()!
+	conn.close()!
+}
+
+fn test_statement_params() {
+	mut conn := new_connection(url)!
+
+	mut tx := conn.start_transaction(isolation_level_read_commited)!
+	mut stmt := tx.prepare_statement('
+		CREATE TABLE foo (
+			id INTEGER PRIMARY KEY,
+			a INTEGER,
+			b VARCHAR(1024),
+			c DECIMAL(16,3),
+			d DATE,
+			e TIMESTAMP,
+			f BLOB SUB_TYPE TEXT,
+			g DOUBLE PRECISION,
+			h REAL
+			)')!
+	stmt.execute(no_args)!
+	stmt.close()!
+	tx.commit()!
+
+	tx = conn.start_transaction(isolation_level_read_commited)!
+
+	stmt = tx.prepare_statement('INSERT INTO foo (id, a) VALUES (? ,?)')!
+	stmt.execute([Value(1), 69])! // error: invalid copy of buffer
+	stmt.close()!
+
+	// // Without time/timestamp
+	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, c, f, g, h)
+	// 	VALUES (? ,? ,? ,? ,? ,? ,?)')!
+
+	// mut args = [
+	// 	Value(1), // INTEGER
+	// 	69, // INTEGER
+	// 	'this is a test', // VARCHAR
+	// 	4.20, // DECIMAL
+	// 	'this is supposed to be a blob', // BLOB SUB_TYPE TEXT
+	// 	3.14, // DOUBLE PRECISION
+	// 	6.02214076, // REAL
+	// ]
+	// stmt.execute(args)!
+	// stmt.close()!
+
+	tx.rollback()!
+
+	tx = conn.start_transaction(isolation_level_read_commited)!
 	stmt = tx.prepare_statement('DROP TABLE foo')!
 	stmt.execute(no_args)!
 	stmt.close()!

@@ -519,7 +519,9 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 				_ := v.write(value) or { 0 } // does not return any error
 			}
 			i64 {
-				// TODO
+				blr, value := i64_to_blr(param)
+				_ := b.write(blr) or { 0 } // does not return any error
+				_ := v.write(value) or { 0 } // does not return any error
 			}
 			f64 {
 				blr, value := f64_to_blr(param)

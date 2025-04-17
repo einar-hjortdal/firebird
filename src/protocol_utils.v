@@ -66,6 +66,19 @@ fn marshal_i32_small_endian(n i32) []u8 {
 	]
 }
 
+fn marshal_i64_big_endian(n i64) []u8 {
+	return [
+		u8((n >> 56) & mask_byte),
+		u8((n >> 48) & mask_byte),
+		u8((n >> 40) & mask_byte),
+		u8((n >> 32) & mask_byte),
+		u8((n >> 24) & mask_byte),
+		u8((n >> 16) & mask_byte),
+		u8((n >> 8) & mask_byte),
+		u8(n & mask_byte),
+	]
+}
+
 // `create_bytes` returns the array `a` prefixed by the length of the array.
 // It also returns the number of bytes to pad to align the array to multiples of 4 bytes.
 fn create_bytes(a []u8) ([]u8, int) {
@@ -314,6 +327,12 @@ fn bytes_to_blr(v []u8) ([]u8, []u8) {
 fn i32_to_blr(n i32) ([]u8, []u8) {
 	value := marshal_i32_big_endian(n)
 	blr := [u8(blr_long), 0]
+	return blr, value
+}
+
+fn i64_to_blr(n i64) ([]u8, []u8) {
+	value := marshal_i64_big_endian(n)
+	blr := [u8(blr_int64), 0]
 	return blr, value
 }
 
