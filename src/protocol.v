@@ -523,7 +523,11 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 				_ := b.write(blr) or { 0 } // does not return any error
 				_ := v.write(value) or { 0 } // does not return any error
 			}
-			// TODO f32 for REAL?
+			f32 {
+				blr, value := f32_to_blr(param)
+				_ := b.write(blr) or { 0 } // does not return any error
+				_ := v.write(value) or { 0 } // does not return any error
+			}
 			f64 {
 				blr, value := f64_to_blr(param)
 				_ := b.write(blr) or { 0 } // does not return any error
@@ -545,7 +549,7 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 				b.write_byte(0)
 			}
 			else {
-				return error(format_error_message('WireProtocol.params_to_blr only accepts the following argument types: string, []u8, i32, i64, f64, bool, firebird.Null'))
+				return error(format_error_message('WireProtocol.params_to_blr only accepts the following argument types: string, []u8, i32, i64, f32, f64, bool, firebird.Null'))
 			}
 		}
 		b.write_u8(blr_short)

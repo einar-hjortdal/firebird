@@ -397,7 +397,7 @@ fn test_statement_params() {
 	stmt.close()!
 
 	stmt = tx.prepare_statement('INSERT INTO foo (id, a, h) VALUES (?, ?, ?)')!
-	args = [Value(i32(5)), i32(1000), f64(3.14)]
+	args = [Value(i32(5)), i32(1000), f32(3.14)]
 	stmt.execute(args)!
 	stmt.close()!
 
@@ -471,8 +471,7 @@ fn test_statement_params() {
 		} else if c.field_name() == 'A' {
 			assert v is i32 && v == 1000
 		} else if c.field_name() == 'H' {
-			// v is f32, it should be f64
-			// assert v is f64 && v == f64(3.14) // V panic: as cast: cannot cast `f32` to `f64`
+			assert v is f32 && v == f32(3.14)
 		} else {
 			assert v is Null
 		}

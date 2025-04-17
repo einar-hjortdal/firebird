@@ -336,8 +336,14 @@ fn i64_to_blr(n i64) ([]u8, []u8) {
 	return blr, value
 }
 
-fn f64_to_blr(f f64) ([]u8, []u8) {
-	value := binary.big_endian_get_u64(math.f64_bits(f))
+fn f32_to_blr(f f32) ([]u8, []u8) {
+	value := binary.big_endian_get_u32(math.f32_bits(f))
+	blr := [u8(blr_float)]
+	return blr, value
+}
+
+fn f64_to_blr(dp f64) ([]u8, []u8) {
+	value := binary.big_endian_get_u64(math.f64_bits(dp))
 	blr := [u8(blr_double)]
 	return blr, value
 }
