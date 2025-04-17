@@ -396,8 +396,8 @@ fn test_statement_params() {
 	stmt.execute(args)!
 	stmt.close()!
 
-	stmt = tx.prepare_statement('INSERT INTO foo (id, a, h) VALUES (?, ?, ?)')!
-	args = [Value(i32(5)), i32(1000), f32(3.14)]
+	stmt = tx.prepare_statement('INSERT INTO foo (id, a, g, h) VALUES (?, ?, ?, ?)')!
+	args = [Value(i32(5)), i32(1000), f64(6.02214), f32(3.14)]
 	stmt.execute(args)!
 	stmt.close()!
 
@@ -470,14 +470,14 @@ fn test_statement_params() {
 			assert v is i32 && v == 5
 		} else if c.field_name() == 'A' {
 			assert v is i32 && v == 1000
+		} else if c.field_name() == 'G' {
+			assert v is f64 && v == f64(6.02214)
 		} else if c.field_name() == 'H' {
 			assert v is f32 && v == f32(3.14)
 		} else {
 			assert v is Null
 		}
 	}
-
-	stmt.close()!
 
 	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, f, h) VALUES (?, ?, ?, ?, ?)')!
 	// args = [
@@ -489,7 +489,7 @@ fn test_statement_params() {
 	// ]
 	// stmt.execute(args)! // invalid copy of buffer, happens at BufferedReader.read in WireProtocol.generic_response
 	// // What causes it?
-	// stmt.close()!
+	stmt.close()!
 
 	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, c, f, g, h)
 	// 	VALUES (? ,? ,? ,? ,? ,? ,?)')!
