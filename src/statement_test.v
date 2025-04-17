@@ -378,22 +378,46 @@ fn test_statement_params() {
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
 
-	stmt = tx.prepare_statement('INSERT INTO foo (id, a) VALUES (? ,?)')!
-	stmt.execute([Value(i32(1)), 69])!
+	stmt = tx.prepare_statement('INSERT INTO foo (id) VALUES (?)')!
+	mut args := [Value(i32(1))]
+	stmt.execute(args)!
 	stmt.close()!
 
-	// // Without time/timestamp
+	stmt = tx.prepare_statement('INSERT INTO foo (id, a) VALUES (?, ?)')!
+	args = [Value(i32(2)), i32(10)]
+	stmt.execute(args)!
+
+	args = [Value(i32(3)), i32(20)]
+	stmt.execute(args)!
+	stmt.close()!
+
+	stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, f) VALUES (?, ?, ?, ?)')!
+	args = [Value(i32(4)), i32(100), 'this is a varchar field', 'this is a blob field']
+	stmt.execute(args)!
+	stmt.close()!
+
+	stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, f, h) VALUES (?, ?, ?, ?, ?)')!
+	args = [
+		Value(i32(5)),
+		i32(1000),
+		'this is a varchar field',
+		'this is a blob field',
+		f64(3.14),
+	]
+	stmt.execute(args)! // invalid copy of buffer, clearly the handling of float is bad.
+	stmt.close()!
+
 	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, c, f, g, h)
 	// 	VALUES (? ,? ,? ,? ,? ,? ,?)')!
 
-	// mut args = [
-	// 	Value(1), // INTEGER
-	// 	69, // INTEGER
+	// args = [
+	// 	Value(i32(12)), // INTEGER
+	// 	i32(69), // INTEGER
 	// 	'this is a test', // VARCHAR
-	// 	4.20, // DECIMAL
+	// 	f64(4.20), // DECIMAL
 	// 	'this is supposed to be a blob', // BLOB SUB_TYPE TEXT
-	// 	3.14, // DOUBLE PRECISION
-	// 	6.02214076, // REAL
+	// 	f64(3.14), // DOUBLE PRECISION
+	// 	f64(6.02214076), // REAL
 	// ]
 	// stmt.execute(args)!
 	// stmt.close()!

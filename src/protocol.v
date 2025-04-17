@@ -523,6 +523,7 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 				_ := b.write(blr) or { 0 } // does not return any error
 				_ := v.write(value) or { 0 } // does not return any error
 			}
+			// TODO f32 for REAL?
 			f64 {
 				blr, value := f64_to_blr(param)
 				_ := b.write(blr) or { 0 } // does not return any error
@@ -693,8 +694,6 @@ fn (mut p WireProtocol) execute(stmt_handle i32, tx_handle i32, params []Value) 
 		p.pack_i32(0)
 	} else {
 		b, v := p.params_to_blr(tx_handle, params, p.protocol_version)!
-		println(b)
-		println(v)
 		p.pack_bytes(b)
 		p.pack_i32(0)
 		p.pack_i32(1)
