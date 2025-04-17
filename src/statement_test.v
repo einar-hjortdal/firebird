@@ -396,15 +396,20 @@ fn test_statement_params() {
 	stmt.execute(args)!
 	stmt.close()!
 
+	stmt = tx.prepare_statement('INSERT INTO foo (id, a, h) VALUES (?, ?, ?)')!
+	args = [Value(i32(5)), i32(1000), f64(3.14)]
+	stmt.execute(args)!
+	stmt.close()!
+
 	stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, f, h) VALUES (?, ?, ?, ?, ?)')!
 	args = [
-		Value(i32(5)),
+		Value(i32(6)),
 		i32(1000),
 		'this is a varchar field',
 		'this is a blob field',
 		f64(3.14),
 	]
-	stmt.execute(args)! // invalid copy of buffer, clearly the handling of float is bad.
+	stmt.execute(args)! // invalid copy of buffer, happens when I use both strings and float
 	stmt.close()!
 
 	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, c, f, g, h)

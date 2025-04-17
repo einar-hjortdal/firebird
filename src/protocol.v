@@ -702,6 +702,8 @@ fn (mut p WireProtocol) execute(stmt_handle i32, tx_handle i32, params []Value) 
 	p.append_bytes(marshal_i32_big_endian(0)) // timeout https://github.com/FirebirdSQL/firebird/blob/08cb3f94e96fc80ed4ec786d31def367e8e58d7c/src/remote/protocol.cpp#L668
 	// TODO proper fetch_scroll value?
 	p.append_bytes(marshal_i32_big_endian(0)) // fetch_scroll https://github.com/FirebirdSQL/firebird/blob/08cb3f94e96fc80ed4ec786d31def367e8e58d7c/src/remote/protocol.cpp#L670
+	println(params)
+	println(p.buf)
 	p.send_packets()!
 }
 
