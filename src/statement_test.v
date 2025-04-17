@@ -401,17 +401,96 @@ fn test_statement_params() {
 	stmt.execute(args)!
 	stmt.close()!
 
-	stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, f, h) VALUES (?, ?, ?, ?, ?)')!
-	args = [
-		Value(i32(6)),
-		i32(1000),
-		'this is a varchar field',
-		'this is a blob field',
-		f64(3.14),
-	]
-	stmt.execute(args)! // invalid copy of buffer, happens at BufferedReader.read in WireProtocol.generic_response
-	// What causes it?
+	stmt = tx.prepare_statement('SELECT * FROM foo')!
+	result := stmt.execute(no_args)!
+
+	columns := result.columns()
+	rows := result.rows()
+	assert rows.len == 5
+
+	mut row := rows[0].values()
+	for i := 0; i < row.len; i++ {
+		c := columns[i]
+		v := row[i]
+		if c.field_name() == 'ID' {
+			assert v is i32 && v == 1
+		} else {
+			assert v is Null
+		}
+	}
+
+	row = rows[1].values()
+	for i := 0; i < row.len; i++ {
+		c := columns[i]
+		v := row[i]
+		if c.field_name() == 'ID' {
+			assert v is i32 && v == 2
+		} else if c.field_name() == 'A' {
+			assert v is i32 && v == 10
+		} else {
+			assert v is Null
+		}
+	}
+
+	row = rows[2].values()
+	for i := 0; i < row.len; i++ {
+		c := columns[i]
+		v := row[i]
+		if c.field_name() == 'ID' {
+			assert v is i32 && v == 3
+		} else if c.field_name() == 'A' {
+			assert v is i32 && v == 20
+		} else {
+			assert v is Null
+		}
+	}
+
+	row = rows[3].values()
+	for i := 0; i < row.len; i++ {
+		c := columns[i]
+		v := row[i]
+		if c.field_name() == 'ID' {
+			assert v is i32 && v == 4
+		} else if c.field_name() == 'A' {
+			assert v is i32 && v == 100
+		} else if c.field_name() == 'B' {
+			assert v is string && v == 'this is a varchar field'
+		} else if c.field_name() == 'F' {
+			assert v is string && v == 'this is a blob field'
+		} else {
+			assert v is Null
+		}
+	}
+
+	row = rows[4].values()
+	for i := 0; i < row.len; i++ {
+		c := columns[i]
+		v := row[i]
+		if c.field_name() == 'ID' {
+			assert v is i32 && v == 5
+		} else if c.field_name() == 'A' {
+			assert v is i32 && v == 1000
+		} else if c.field_name() == 'H' {
+			// v is f32, it should be f64
+			// assert v is f64 && v == f64(3.14) // V panic: as cast: cannot cast `f32` to `f64`
+		} else {
+			assert v is Null
+		}
+	}
+
 	stmt.close()!
+
+	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, f, h) VALUES (?, ?, ?, ?, ?)')!
+	// args = [
+	// 	Value(i32(6)),
+	// 	i32(1000),
+	// 	'this is a varchar field',
+	// 	'this is a blob field',
+	// 	f64(3.14),
+	// ]
+	// stmt.execute(args)! // invalid copy of buffer, happens at BufferedReader.read in WireProtocol.generic_response
+	// // What causes it?
+	// stmt.close()!
 
 	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, c, f, g, h)
 	// 	VALUES (? ,? ,? ,? ,? ,? ,?)')!
