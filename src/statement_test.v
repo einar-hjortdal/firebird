@@ -409,7 +409,8 @@ fn test_statement_params() {
 		'this is a blob field',
 		f64(3.14),
 	]
-	stmt.execute(args)! // invalid copy of buffer, happens when I use both strings and float
+	stmt.execute(args)! // invalid copy of buffer, happens at BufferedReader.read in WireProtocol.generic_response
+	// What causes it?
 	stmt.close()!
 
 	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, c, f, g, h)
