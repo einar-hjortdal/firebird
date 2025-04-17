@@ -379,7 +379,7 @@ fn test_statement_params() {
 	tx = conn.start_transaction(isolation_level_read_commited)!
 
 	stmt = tx.prepare_statement('INSERT INTO foo (id, a) VALUES (? ,?)')!
-	stmt.execute([Value(1), 69])! // error: invalid copy of buffer
+	stmt.execute([Value(i32(1)), 69])!
 	stmt.close()!
 
 	// // Without time/timestamp

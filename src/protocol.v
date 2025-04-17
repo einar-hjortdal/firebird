@@ -482,7 +482,7 @@ fn (mut p WireProtocol) crypt_callback() ! {
 
 // https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-statements-execute
 // https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/ng/wire/DefaultBlrCalculator.java
-fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_version i32) ([]u8, []u8) {
+fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_version i32) !([]u8, []u8) {
 	mut b := initialize_blr_data(params) // Parameters in BLR format
 	mut v := initialize_values_data(params) // Parameter values
 
@@ -544,7 +544,7 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 				b.write_byte(0)
 			}
 			else {
-				// TODO
+				return error(format_error_message('WireProtocol.params_to_blr only accepts the following argument types: string, []u8, i32, i64, f64, bool, firebird.Null'))
 			}
 		}
 		b.write_u8(blr_short)
@@ -692,7 +692,9 @@ fn (mut p WireProtocol) execute(stmt_handle i32, tx_handle i32, params []Value) 
 		p.pack_i32(0)
 		p.pack_i32(0)
 	} else {
-		b, v := p.params_to_blr(tx_handle, params, p.protocol_version)
+		b, v := p.params_to_blr(tx_handle, params, p.protocol_version)!
+		println(b)
+		println(v)
 		p.pack_bytes(b)
 		p.pack_i32(0)
 		p.pack_i32(1)
@@ -715,7 +717,7 @@ fn (mut p WireProtocol) execute_stored_procedure(stmt_handle i32, tx_handle i32,
 		p.pack_i32(0)
 		p.pack_i32(0)
 	} else {
-		b, v := p.params_to_blr(tx_handle, params, p.protocol_version)
+		b, v := p.params_to_blr(tx_handle, params, p.protocol_version)!
 		p.pack_bytes(b)
 		p.pack_i32(0)
 		p.pack_i32(1)
