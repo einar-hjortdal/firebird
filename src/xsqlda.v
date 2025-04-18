@@ -159,29 +159,6 @@ fn (x XSQLVar) type_name() string {
 	return xsqlvar_type_name[x.sql_type]
 }
 
-// Because the time module in vlib does not contain functions to handle timezones, timezone data is
-// given to the users separate from timestamps.
-// A firebird timestamp may be either name-based or offset-based.
-// A name-based timezone has a string that represents the time zone.
-// An offset-based timezone has a number that represents the amount of minutes of displacement.
-pub struct Time {
-	timestamp  time.Time
-	offset     i16
-	named_zone string
-}
-
-pub fn (t Time) timestamp() time.Time {
-	return t.timestamp
-}
-
-pub fn (t Time) offset() i16 {
-	return t.offset
-}
-
-pub fn (t Time) named_zone() string {
-	return t.named_zone
-}
-
 // returns year, month, day
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/classes/NoThrowTimeStamp.cpp#L178
 fn get_date(raw_value []u8) (int, int, int) {

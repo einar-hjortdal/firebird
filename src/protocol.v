@@ -6,7 +6,6 @@ import math.big
 import net
 import os
 import strings
-import time
 
 const plugin_list = 'Srp256,Srp'
 const buffer_length = 1024
@@ -492,11 +491,11 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 			string {
 				if param.len < max_char_length {
 					blr, value := bytes_to_blr(param.bytes())
-					b.write(blr) or {} // does not return any error
-					v.write(value) or {} // does not return any error
+					b.write(blr) or { panic(err) } // does not return any error
+					v.write(value) or { panic(err) } // does not return any error
 				} else {
 					value := p.make_blob(param.bytes(), tx_handle)!
-					v.write(value) or {} // does not return any error
+					v.write(value) or { panic(err) } // does not return any error
 					b.write_u8(9)
 					b.write_u8(0)
 				}
@@ -504,52 +503,55 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 			[]u8 {
 				if param.len < max_char_length {
 					blr, value := bytes_to_blr(*param) // https://github.com/vlang/v/issues/24054#issuecomment-2758173475
-					b.write(blr) or {} // does not return any error
-					v.write(value) or {} // does not return any error
+					b.write(blr) or { panic(err) } // does not return any error
+					v.write(value) or { panic(err) } // does not return any error
 				} else {
 					value := p.make_blob(*param, tx_handle)! // https://github.com/vlang/v/issues/24054#issuecomment-2758173475
-					v.write(value) or {} // does not return any error
+					v.write(value) or { panic(err) } // does not return any error
 					b.write_u8(9)
 					b.write_u8(0)
 				}
 			}
 			i32 {
 				blr, value := i32_to_blr(param)
-				b.write(blr) or {} // does not return any error
-				v.write(value) or {} // does not return any error
+				b.write(blr) or { panic(err) } // does not return any error
+				v.write(value) or { panic(err) } // does not return any error
 			}
 			i64 {
 				blr, value := i64_to_blr(param)
-				b.write(blr) or {} // does not return any error
-				v.write(value) or {} // does not return any error
+				b.write(blr) or { panic(err) } // does not return any error
+				v.write(value) or { panic(err) } // does not return any error
 			}
 			f32 {
 				blr, value := f32_to_blr(param)
-				b.write(blr) or {} // does not return any error
-				v.write(value) or {} // does not return any error
+				b.write(blr) or { panic(err) } // does not return any error
+				v.write(value) or { panic(err) } // does not return any error
 			}
 			f64 {
 				blr, value := f64_to_blr(param)
-				b.write(blr) or {} // does not return any error
-				v.write(value) or {} // does not return any error
+				b.write(blr) or { panic(err) } // does not return any error
+				v.write(value) or { panic(err) } // does not return any error
 			}
-			time.Time {
-				// TODO
+			Time {
+				// TODO handle offset/named
+				blr, value := param.to_blr()
+				b.write(blr) or { panic(err) } // does not return any error
+				v.write_u8(value)
 			}
 			bool {
 				if param {
-					v.write(marshal_i32_big_endian(1)) or {} // does not return any error
+					v.write(marshal_i32_big_endian(1)) or { panic(err) } // does not return any error
 				} else {
-					v.write(marshal_i32_big_endian(0)) or {} // does not return any error
+					v.write(marshal_i32_big_endian(0)) or { panic(err) } // does not return any error
 				}
 			}
 			Null {
-				b.write_byte(blr_text)
-				b.write_byte(0)
-				b.write_byte(0)
+				b.write_u8(blr_text)
+				b.write_u8(0)
+				b.write_u8(0)
 			}
 			else {
-				return error(format_error_message('WireProtocol.params_to_blr only accepts the following parameter types: string, []u8, i32, i64, f32, f64, bool, firebird.Null'))
+				return error(format_error_message('WireProtocol.params_to_blr only accepts the following parameter types: string, []u8, i32, i64, f32, f64, bool, firebird.Time, firebird.Null'))
 			}
 		}
 		b.write_u8(blr_short)

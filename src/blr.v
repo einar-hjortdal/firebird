@@ -55,108 +55,108 @@ fn build_blr(xsqlda XSQLDA) ![]u8 {
 	min_len := xsqlda.vars.len * 3 + 8
 	mut blr := strings.new_builder(min_len)
 	// header: 4 bytes
-	blr.write_byte(blr_version5)
-	blr.write_byte(blr_begin)
-	blr.write_byte(blr_message)
-	blr.write_byte(0)
+	blr.write_u8(blr_version5)
+	blr.write_u8(blr_begin)
+	blr.write_u8(blr_message)
+	blr.write_u8(0)
 	// length: 2 bytes
-	blr.write_byte(u8(len & 255))
-	blr.write_byte(u8(len >> 8))
+	blr.write_u8(u8(len & 255))
+	blr.write_u8(u8(len >> 8))
 
 	for i := 0; i < xsqlda.vars.len; i++ {
 		v := xsqlda.vars[i]
 		sql_scale := get_sql_scale(u8(v.sql_scale))
 		match v.sql_type {
 			sql_type_varying {
-				blr.write_byte(blr_varying) // TODO switch to blr_varying2
-				blr.write_byte(u8(v.sql_len & 255))
-				blr.write_byte(u8(v.sql_len >> 8))
+				blr.write_u8(blr_varying) // TODO switch to blr_varying2
+				blr.write_u8(u8(v.sql_len & 255))
+				blr.write_u8(u8(v.sql_len >> 8))
 			}
 			sql_type_text {
-				blr.write_byte(blr_text) // TODO blr_text2
-				blr.write_byte(u8(v.sql_len & 255))
-				blr.write_byte(u8(v.sql_len >> 8))
+				blr.write_u8(blr_text) // TODO blr_text2
+				blr.write_u8(u8(v.sql_len & 255))
+				blr.write_u8(u8(v.sql_len >> 8))
 			}
 			sql_type_dec64 {
-				blr.write_byte(blr_dec64)
+				blr.write_u8(blr_dec64)
 			}
 			sql_type_dec128 {
-				blr.write_byte(blr_dec128)
+				blr.write_u8(blr_dec128)
 			}
 			sql_type_int128 {
-				blr.write_byte(blr_int128)
-				blr.write_byte(sql_scale)
+				blr.write_u8(blr_int128)
+				blr.write_u8(sql_scale)
 			}
 			sql_type_double {
-				blr.write_byte(blr_double)
+				blr.write_u8(blr_double)
 			}
 			sql_type_float {
-				blr.write_byte(blr_float)
+				blr.write_u8(blr_float)
 			}
 			sql_type_d_float {
-				blr.write_byte(blr_d_float)
+				blr.write_u8(blr_d_float)
 			}
 			sql_type_date {
-				blr.write_byte(blr_sql_date)
+				blr.write_u8(blr_sql_date)
 			}
 			sql_type_time {
-				blr.write_byte(blr_sql_time)
+				blr.write_u8(blr_sql_time)
 			}
 			sql_type_time_tz {
-				blr.write_byte(blr_sql_time_tz)
+				blr.write_u8(blr_sql_time_tz)
 			}
 			sql_type_time_tz_ex {
-				blr.write_byte(blr_ex_time_tz)
+				blr.write_u8(blr_ex_time_tz)
 			}
 			sql_type_timestamp {
-				blr.write_byte(blr_timestamp)
+				blr.write_u8(blr_timestamp)
 			}
 			sql_type_timestamp_tz {
-				blr.write_byte(blr_timestamp_tz)
+				blr.write_u8(blr_timestamp_tz)
 			}
 			sql_type_timestamp_tz_ex {
-				blr.write_byte(blr_ex_timestamp_tz)
+				blr.write_u8(blr_ex_timestamp_tz)
 			}
 			sql_type_blob {
-				blr.write_byte(blr_quad) // blr_blob2 causes errors, why?
-				blr.write_byte(0)
+				blr.write_u8(blr_quad) // blr_blob2 causes errors, why?
+				blr.write_u8(0)
 			}
 			sql_type_array {
-				blr.write_byte(blr_quad)
-				blr.write_byte(0)
+				blr.write_u8(blr_quad)
+				blr.write_u8(0)
 			}
 			sql_type_long {
-				blr.write_byte(blr_long)
-				blr.write_byte(u8(sql_scale))
+				blr.write_u8(blr_long)
+				blr.write_u8(u8(sql_scale))
 			}
 			sql_type_short {
-				blr.write_byte(blr_short)
-				blr.write_byte(u8(sql_scale))
+				blr.write_u8(blr_short)
+				blr.write_u8(u8(sql_scale))
 			}
 			sql_type_int64 {
-				blr.write_byte(blr_int64)
-				blr.write_byte(sql_scale)
+				blr.write_u8(blr_int64)
+				blr.write_u8(sql_scale)
 			}
 			sql_type_quad {
-				blr.write_byte(blr_quad)
-				blr.write_byte(sql_scale)
+				blr.write_u8(blr_quad)
+				blr.write_u8(sql_scale)
 			}
 			sql_type_boolean {
-				blr.write_byte(blr_bool)
+				blr.write_u8(blr_bool)
 			}
 			sql_type_null {
-				blr.write_byte(blr_text)
-				blr.write_byte(u8(v.sql_len & 255))
-				blr.write_byte(u8(v.sql_len >> 8))
+				blr.write_u8(blr_text)
+				blr.write_u8(u8(v.sql_len & 255))
+				blr.write_u8(u8(v.sql_len >> 8))
 			}
 			else {
 				return error(format_error_message('Unsupported data type ${v.sql_type}: ${low_priority_todo}'))
 			}
 		}
-		blr.write_byte(blr_short)
-		blr.write_byte(0)
+		blr.write_u8(blr_short)
+		blr.write_u8(0)
 	}
-	blr.write_byte(blr_end)
-	blr.write_byte(blr_eoc)
+	blr.write_u8(blr_end)
+	blr.write_u8(blr_eoc)
 	return blr
 }
