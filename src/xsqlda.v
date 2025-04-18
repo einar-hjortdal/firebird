@@ -1,8 +1,6 @@
 module firebird
 
-import encoding.binary
 import math
-import time
 
 pub const charset_none = 'NONE'
 pub const charset_utf8 = 'UTF8'
@@ -22,18 +20,18 @@ const sql_type_long = 496
 const sql_type_float = 482
 const sql_type_double = 480
 const sql_type_d_float = 530
-const sql_type_timestamp = 510
+pub const sql_type_timestamp = 510
 const sql_type_blob = 520
 const sql_type_array = 540
 const sql_type_quad = 550
-const sql_type_time = 560
-const sql_type_date = 570
+pub const sql_type_time = 560
+pub const sql_type_date = 570
 const sql_type_int64 = 580
-const sql_type_timestamp_tz_ex = 32748
-const sql_type_time_tz_ex = 32750
+pub const sql_type_timestamp_tz_ex = 32748
+pub const sql_type_time_tz_ex = 32750
 const sql_type_int128 = 32752
-const sql_type_timestamp_tz = 32754
-const sql_type_time_tz = 32756
+pub const sql_type_timestamp_tz = 32754
+pub const sql_type_time_tz = 32756
 const sql_type_dec64 = 32760
 const sql_type_dec128 = 32762
 const sql_type_boolean = 32764
@@ -157,122 +155,6 @@ fn (x XSQLVar) has_precision_scale() bool {
 
 fn (x XSQLVar) type_name() string {
 	return xsqlvar_type_name[x.sql_type]
-}
-
-// returns year, month, day
-// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/classes/NoThrowTimeStamp.cpp#L178
-fn get_date(raw_value []u8) (int, int, int) {
-	mut nday := parse_big_endian_i32(raw_value) + 678882
-	century := 4 * nday / 146097
-	nday = 4 * nday - 1 - 146097 * century
-	mut day := nday / 4
-
-	nday = (4 * day + 3) / 1461
-	day = 4 * day + 3 - 1461 * nday
-	day = (day + 4) / 4
-
-	mut month := (5 * day - 3) / 153
-	day = 5 * day - 3 - 153 * month
-	day = (day + 5) / 5
-
-	mut year := 100 * century + nday
-	if month < 10 {
-		month += 3
-	} else {
-		month -= 9
-		year++
-	}
-	return year, month, day
-}
-
-// returns hours, minutes, seconds and fractions
-// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/classes/NoThrowTimeStamp.cpp#L260
-fn get_time(raw_value []u8) (int, int, int, int) {
-	mut n := parse_big_endian_i32(raw_value)
-	h := n / (3600 * isc_time_seconds_precision)
-	n %= 3600 * isc_time_seconds_precision
-	m := n / (60 * isc_time_seconds_precision)
-	n %= 60 * isc_time_seconds_precision
-	s := n / isc_time_seconds_precision
-	f := n % isc_time_seconds_precision
-	return h, m, s, f
-}
-
-fn get_default_timezone(timezone string) string {
-	if timezone == '' {
-		return timezones[max_u16]
-	}
-	return timezone
-}
-
-fn parse_date(raw_value []u8, timezone string) !Time {
-	year, month, day := get_date(raw_value[..4])
-	timestamp := time.parse_iso8601('${year}-${month}-${day}')!
-	return Time{
-		timestamp:  timestamp
-		named_zone: get_default_timezone(timezone)
-	}
-}
-
-fn parse_time(raw_value []u8, timezone string) !Time {
-	hours, minutes, seconds, fractions := get_time(raw_value[..4])
-	now := time.now()
-	timestamp := time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}')!
-	return Time{
-		timestamp:  timestamp
-		named_zone: get_default_timezone(timezone)
-	}
-}
-
-fn parse_time_tz(raw_value []u8) !Time {
-	hours, minutes, seconds, fractions := get_time(raw_value[..4])
-	now := time.now()
-	timestamp := time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}')!
-
-	// TODO what is this for? It is always 0 when is_offset and always max_u16 when named_zone
-	// timezone := binary.big_endian_u16(raw_value[4..6])
-	offset := binary.big_endian_u16(raw_value[6..8])
-	if is_offset(offset) {
-		return Time{
-			timestamp: timestamp
-			offset:    decode_offset(offset)
-		}
-	}
-
-	return Time{
-		timestamp:  timestamp
-		named_zone: timezones[offset]
-	}
-}
-
-fn parse_timestamp(raw_value []u8, timezone string) !Time {
-	year, month, day := get_date(raw_value[..4])
-	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
-	timestamp := time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}')!
-	return Time{
-		timestamp:  timestamp
-		named_zone: timezone
-	}
-}
-
-fn parse_timestamp_tz(raw_value []u8) !Time {
-	year, month, day := get_date(raw_value[..4])
-	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
-	timestamp := time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}')!
-
-	// timezone := binary.big_endian_u16(raw_value[8..10])
-	offset := binary.big_endian_u16(raw_value[10..12])
-	if is_offset(offset) {
-		return Time{
-			timestamp: timestamp
-			offset:    decode_offset(offset)
-		}
-	}
-
-	return Time{
-		timestamp:  timestamp
-		named_zone: timezones[offset]
-	}
 }
 
 // https://www.firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/firebird-50-language-reference.html#fblangref50-datatypes-chartypes-unicode
