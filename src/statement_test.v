@@ -39,7 +39,7 @@ fn test_new_statement() {
 	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
-	mut stmt := tx.prepare_statement('CREATE TABLE foo (a INTEGER)')!
+	mut stmt := tx.prepare('CREATE TABLE foo (a INTEGER)')!
 	stmt.close()!
 
 	tx.rollback()!
@@ -50,7 +50,7 @@ fn test_execute_statement_ddl_no_args() {
 	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
-	mut stmt := tx.prepare_statement('CREATE TABLE foo (a INTEGER)')!
+	mut stmt := tx.prepare('CREATE TABLE foo (a INTEGER)')!
 	stmt.execute(no_args)!
 	stmt.execute(no_args) or {
 		// [firebird] unsuccessful metadata update
@@ -60,7 +60,7 @@ fn test_execute_statement_ddl_no_args() {
 	}
 	stmt.close()!
 
-	stmt = tx.prepare_statement('DROP TABLE foo')!
+	stmt = tx.prepare('DROP TABLE foo')!
 	stmt.execute(no_args)!
 	stmt.execute(no_args) or {
 		// [firebird] unsuccessful metadata update
@@ -221,7 +221,7 @@ fn test_execute_dml_no_args() {
 	mut conn := new_connection(url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare_statement("
+	mut stmt := tx.prepare("
 		CREATE TABLE foo (
 			a INTEGER NOT NULL,
 			b VARCHAR(30) NOT NULL UNIQUE,
@@ -241,7 +241,7 @@ fn test_execute_dml_no_args() {
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	stmt = tx.prepare_statement("
+	stmt = tx.prepare("
 		INSERT INTO foo (a, b, c, h)
 			VALUES (1, 'a', 'b', 'This is a test')")!
 	stmt.execute(no_args)!
@@ -284,7 +284,7 @@ fn test_null() {
 	mut conn := new_connection(url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare_statement('
+	mut stmt := tx.prepare('
 		CREATE TABLE foo (
 			id INTEGER PRIMARY KEY,
 			a INTEGER,
@@ -301,11 +301,11 @@ fn test_null() {
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	stmt = tx.prepare_statement('INSERT INTO foo (id) VALUES (1)')!
+	stmt = tx.prepare('INSERT INTO foo (id) VALUES (1)')!
 	stmt.execute(no_args)!
 	stmt.close()!
 
-	stmt = tx.prepare_statement('SELECT a, b, c, d, e, f, g, h FROM foo')!
+	stmt = tx.prepare('SELECT a, b, c, d, e, f, g, h FROM foo')!
 	result := stmt.execute(no_args)!
 
 	rows := result.rows
@@ -349,7 +349,7 @@ fn test_statement_params() {
 	mut args := [Value(i32(1))]
 	tx.execute('INSERT INTO foo (id) VALUES (?)', args)!
 
-	mut stmt := tx.prepare_statement('INSERT INTO foo (id, a) VALUES (?, ?)')!
+	mut stmt := tx.prepare('INSERT INTO foo (id, a) VALUES (?, ?)')!
 	args = [Value(i32(2)), i32(10)]
 	stmt.execute(args)!
 
@@ -363,7 +363,7 @@ fn test_statement_params() {
 	args = [Value(i32(5)), i32(1000), f64(6.02214), f32(3.14)]
 	tx.execute('INSERT INTO foo (id, a, e, f) VALUES (?, ?, ?, ?)', args)!
 
-	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, d,f) VALUES (?, ?, ?, ?, ?)')!
+	// stmt = tx.prepare('INSERT INTO foo (id, a, b, d,f) VALUES (?, ?, ?, ?, ?)')!
 	// args = [
 	// 	Value(i32(6)),
 	// 	i32(1000),
@@ -374,7 +374,7 @@ fn test_statement_params() {
 	// stmt.execute(args)! // invalid copy of buffer, happens at BufferedReader.read in WireProtocol.generic_response
 	// // What causes it?
 
-	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, c, f, g, h)
+	// stmt = tx.prepare('INSERT INTO foo (id, a, b, c, f, g, h)
 	// 	VALUES (? ,? ,? ,? ,? ,? ,?)')!
 
 	// args = [
@@ -484,7 +484,7 @@ fn test_statement_time_params() {
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare_statement('INSERT INTO foo (id, a, d) VALUES (?, ?, ?)')!
+	mut stmt := tx.prepare('INSERT INTO foo (id, a, d) VALUES (?, ?, ?)')!
 
 	mut date := DateTime{
 		Time:     time.parse_iso8601('2025-02-12')!

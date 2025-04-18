@@ -36,14 +36,14 @@ pub fn (mut t Transaction) rollback() ! {
 	_, _, _ := t.conn.p.generic_response()!
 }
 
-pub fn (mut t Transaction) prepare_statement(query string) !&Statement {
+pub fn (mut t Transaction) prepare(query string) !&Statement {
 	return new_statement(mut t, query)!
 }
 
 // execute prepares a statement with the given query, executes it with the given parameters and returns
 // the result.
 pub fn (mut t Transaction) execute(query string, params []Value) !Result {
-	mut stmt := t.prepare_statement(query)!
+	mut stmt := t.prepare(query)!
 	result := stmt.execute(params)!
 	stmt.close()!
 	return result
