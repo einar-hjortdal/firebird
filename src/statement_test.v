@@ -81,47 +81,40 @@ fn test_at_time_zone() {
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
 	mut result := tx.execute('SELECT current_timestamp FROM RDB\$DATABASE', no_args)!
-	mut columns := result.columns()
-	assert columns.len == 1
+	assert result.columns.len == 1
 
-	mut column := columns[0]
-	assert column.field_name() == 'CURRENT_TIMESTAMP'
-	assert column.sql_type() == 'TIMESTAMP WITH TIMEZONE'
+	mut column := result.columns[0]
+	assert column.field_name == 'CURRENT_TIMESTAMP'
+	assert column.sql_type == 'TIMESTAMP WITH TIMEZONE'
 	assert column.null_indicator == false
 
-	mut rows := result.rows()
-	assert rows.len == 1
+	assert result.rows.len == 1
 
-	mut row := rows[0].values()
-	assert row.len == 1
+	assert result.rows[0].values.len == 1
 
-	mut t := row[0]
-	assert t is DateTime && t.named_zone() == 'Etc/UTC'
+	mut t := result.rows[0].values[0]
+	assert t is DateTime && t.named_zone == 'Etc/UTC'
 
 	result = tx.execute("
 	SELECT current_timestamp AT TIME ZONE 'America/Sao_Paulo'
 	FROM RDB\$DATABASE
 	",
 		no_args)!
-	rows = result.rows()
-	assert rows.len == 1
+	assert result.rows.len == 1
 
-	row = rows[0].values()
-	assert row.len == 1
+	assert result.rows[0].values.len == 1
 
-	t = row[0]
-	assert t is DateTime && t.named_zone() == 'America/Sao_Paulo'
+	t = result.rows[0].values[0]
+	assert t is DateTime && t.named_zone == 'America/Sao_Paulo'
 
 	result = tx.execute("SELECT TIME '12:00 GMT' AT TIME ZONE '-05:00' FROM RDB\$DATABASE",
 		no_args)!
-	rows = result.rows()
-	assert rows.len == 1
+	assert result.rows.len == 1
 
-	row = rows[0].values()
-	assert row.len == 1
+	assert result.rows[0].values.len == 1
 
-	t = row[0]
-	assert t is DateTime && t.offset() == -300
+	t = result.rows[0].values[0]
+	assert t is DateTime && t.offset == -300
 
 	tx.rollback()!
 	conn.close()!
@@ -162,60 +155,56 @@ fn test_time_zone() {
 		SELECT id, time_with_timezone_col, timestamp_with_timezone_col FROM foo',
 		no_args)!
 
-	columns := result.columns()
+	columns := result.columns
 	assert columns.len == 3
 
 	id_col := columns[0]
 	t_tz_col := columns[1]
 	ts_tz_col := columns[2]
 
-	assert id_col.field_name() == 'ID'
-	assert id_col.sql_type() == 'LONG'
-	assert id_col.null_indicator() == false
+	assert id_col.field_name == 'ID'
+	assert id_col.sql_type == 'LONG'
+	assert id_col.null_indicator == false
 
-	assert t_tz_col.field_name() == 'TIME_WITH_TIMEZONE_COL'
-	assert t_tz_col.sql_type() == 'TIME WITH TIMEZONE'
-	assert t_tz_col.null_indicator() == true
+	assert t_tz_col.field_name == 'TIME_WITH_TIMEZONE_COL'
+	assert t_tz_col.sql_type == 'TIME WITH TIMEZONE'
+	assert t_tz_col.null_indicator == true
 
-	assert ts_tz_col.field_name() == 'TIMESTAMP_WITH_TIMEZONE_COL'
-	assert ts_tz_col.sql_type() == 'TIMESTAMP WITH TIMEZONE'
-	assert ts_tz_col.null_indicator() == true
+	assert ts_tz_col.field_name == 'TIMESTAMP_WITH_TIMEZONE_COL'
+	assert ts_tz_col.sql_type == 'TIMESTAMP WITH TIMEZONE'
+	assert ts_tz_col.null_indicator == true
 
-	rows := result.rows()
-	assert rows.len == 3
+	assert result.rows.len == 3
 
-	mut row := rows[0].values()
-	assert row.len == 3
+	assert result.rows[0].values.len == 3
 
-	mut id := row[0]
-	mut t_tz := row[1]
-	mut ts_tz := row[2]
+	mut id := result.rows[0].values[0]
+	mut t_tz := result.rows[0].values[1]
+	mut ts_tz := result.rows[0].values[2]
 
 	assert id is i32 && id == 1
-	assert t_tz is DateTime && t_tz.offset() == 120
-	assert ts_tz is DateTime && ts_tz.offset() == 840
+	assert t_tz is DateTime && t_tz.offset == 120
+	assert ts_tz is DateTime && ts_tz.offset == 840
 
-	row = rows[1].values()
-	assert row.len == 3
+	assert result.rows[1].values.len == 3
 
-	id = row[0]
-	t_tz = row[1]
-	ts_tz = row[2]
+	id = result.rows[1].values[0]
+	t_tz = result.rows[1].values[1]
+	ts_tz = result.rows[1].values[2]
 
 	assert id is i32 && id == 2
-	assert t_tz is DateTime && t_tz.offset() == -330
-	assert ts_tz is DateTime && ts_tz.offset() == -630
+	assert t_tz is DateTime && t_tz.offset == -330
+	assert ts_tz is DateTime && ts_tz.offset == -630
 
-	row = rows[2].values()
-	assert row.len == 3
+	assert result.rows[2].values.len == 3
 
-	id = row[0]
-	t_tz = row[1]
-	ts_tz = row[2]
+	id = result.rows[2].values[0]
+	t_tz = result.rows[2].values[1]
+	ts_tz = result.rows[2].values[2]
 
 	assert id is i32 && id == 3
-	assert t_tz is DateTime && t_tz.named_zone() == 'Europe/Brussels'
-	assert ts_tz is DateTime && ts_tz.named_zone() == 'Europe/Brussels'
+	assert t_tz is DateTime && t_tz.named_zone == 'Europe/Brussels'
+	assert ts_tz is DateTime && ts_tz.named_zone == 'Europe/Brussels'
 
 	tx.rollback()!
 
@@ -265,10 +254,10 @@ fn test_execute_dml_no_args() {
 
 	result := tx.execute('SELECT a, b, c, h FROM foo', no_args)!
 
-	rows := result.rows()
+	rows := result.rows
 	assert rows.len == 1
 
-	row := rows[0].values()
+	row := rows[0].values
 	assert row.len == 4
 
 	a_value := row[0]
@@ -319,10 +308,10 @@ fn test_null() {
 	stmt = tx.prepare_statement('SELECT a, b, c, d, e, f, g, h FROM foo')!
 	result := stmt.execute(no_args)!
 
-	rows := result.rows()
+	rows := result.rows
 	assert rows.len == 1
 
-	row := rows[0].values()
+	row := rows[0].values
 	assert row.len == 8
 
 	for i := 0; i < row.len; i++ {
@@ -395,75 +384,68 @@ fn test_statement_params() {
 	stmt = tx.prepare_statement('SELECT * FROM foo')!
 	result := stmt.execute(no_args)!
 
-	columns := result.columns()
-	rows := result.rows()
-	assert rows.len == 5
+	assert result.rows.len == 5
 
-	mut row := rows[0].values()
-	for i := 0; i < row.len; i++ {
-		c := columns[i]
-		v := row[i]
-		if c.field_name() == 'ID' {
+	for i := 0; i < result.rows[0].values.len; i++ {
+		c := result.columns[i]
+		v := result.rows[0].values[i]
+		if c.field_name == 'ID' {
 			assert v is i32 && v == 1
 		} else {
 			assert v is Null
 		}
 	}
 
-	row = rows[1].values()
-	for i := 0; i < row.len; i++ {
-		c := columns[i]
-		v := row[i]
-		if c.field_name() == 'ID' {
+	for i := 0; i < result.rows[1].values.len; i++ {
+		c := result.columns[i]
+		v := result.rows[1].values[i]
+		if c.field_name == 'ID' {
 			assert v is i32 && v == 2
-		} else if c.field_name() == 'A' {
+		} else if c.field_name == 'A' {
 			assert v is i32 && v == 10
 		} else {
 			assert v is Null
 		}
 	}
 
-	row = rows[2].values()
-	for i := 0; i < row.len; i++ {
-		c := columns[i]
-		v := row[i]
-		if c.field_name() == 'ID' {
+	for i := 0; i < result.rows[2].values.len; i++ {
+		c := result.columns[i]
+		v := result.rows[2].values[i]
+		if c.field_name == 'ID' {
 			assert v is i32 && v == 3
-		} else if c.field_name() == 'A' {
+		} else if c.field_name == 'A' {
 			assert v is i32 && v == 20
 		} else {
 			assert v is Null
 		}
 	}
 
-	row = rows[3].values()
-	for i := 0; i < row.len; i++ {
-		c := columns[i]
-		v := row[i]
-		if c.field_name() == 'ID' {
+	for i := 0; i < result.rows[3].values.len; i++ {
+		c := result.columns[i]
+		v := result.rows[3].values[i]
+		if c.field_name == 'ID' {
 			assert v is i32 && v == 4
-		} else if c.field_name() == 'A' {
+		} else if c.field_name == 'A' {
 			assert v is i32 && v == 100
-		} else if c.field_name() == 'B' {
+		} else if c.field_name == 'B' {
 			assert v is string && v == 'this is a varchar field'
-		} else if c.field_name() == 'D' {
+		} else if c.field_name == 'D' {
 			assert v is string && v == 'this is a blob field'
 		} else {
 			assert v is Null
 		}
 	}
 
-	row = rows[4].values()
-	for i := 0; i < row.len; i++ {
-		c := columns[i]
-		v := row[i]
-		if c.field_name() == 'ID' {
+	for i := 0; i < result.rows[4].values.len; i++ {
+		c := result.columns[i]
+		v := result.rows[4].values[i]
+		if c.field_name == 'ID' {
 			assert v is i32 && v == 5
-		} else if c.field_name() == 'A' {
+		} else if c.field_name == 'A' {
 			assert v is i32 && v == 1000
-		} else if c.field_name() == 'E' {
+		} else if c.field_name == 'E' {
 			assert v is f64 && v == f64(6.02214)
-		} else if c.field_name() == 'F' {
+		} else if c.field_name == 'F' {
 			assert v is f32 && v == f32(3.14)
 		} else {
 			assert v is Null
@@ -529,12 +511,11 @@ fn test_statement_time_params() {
 	stmt.close()!
 
 	result := tx.execute('SELECT * FROM foo', no_args)!
-	columns := result.columns()
-	rows := result.rows()
+	columns := result.columns
+	rows := result.rows
 	assert rows.len == 1
 
-	mut row := rows[0].values()
-	println(row)
+	println(rows[0].values)
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
 	tx.execute('DROP TABLE foo', no_args)!

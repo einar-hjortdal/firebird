@@ -15,6 +15,7 @@ pub struct Null {}
 pub interface Value {}
 
 pub struct Column {
+pub:
 	field_name     string
 	sql_type       string
 	null_indicator bool
@@ -37,19 +38,8 @@ fn new_columns(xsqlda XSQLDA) []Column {
 	return res
 }
 
-pub fn (c Column) field_name() string {
-	return c.field_name
-}
-
-pub fn (c Column) sql_type() string {
-	return c.sql_type
-}
-
-pub fn (c Column) null_indicator() bool {
-	return c.null_indicator
-}
-
 pub struct Row {
+pub:
 	values []Value
 }
 
@@ -66,10 +56,6 @@ fn new_rows(data [][]Value) []Row {
 		res[i] = new_row(row_data)
 	}
 	return res
-}
-
-pub fn (r Row) values() []Value {
-	return r.values
 }
 
 // Result contains all rows
@@ -100,12 +86,4 @@ fn new_result(stmt &Statement, xsqlda XSQLDA, rows_data [][]Value) Result {
 
 fn new_basic_result(stmt &Statement) Result {
 	return new_result(stmt, XSQLDA{}, [][]Value{})
-}
-
-pub fn (r Result) columns() []Column {
-	return r.columns
-}
-
-pub fn (r Result) rows() []Row {
-	return r.rows
 }

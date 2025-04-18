@@ -18,17 +18,10 @@ import time
 // An offset-based timezone has a number that represents the amount of minutes of displacement.
 pub struct DateTime {
 	time.Time
+pub:
 	sql_type   int
 	offset     i16
 	named_zone string
-}
-
-pub fn (t DateTime) offset() i16 {
-	return t.offset
-}
-
-pub fn (t DateTime) named_zone() string {
-	return t.named_zone
 }
 
 // returns year, month, day
