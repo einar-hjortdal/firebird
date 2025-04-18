@@ -533,8 +533,7 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 				v.write(value) or { panic(err) } // does not return any error
 			}
 			Time {
-				// TODO handle offset/named
-				blr, value := param.to_blr()
+				blr, value := param.to_blr()!
 				b.write(blr) or { panic(err) } // does not return any error
 				v.write_u8(value)
 			}

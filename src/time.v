@@ -34,6 +34,29 @@ fn (t Time) to_blr_time() []u8 {
 	return marshal_i32_big_endian(i32(hours + minutes + seconds + fractions))
 }
 
+fn (t Time) get_timezone() ![]u8 {
+	if t.named_zone != '' {
+		first_u8_pair := marshal_i16_big_endian(i16(max_u16))
+		// this is inefficient: reverse-lookup of map[int]string with string comparison
+		for k, v in timezones {
+			if v == t.named_zone {
+				second_u8_pair := marshal_i16_big_endian(i16(k))
+				return arrays.append(first_u8_pair, second_u8_pair)
+			}
+		}
+		return error(format_error_message('invalid named_zone'))
+	}
+	first_u8_pair := marshal_i16_big_endian(0)
+	second_u8_pair := marshal_i16_big_endian(t.offset)
+	return arrays.append(first_u8_pair, second_u8_pair)
+}
+
+fn (t Time) to_blr_time_tz() ![]u8 {
+	time_segment := t.to_blr_time()
+	tz_segment := t.get_timezone()!
+	return arrays.append(time_segment, tz_segment)
+}
+
 // Firebird uses a modified Julian date
 fn (t Time) to_blr_date() []u8 {
 	julian_month := t.timestamp.month + 9 % 12
@@ -45,14 +68,34 @@ fn (t Time) to_blr_date() []u8 {
 	return marshal_i32_big_endian(i32(modified_julian_date))
 }
 
-fn (t Time) to_blr() ([]u8, u8) {
+fn (t Time) to_blr_timestamp() []u8 {
+	time_segment := t.to_blr_time()
+	date_segment := t.to_blr_date()
+	return arrays.append(date_segment, time_segment)
+}
+
+fn (t Time) to_blr_timestamp_tz() ![]u8 {
+	timestamp_segment := t.to_blr_time()
+	timezone_segment := t.get_timezone()!
+	return arrays.append(timestamp_segment, timezone_segment)
+}
+
+fn (t Time) to_blr() !([]u8, u8) {
 	if t.timestamp.year == 0 {
+		if t.named_zone != '' || t.offset != 0 {
+			blr := t.to_blr_time_tz()!
+			return blr, u8(blr_sql_time_tz)
+		}
 		blr := t.to_blr_time()
 		value := u8(blr_sql_time)
 		return blr, value
 	}
-	time_segment := t.to_blr_time()
-	date_segment := t.to_blr_date()
+
+	if t.named_zone != '' || t.offset != 0 {
+		blr := t.to_blr_timestamp_tz()!
+		return blr, u8(blr_timestamp_tz)
+	}
+	blr := t.to_blr_timestamp()
 	value := u8(blr_timestamp)
-	return arrays.append(date_segment, time_segment), value
+	return blr, value
 }

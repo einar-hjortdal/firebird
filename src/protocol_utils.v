@@ -48,6 +48,17 @@ const supported_protocols_bytes = supported_protocols_to_bytes()
 
 // WireProtocol
 // https://www.ietf.org/rfc/rfc4506.html#section-4.1
+fn marshal_i16_big_endian(n i16) []u8 {
+	return [
+		u8((n >> 8) & mask_byte),
+		u8(n & mask_byte),
+	]
+}
+
+fn marshal_u16_big_endian(n u16) []u8 {
+	return marshal_i16_big_endian(i16(n))
+}
+
 fn marshal_i32_big_endian(n i32) []u8 {
 	return [
 		u8((n >> 24) & mask_byte),
