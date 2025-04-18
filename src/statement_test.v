@@ -78,7 +78,7 @@ fn test_at_time_zone() {
 	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
-	mut result := tx.query('SELECT current_timestamp FROM RDB\$DATABASE', no_args)!
+	mut result := tx.execute('SELECT current_timestamp FROM RDB\$DATABASE', no_args)!
 	mut columns := result.columns()
 	assert columns.len == 1
 
@@ -96,7 +96,7 @@ fn test_at_time_zone() {
 	mut t := row[0]
 	assert t is Time && t.named_zone() == 'Etc/UTC'
 
-	result = tx.query("
+	result = tx.execute("
 	SELECT current_timestamp AT TIME ZONE 'America/Sao_Paulo'
 	FROM RDB\$DATABASE
 	",
@@ -110,7 +110,7 @@ fn test_at_time_zone() {
 	t = row[0]
 	assert t is Time && t.named_zone() == 'America/Sao_Paulo'
 
-	result = tx.query("SELECT TIME '12:00 GMT' AT TIME ZONE '-05:00' FROM RDB\$DATABASE",
+	result = tx.execute("SELECT TIME '12:00 GMT' AT TIME ZONE '-05:00' FROM RDB\$DATABASE",
 		no_args)!
 	rows = result.rows()
 	assert rows.len == 1
@@ -128,7 +128,7 @@ fn test_at_time_zone() {
 fn test_time_zone() {
 	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	tx.query('
+	tx.execute('
 		CREATE TABLE foo (
 		id INTEGER PRIMARY KEY,
 		time_with_timezone_col TIME WITH TIME ZONE,
@@ -138,25 +138,25 @@ fn test_time_zone() {
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	tx.query("
+	tx.execute("
 		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
 		VALUES (1, '16:03:00 +02:00', '2025-04-15 16:03:00 +14:00')
 		",
 		no_args)!
 
-	tx.query("
+	tx.execute("
 		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
 		VALUES (2, '00:00:00 -05:30', '2000-01-01 00:00:00 -10:30')
 		",
 		no_args)!
 
-	tx.query("
+	tx.execute("
 		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
 		VALUES (3, '23:59:59 Europe/Brussels', '1999-12-31 23:59:59 Europe/Brussels')
 		",
 		no_args)!
 
-	result := tx.query('
+	result := tx.execute('
 		SELECT id, time_with_timezone_col, timestamp_with_timezone_col FROM foo',
 		no_args)!
 
@@ -218,7 +218,7 @@ fn test_time_zone() {
 	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	tx.query('DROP TABLE foo', no_args)!
+	tx.execute('DROP TABLE foo', no_args)!
 	tx.commit()!
 	conn.close()!
 }
@@ -261,7 +261,7 @@ fn test_execute_dml_no_args() {
 	}
 	stmt.close()!
 
-	result := tx.query('SELECT a, b, c, h FROM foo', no_args)!
+	result := tx.execute('SELECT a, b, c, h FROM foo', no_args)!
 
 	rows := result.rows()
 	assert rows.len == 1
@@ -284,7 +284,7 @@ fn test_execute_dml_no_args() {
 	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	tx.query('DROP TABLE foo', no_args)!
+	tx.execute('DROP TABLE foo', no_args)!
 	tx.commit()!
 	conn.close()!
 }
@@ -331,7 +331,7 @@ fn test_null() {
 	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	tx.query('DROP TABLE foo', no_args)!
+	tx.execute('DROP TABLE foo', no_args)!
 	tx.commit()!
 	conn.close()!
 }
@@ -488,7 +488,7 @@ fn test_statement_params() {
 	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	tx.query('DROP TABLE foo', no_args)!
+	tx.execute('DROP TABLE foo', no_args)!
 	tx.commit()!
 	conn.close()!
 }
@@ -538,7 +538,7 @@ fn test_statement_params() {
 // 	println(row)
 
 // tx = conn.start_transaction(isolation_level_read_commited)!
-// tx.query('DROP TABLE foo', no_args)!
+// tx.execute('DROP TABLE foo', no_args)!
 // tx.commit()!
 // conn.close()!
 // }

@@ -40,7 +40,9 @@ pub fn (mut t Transaction) prepare_statement(query string) !&Statement {
 	return new_statement(mut t, query)!
 }
 
-pub fn (mut t Transaction) query(query string, params []Value) !Result {
+// execute prepares a statement with the given query, executes it with the given parameters and returns
+// the result.
+pub fn (mut t Transaction) execute(query string, params []Value) !Result {
 	mut stmt := t.prepare_statement(query)!
 	result := stmt.execute(params)!
 	stmt.close()!
