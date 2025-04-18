@@ -12,7 +12,7 @@
 
 ### High
 
-- queries with parameters
+- ~~queries with parameters~~
 - ~~date~~
 - ~~time~~
 - tests
