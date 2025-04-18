@@ -331,7 +331,7 @@ fn test_statement_params() {
 	mut conn := new_connection(url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare_statement('
+	tx.execute('
 		CREATE TABLE foo (
 			id INTEGER PRIMARY KEY,
 			a INTEGER,
@@ -340,19 +340,16 @@ fn test_statement_params() {
 			d BLOB SUB_TYPE TEXT,
 			e DOUBLE PRECISION,
 			f REAL
-			)')!
-	stmt.execute(no_args)!
-	stmt.close()!
+			)',
+		no_args)!
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
 
-	stmt = tx.prepare_statement('INSERT INTO foo (id) VALUES (?)')!
 	mut args := [Value(i32(1))]
-	stmt.execute(args)!
-	stmt.close()!
+	tx.execute('INSERT INTO foo (id) VALUES (?)', args)!
 
-	stmt = tx.prepare_statement('INSERT INTO foo (id, a) VALUES (?, ?)')!
+	mut stmt := tx.prepare_statement('INSERT INTO foo (id, a) VALUES (?, ?)')!
 	args = [Value(i32(2)), i32(10)]
 	stmt.execute(args)!
 
@@ -360,15 +357,11 @@ fn test_statement_params() {
 	stmt.execute(args)!
 	stmt.close()!
 
-	stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, d) VALUES (?, ?, ?, ?)')!
 	args = [Value(i32(4)), i32(100), 'this is a varchar field', 'this is a blob field']
-	stmt.execute(args)!
-	stmt.close()!
+	tx.execute('INSERT INTO foo (id, a, b, d) VALUES (?, ?, ?, ?)', args)!
 
-	stmt = tx.prepare_statement('INSERT INTO foo (id, a, e, f) VALUES (?, ?, ?, ?)')!
 	args = [Value(i32(5)), i32(1000), f64(6.02214), f32(3.14)]
-	stmt.execute(args)!
-	stmt.close()!
+	tx.execute('INSERT INTO foo (id, a, e, f) VALUES (?, ?, ?, ?)', args)!
 
 	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, d,f) VALUES (?, ?, ?, ?, ?)')!
 	// args = [
@@ -381,8 +374,22 @@ fn test_statement_params() {
 	// stmt.execute(args)! // invalid copy of buffer, happens at BufferedReader.read in WireProtocol.generic_response
 	// // What causes it?
 
-	stmt = tx.prepare_statement('SELECT * FROM foo')!
-	result := stmt.execute(no_args)!
+	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, c, f, g, h)
+	// 	VALUES (? ,? ,? ,? ,? ,? ,?)')!
+
+	// args = [
+	// 	Value(i32(7)), // INTEGER
+	// 	i32(69), // INTEGER
+	// 	'this is a test', // VARCHAR
+	// 	f64(4.20), // DECIMAL
+	// 	'this is supposed to be a blob', // BLOB SUB_TYPE TEXT
+	// 	f64(3.14), // DOUBLE PRECISION
+	// 	f64(6.02214076), // REAL
+	// ]
+	// stmt.execute(args)!
+	// stmt.close()!
+
+	result := tx.execute('SELECT * FROM foo', no_args)!
 
 	assert result.rows.len == 5
 
@@ -452,23 +459,6 @@ fn test_statement_params() {
 		}
 	}
 
-	stmt.close()!
-
-	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, c, f, g, h)
-	// 	VALUES (? ,? ,? ,? ,? ,? ,?)')!
-
-	// args = [
-	// 	Value(i32(12)), // INTEGER
-	// 	i32(69), // INTEGER
-	// 	'this is a test', // VARCHAR
-	// 	f64(4.20), // DECIMAL
-	// 	'this is supposed to be a blob', // BLOB SUB_TYPE TEXT
-	// 	f64(3.14), // DOUBLE PRECISION
-	// 	f64(6.02214076), // REAL
-	// ]
-	// stmt.execute(args)!
-	// stmt.close()!
-
 	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
@@ -507,7 +497,7 @@ fn test_statement_time_params() {
 	}
 
 	mut args := [Value(i32(1)), date, timestamp]
-	stmt.execute(args)!
+	stmt.execute(args)! // io.NotExpected: invalid copy of buffer
 	stmt.close()!
 
 	result := tx.execute('SELECT * FROM foo', no_args)!
