@@ -1,5 +1,7 @@
 module firebird
 
+import time
+
 // To manually fix issues:
 // sudo docker run \
 //   --rm \
@@ -366,11 +368,9 @@ fn test_statement_params() {
 			a INTEGER,
 			b VARCHAR(1024),
 			c DECIMAL(16,3),
-			d DATE,
-			e TIMESTAMP,
-			f BLOB SUB_TYPE TEXT,
-			g DOUBLE PRECISION,
-			h REAL
+			d BLOB SUB_TYPE TEXT,
+			e DOUBLE PRECISION,
+			f REAL
 			)')!
 	stmt.execute(no_args)!
 	stmt.close()!
@@ -391,15 +391,26 @@ fn test_statement_params() {
 	stmt.execute(args)!
 	stmt.close()!
 
-	stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, f) VALUES (?, ?, ?, ?)')!
+	stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, d) VALUES (?, ?, ?, ?)')!
 	args = [Value(i32(4)), i32(100), 'this is a varchar field', 'this is a blob field']
 	stmt.execute(args)!
 	stmt.close()!
 
-	stmt = tx.prepare_statement('INSERT INTO foo (id, a, g, h) VALUES (?, ?, ?, ?)')!
+	stmt = tx.prepare_statement('INSERT INTO foo (id, a, e, f) VALUES (?, ?, ?, ?)')!
 	args = [Value(i32(5)), i32(1000), f64(6.02214), f32(3.14)]
 	stmt.execute(args)!
 	stmt.close()!
+
+	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, d,f) VALUES (?, ?, ?, ?, ?)')!
+	// args = [
+	// 	Value(i32(6)),
+	// 	i32(1000),
+	// 	'this is a varchar field',
+	// 	'this is a blob field',
+	// 	f64(3.14),
+	// ]
+	// stmt.execute(args)! // invalid copy of buffer, happens at BufferedReader.read in WireProtocol.generic_response
+	// // What causes it?
 
 	stmt = tx.prepare_statement('SELECT * FROM foo')!
 	result := stmt.execute(no_args)!
@@ -455,7 +466,7 @@ fn test_statement_params() {
 			assert v is i32 && v == 100
 		} else if c.field_name() == 'B' {
 			assert v is string && v == 'this is a varchar field'
-		} else if c.field_name() == 'F' {
+		} else if c.field_name() == 'D' {
 			assert v is string && v == 'this is a blob field'
 		} else {
 			assert v is Null
@@ -470,25 +481,15 @@ fn test_statement_params() {
 			assert v is i32 && v == 5
 		} else if c.field_name() == 'A' {
 			assert v is i32 && v == 1000
-		} else if c.field_name() == 'G' {
+		} else if c.field_name() == 'E' {
 			assert v is f64 && v == f64(6.02214)
-		} else if c.field_name() == 'H' {
+		} else if c.field_name() == 'F' {
 			assert v is f32 && v == f32(3.14)
 		} else {
 			assert v is Null
 		}
 	}
 
-	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, f, h) VALUES (?, ?, ?, ?, ?)')!
-	// args = [
-	// 	Value(i32(6)),
-	// 	i32(1000),
-	// 	'this is a varchar field',
-	// 	'this is a blob field',
-	// 	f64(3.14),
-	// ]
-	// stmt.execute(args)! // invalid copy of buffer, happens at BufferedReader.read in WireProtocol.generic_response
-	// // What causes it?
 	stmt.close()!
 
 	// stmt = tx.prepare_statement('INSERT INTO foo (id, a, b, c, f, g, h)
@@ -507,6 +508,59 @@ fn test_statement_params() {
 	// stmt.close()!
 
 	tx.rollback()!
+
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	stmt = tx.prepare_statement('DROP TABLE foo')!
+	stmt.execute(no_args)!
+	stmt.close()!
+
+	tx.commit()!
+	conn.close()!
+}
+
+fn test_statement_time_params() {
+	mut conn := new_connection(url)!
+
+	mut tx := conn.start_transaction(isolation_level_read_commited)!
+	mut stmt := tx.prepare_statement('
+		CREATE TABLE foo (
+			id INTEGER PRIMARY KEY,
+			a DATE,
+			b TIME,
+			c TIME WITH TIME ZONE,
+			d TIMESTAMP,
+			e TIMESTAMP WITH TIME ZONE
+			)')!
+	stmt.execute(no_args)!
+	stmt.close()!
+	tx.commit()!
+
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	stmt = tx.prepare_statement('INSERT INTO foo (id, a, d) VALUES (?, ?, ?)')!
+
+	mut date := Time{
+		sql_type:  sql_type_date
+		timestamp: time.parse_iso8601('2025-02-12')!
+	}
+
+	mut timestamp := Time{
+		sql_type:  sql_type_timestamp
+		timestamp: time.now()
+	}
+
+	mut args := [Value(i32(1)), date, timestamp]
+	stmt.execute(args)!
+	stmt.close()!
+
+	stmt = tx.prepare_statement('SELECT * FROM foo')!
+	result := stmt.execute(no_args)!
+
+	columns := result.columns()
+	rows := result.rows()
+	assert rows.len == 1
+
+	mut row := rows[0].values()
+	println(row)
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
 	stmt = tx.prepare_statement('DROP TABLE foo')!
