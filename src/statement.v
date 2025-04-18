@@ -1,5 +1,7 @@
 module firebird
 
+pub const no_args = []Value{}
+
 @[heap]
 pub struct Statement {
 	query             string

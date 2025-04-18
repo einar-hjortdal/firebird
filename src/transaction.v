@@ -39,3 +39,10 @@ pub fn (mut t Transaction) rollback() ! {
 pub fn (mut t Transaction) prepare_statement(query string) !&Statement {
 	return new_statement(mut t, query)!
 }
+
+pub fn (mut t Transaction) query(query string, params []Value) !Result {
+	mut stmt := t.prepare_statement(query)!
+	result := stmt.execute(params)!
+	stmt.close()!
+	return result
+}

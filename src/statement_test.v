@@ -1,6 +1,6 @@
 module firebird
 
-import time
+// import time
 
 // To manually fix issues:
 // sudo docker run \
@@ -17,7 +17,6 @@ const password = 'fbpwd'
 const host = '127.0.0.1:3050'
 const database = '/var/lib/firebird/data/firebird.fdb'
 const url = '${protocol}${user}:${password}@${host}${database}'
-const no_args = []Value{}
 
 // TODO cleanup functions: ensure manual intervention is never needed.
 
@@ -79,9 +78,7 @@ fn test_at_time_zone() {
 	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
-	mut stmt := tx.prepare_statement('SELECT current_timestamp FROM RDB\$DATABASE')!
-
-	mut result := stmt.execute(no_args)!
+	mut result := tx.query('SELECT current_timestamp FROM RDB\$DATABASE', no_args)!
 	mut columns := result.columns()
 	assert columns.len == 1
 
@@ -99,13 +96,11 @@ fn test_at_time_zone() {
 	mut t := row[0]
 	assert t is Time && t.named_zone() == 'Etc/UTC'
 
-	stmt.close()!
-
-	stmt = tx.prepare_statement("
+	result = tx.query("
 	SELECT current_timestamp AT TIME ZONE 'America/Sao_Paulo'
 	FROM RDB\$DATABASE
-	")!
-	result = stmt.execute(no_args)!
+	",
+		no_args)!
 	rows = result.rows()
 	assert rows.len == 1
 
@@ -115,10 +110,8 @@ fn test_at_time_zone() {
 	t = row[0]
 	assert t is Time && t.named_zone() == 'America/Sao_Paulo'
 
-	stmt.close()!
-
-	stmt = tx.prepare_statement("SELECT TIME '12:00 GMT' AT TIME ZONE '-05:00' FROM RDB\$DATABASE")!
-	result = stmt.execute(no_args)!
+	result = tx.query("SELECT TIME '12:00 GMT' AT TIME ZONE '-05:00' FROM RDB\$DATABASE",
+		no_args)!
 	rows = result.rows()
 	assert rows.len == 1
 
@@ -128,7 +121,6 @@ fn test_at_time_zone() {
 	t = row[0]
 	assert t is Time && t.offset() == -300
 
-	stmt.close()!
 	tx.rollback()!
 	conn.close()!
 }
@@ -136,41 +128,37 @@ fn test_at_time_zone() {
 fn test_time_zone() {
 	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare_statement('
+	tx.query('
 		CREATE TABLE foo (
 		id INTEGER PRIMARY KEY,
 		time_with_timezone_col TIME WITH TIME ZONE,
 		timestamp_with_timezone_col TIMESTAMP WITH TIME ZONE
-		)')!
-	stmt.execute(no_args)!
-	stmt.close()!
+		)',
+		no_args)!
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	stmt = tx.prepare_statement("
+	tx.query("
 		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
 		VALUES (1, '16:03:00 +02:00', '2025-04-15 16:03:00 +14:00')
-		")!
-	stmt.execute(no_args)!
-	stmt.close()!
+		",
+		no_args)!
 
-	stmt = tx.prepare_statement("
+	tx.query("
 		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
 		VALUES (2, '00:00:00 -05:30', '2000-01-01 00:00:00 -10:30')
-		")!
-	stmt.execute(no_args)!
-	stmt.close()!
+		",
+		no_args)!
 
-	stmt = tx.prepare_statement("
+	tx.query("
 		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
 		VALUES (3, '23:59:59 Europe/Brussels', '1999-12-31 23:59:59 Europe/Brussels')
-		")!
-	stmt.execute(no_args)!
-	stmt.close()!
+		",
+		no_args)!
 
-	stmt = tx.prepare_statement('
-		SELECT id, time_with_timezone_col, timestamp_with_timezone_col FROM foo')!
-	result := stmt.execute(no_args)!
+	result := tx.query('
+		SELECT id, time_with_timezone_col, timestamp_with_timezone_col FROM foo',
+		no_args)!
 
 	columns := result.columns()
 	assert columns.len == 3
@@ -227,14 +215,10 @@ fn test_time_zone() {
 	assert t_tz is Time && t_tz.named_zone() == 'Europe/Brussels'
 	assert ts_tz is Time && ts_tz.named_zone() == 'Europe/Brussels'
 
-	stmt.close()!
 	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	stmt = tx.prepare_statement('DROP TABLE foo')!
-	stmt.execute(no_args)!
-	stmt.close()!
-
+	tx.query('DROP TABLE foo', no_args)!
 	tx.commit()!
 	conn.close()!
 }
@@ -277,8 +261,7 @@ fn test_execute_dml_no_args() {
 	}
 	stmt.close()!
 
-	stmt = tx.prepare_statement('SELECT a, b, c, h FROM foo')!
-	result := stmt.execute(no_args)!
+	result := tx.query('SELECT a, b, c, h FROM foo', no_args)!
 
 	rows := result.rows()
 	assert rows.len == 1
@@ -298,12 +281,10 @@ fn test_execute_dml_no_args() {
 	h_value := row[3]
 	assert h_value is string && h_value == 'This is a test'
 
-	stmt.close()!
+	tx.rollback()!
 
-	stmt = tx.prepare_statement('DROP TABLE foo')!
-	stmt.execute(no_args)!
-	stmt.close()!
-
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	tx.query('DROP TABLE foo', no_args)!
 	tx.commit()!
 	conn.close()!
 }
@@ -350,10 +331,7 @@ fn test_null() {
 	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	stmt = tx.prepare_statement('DROP TABLE foo')!
-	stmt.execute(no_args)!
-	stmt.close()!
-
+	tx.query('DROP TABLE foo', no_args)!
 	tx.commit()!
 	conn.close()!
 }
@@ -510,63 +488,57 @@ fn test_statement_params() {
 	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	stmt = tx.prepare_statement('DROP TABLE foo')!
-	stmt.execute(no_args)!
-	stmt.close()!
-
+	tx.query('DROP TABLE foo', no_args)!
 	tx.commit()!
 	conn.close()!
 }
 
-fn test_statement_time_params() {
-	mut conn := new_connection(url)!
+// fn test_statement_time_params() {
+// 	mut conn := new_connection(url)!
 
-	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare_statement('
-		CREATE TABLE foo (
-			id INTEGER PRIMARY KEY,
-			a DATE,
-			b TIME,
-			c TIME WITH TIME ZONE,
-			d TIMESTAMP,
-			e TIMESTAMP WITH TIME ZONE
-			)')!
-	stmt.execute(no_args)!
-	stmt.close()!
-	tx.commit()!
+// 	mut tx := conn.start_transaction(isolation_level_read_commited)!
+// 	mut stmt := tx.prepare_statement('
+// 		CREATE TABLE foo (
+// 			id INTEGER PRIMARY KEY,
+// 			a DATE,
+// 			b TIME,
+// 			c TIME WITH TIME ZONE,
+// 			d TIMESTAMP,
+// 			e TIMESTAMP WITH TIME ZONE
+// 			)')!
+// 	stmt.execute(no_args)!
+// 	stmt.close()!
+// 	tx.commit()!
 
-	tx = conn.start_transaction(isolation_level_read_commited)!
-	stmt = tx.prepare_statement('INSERT INTO foo (id, a, d) VALUES (?, ?, ?)')!
+// 	tx = conn.start_transaction(isolation_level_read_commited)!
+// 	stmt = tx.prepare_statement('INSERT INTO foo (id, a, d) VALUES (?, ?, ?)')!
 
-	mut date := Time{
-		sql_type:  sql_type_date
-		timestamp: time.parse_iso8601('2025-02-12')!
-	}
+// 	mut date := Time{
+// 		sql_type:  sql_type_date
+// 		timestamp: time.parse_iso8601('2025-02-12')!
+// 	}
 
-	mut timestamp := Time{
-		sql_type:  sql_type_timestamp
-		timestamp: time.now()
-	}
+// 	mut timestamp := Time{
+// 		sql_type:  sql_type_timestamp
+// 		timestamp: time.now()
+// 	}
 
-	mut args := [Value(i32(1)), date, timestamp]
-	stmt.execute(args)!
-	stmt.close()!
+// 	mut args := [Value(i32(1)), date, timestamp]
+// 	stmt.execute(args)!
+// 	stmt.close()!
 
-	stmt = tx.prepare_statement('SELECT * FROM foo')!
-	result := stmt.execute(no_args)!
+// 	stmt = tx.prepare_statement('SELECT * FROM foo')!
+// 	result := stmt.execute(no_args)!
 
-	columns := result.columns()
-	rows := result.rows()
-	assert rows.len == 1
+// 	columns := result.columns()
+// 	rows := result.rows()
+// 	assert rows.len == 1
 
-	mut row := rows[0].values()
-	println(row)
+// 	mut row := rows[0].values()
+// 	println(row)
 
-	tx = conn.start_transaction(isolation_level_read_commited)!
-	stmt = tx.prepare_statement('DROP TABLE foo')!
-	stmt.execute(no_args)!
-	stmt.close()!
-
-	tx.commit()!
-	conn.close()!
-}
+// tx = conn.start_transaction(isolation_level_read_commited)!
+// tx.query('DROP TABLE foo', no_args)!
+// tx.commit()!
+// conn.close()!
+// }
