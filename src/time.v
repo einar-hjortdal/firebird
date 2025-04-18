@@ -4,6 +4,7 @@ import arrays
 import encoding.binary
 import time
 
+// `DateTime` embeds `time.Time`.
 // Because the time module in vlib does not contain functions to handle timezones, timezone data obtained
 // from a firebird database is given to users separate from timestamps.
 // sql_type must be one of the following:
@@ -20,10 +21,6 @@ pub struct DateTime {
 	sql_type   int
 	offset     i16
 	named_zone string
-}
-
-pub fn (t DateTime) time() time.Time {
-	return t.Time
 }
 
 pub fn (t DateTime) offset() i16 {
