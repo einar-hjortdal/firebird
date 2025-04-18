@@ -6,6 +6,14 @@ import time
 
 // Because the time module in vlib does not contain functions to handle timezones, timezone data obtained
 // from a firebird database is given to users separate from timestamps.
+// sql_type must be one of the following:
+// sql_type_time
+// sql_type_date
+// sql_type_timestamp
+// sql_type_timestamp_tz
+// sql_type_time_tz
+// sql_type_timestamp_tz_ex (currently unsupported, see https://github.com/einar-hjortdal/firebird/blob/pending/TODO.md#low-priority)
+// sql_type_time_tz_ex (currently unsupported, see https://github.com/einar-hjortdal/firebird/blob/pending/TODO.md#low-priority)
 // A firebird timestamp may be either name-based or offset-based.
 // A name-based timezone has a string that represents the time zone.
 // An offset-based timezone has a number that represents the amount of minutes of displacement.
