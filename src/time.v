@@ -12,27 +12,25 @@ import time
 // sql_type_timestamp
 // sql_type_timestamp_tz
 // sql_type_time_tz
-// sql_type_timestamp_tz_ex (currently unsupported, see https://github.com/einar-hjortdal/firebird/blob/pending/TODO.md#low-priority)
-// sql_type_time_tz_ex (currently unsupported, see https://github.com/einar-hjortdal/firebird/blob/pending/TODO.md#low-priority)
 // A firebird timestamp may be either name-based or offset-based.
 // A name-based timezone has a string that represents the time zone.
 // An offset-based timezone has a number that represents the amount of minutes of displacement.
-pub struct Time {
+pub struct DateTime {
+	time.Time
 	sql_type   int
-	timestamp  time.Time
 	offset     i16
 	named_zone string
 }
 
-pub fn (t Time) timestamp() time.Time {
-	return t.timestamp
+pub fn (t DateTime) time() time.Time {
+	return t.Time
 }
 
-pub fn (t Time) offset() i16 {
+pub fn (t DateTime) offset() i16 {
 	return t.offset
 }
 
-pub fn (t Time) named_zone() string {
+pub fn (t DateTime) named_zone() string {
 	return t.named_zone
 }
 
@@ -82,28 +80,28 @@ fn get_default_timezone(timezone string) string {
 	return timezone
 }
 
-fn parse_date(raw_value []u8, timezone string) !Time {
+fn parse_date(raw_value []u8, timezone string) !DateTime {
 	year, month, day := get_date(raw_value[..4])
 	timestamp := time.parse_iso8601('${year}-${month}-${day}')!
-	return Time{
+	return DateTime{
+		Time:       timestamp
 		sql_type:   sql_type_date
-		timestamp:  timestamp
 		named_zone: get_default_timezone(timezone)
 	}
 }
 
-fn parse_time(raw_value []u8, timezone string) !Time {
+fn parse_time(raw_value []u8, timezone string) !DateTime {
 	hours, minutes, seconds, fractions := get_time(raw_value[..4])
 	now := time.now()
 	timestamp := time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}')!
-	return Time{
+	return DateTime{
+		Time:       timestamp
 		sql_type:   sql_type_time
-		timestamp:  timestamp
 		named_zone: get_default_timezone(timezone)
 	}
 }
 
-fn parse_time_tz(raw_value []u8) !Time {
+fn parse_time_tz(raw_value []u8) !DateTime {
 	hours, minutes, seconds, fractions := get_time(raw_value[..4])
 	now := time.now()
 	timestamp := time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}')!
@@ -112,32 +110,32 @@ fn parse_time_tz(raw_value []u8) !Time {
 	// timezone := binary.big_endian_u16(raw_value[4..6])
 	offset := binary.big_endian_u16(raw_value[6..8])
 	if is_offset(offset) {
-		return Time{
-			sql_type:  sql_type_time_tz
-			timestamp: timestamp
-			offset:    decode_offset(offset)
+		return DateTime{
+			Time:     timestamp
+			sql_type: sql_type_time_tz
+			offset:   decode_offset(offset)
 		}
 	}
 
-	return Time{
+	return DateTime{
+		Time:       timestamp
 		sql_type:   sql_type_time_tz
-		timestamp:  timestamp
 		named_zone: timezones[offset]
 	}
 }
 
-fn parse_timestamp(raw_value []u8, timezone string) !Time {
+fn parse_timestamp(raw_value []u8, timezone string) !DateTime {
 	year, month, day := get_date(raw_value[..4])
 	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
 	timestamp := time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}')!
-	return Time{
+	return DateTime{
+		Time:       timestamp
 		sql_type:   sql_type_timestamp
-		timestamp:  timestamp
 		named_zone: timezone
 	}
 }
 
-fn parse_timestamp_tz(raw_value []u8) !Time {
+fn parse_timestamp_tz(raw_value []u8) !DateTime {
 	year, month, day := get_date(raw_value[..4])
 	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
 	timestamp := time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}')!
@@ -145,29 +143,29 @@ fn parse_timestamp_tz(raw_value []u8) !Time {
 	// timezone := binary.big_endian_u16(raw_value[8..10])
 	offset := binary.big_endian_u16(raw_value[10..12])
 	if is_offset(offset) {
-		return Time{
-			sql_type:  sql_type_timestamp_tz
-			timestamp: timestamp
-			offset:    decode_offset(offset)
+		return DateTime{
+			Time:     timestamp
+			sql_type: sql_type_timestamp_tz
+			offset:   decode_offset(offset)
 		}
 	}
 
-	return Time{
+	return DateTime{
+		Time:       timestamp
 		sql_type:   sql_type_timestamp_tz
-		timestamp:  timestamp
 		named_zone: timezones[offset]
 	}
 }
 
-fn (t Time) to_blr_time() []u8 {
-	hours := t.timestamp.hour * 3600
-	minutes := t.timestamp.minute * 60
-	seconds := t.timestamp.second * 10_000
-	fractions := t.timestamp.nanosecond / 100_000
+fn (t DateTime) to_blr_time() []u8 {
+	hours := t.hour * 3600
+	minutes := t.minute * 60
+	seconds := t.second * 10_000
+	fractions := t.nanosecond / 100_000
 	return marshal_i32_big_endian(i32(hours + minutes + seconds + fractions))
 }
 
-fn (t Time) get_timezone() ![]u8 {
+fn (t DateTime) get_timezone() ![]u8 {
 	if t.named_zone != '' {
 		first_u8_pair := marshal_i16_big_endian(i16(max_u16))
 		// this is inefficient: reverse-lookup of map[int]string with string comparison
@@ -184,36 +182,36 @@ fn (t Time) get_timezone() ![]u8 {
 	return arrays.append(first_u8_pair, second_u8_pair)
 }
 
-fn (t Time) to_blr_time_tz() ![]u8 {
+fn (t DateTime) to_blr_time_tz() ![]u8 {
 	time_segment := t.to_blr_time()
 	tz_segment := t.get_timezone()!
 	return arrays.append(time_segment, tz_segment)
 }
 
 // Firebird uses a modified Julian date
-fn (t Time) to_blr_date() []u8 {
-	julian_month := t.timestamp.month + 9 % 12
-	intermediate_year := t.timestamp.year + (t.timestamp.month / 12) - 1
+fn (t DateTime) to_blr_date() []u8 {
+	julian_month := t.month + 9 % 12
+	intermediate_year := t.year + (t.month / 12) - 1
 	century := intermediate_year / 100
 	julian_year := intermediate_year - 100 * century
 	modified_julian_date := (146_097 * century) / 4 + (1461 * julian_year) / 4 +
-		(153 * julian_month + 2) / 5 + t.timestamp.day - 678_882
+		(153 * julian_month + 2) / 5 + t.day - 678_882
 	return marshal_i32_big_endian(i32(modified_julian_date))
 }
 
-fn (t Time) to_blr_timestamp() []u8 {
+fn (t DateTime) to_blr_timestamp() []u8 {
 	time_segment := t.to_blr_time()
 	date_segment := t.to_blr_date()
 	return arrays.append(date_segment, time_segment)
 }
 
-fn (t Time) to_blr_timestamp_tz() ![]u8 {
+fn (t DateTime) to_blr_timestamp_tz() ![]u8 {
 	timestamp_segment := t.to_blr_time()
 	timezone_segment := t.get_timezone()!
 	return arrays.append(timestamp_segment, timezone_segment)
 }
 
-fn (t Time) to_blr() !([]u8, u8) {
+fn (t DateTime) to_blr() !([]u8, u8) {
 	match t.sql_type {
 		sql_type_date {
 			blr := t.to_blr_date()
@@ -241,7 +239,7 @@ fn (t Time) to_blr() !([]u8, u8) {
 			return blr, value
 		}
 		else {
-			return error(format_error_message('invalid Time.sql_type'))
+			return error(format_error_message('invalid DateTime.sql_type'))
 		}
 	}
 }

@@ -1,5 +1,7 @@
 module firebird
 
+import time
+
 // import time
 
 // To manually fix issues:
@@ -94,7 +96,7 @@ fn test_at_time_zone() {
 	assert row.len == 1
 
 	mut t := row[0]
-	assert t is Time && t.named_zone() == 'Etc/UTC'
+	assert t is DateTime && t.named_zone() == 'Etc/UTC'
 
 	result = tx.execute("
 	SELECT current_timestamp AT TIME ZONE 'America/Sao_Paulo'
@@ -108,7 +110,7 @@ fn test_at_time_zone() {
 	assert row.len == 1
 
 	t = row[0]
-	assert t is Time && t.named_zone() == 'America/Sao_Paulo'
+	assert t is DateTime && t.named_zone() == 'America/Sao_Paulo'
 
 	result = tx.execute("SELECT TIME '12:00 GMT' AT TIME ZONE '-05:00' FROM RDB\$DATABASE",
 		no_args)!
@@ -119,7 +121,7 @@ fn test_at_time_zone() {
 	assert row.len == 1
 
 	t = row[0]
-	assert t is Time && t.offset() == -300
+	assert t is DateTime && t.offset() == -300
 
 	tx.rollback()!
 	conn.close()!
@@ -190,8 +192,8 @@ fn test_time_zone() {
 	mut ts_tz := row[2]
 
 	assert id is i32 && id == 1
-	assert t_tz is Time && t_tz.offset() == 120
-	assert ts_tz is Time && ts_tz.offset() == 840
+	assert t_tz is DateTime && t_tz.offset() == 120
+	assert ts_tz is DateTime && ts_tz.offset() == 840
 
 	row = rows[1].values()
 	assert row.len == 3
@@ -201,8 +203,8 @@ fn test_time_zone() {
 	ts_tz = row[2]
 
 	assert id is i32 && id == 2
-	assert t_tz is Time && t_tz.offset() == -330
-	assert ts_tz is Time && ts_tz.offset() == -630
+	assert t_tz is DateTime && t_tz.offset() == -330
+	assert ts_tz is DateTime && ts_tz.offset() == -630
 
 	row = rows[2].values()
 	assert row.len == 3
@@ -212,8 +214,8 @@ fn test_time_zone() {
 	ts_tz = row[2]
 
 	assert id is i32 && id == 3
-	assert t_tz is Time && t_tz.named_zone() == 'Europe/Brussels'
-	assert ts_tz is Time && ts_tz.named_zone() == 'Europe/Brussels'
+	assert t_tz is DateTime && t_tz.named_zone() == 'Europe/Brussels'
+	assert ts_tz is DateTime && ts_tz.named_zone() == 'Europe/Brussels'
 
 	tx.rollback()!
 
@@ -493,52 +495,49 @@ fn test_statement_params() {
 	conn.close()!
 }
 
-// fn test_statement_time_params() {
-// 	mut conn := new_connection(url)!
+fn test_statement_time_params() {
+	mut conn := new_connection(url)!
 
-// 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-// 	mut stmt := tx.prepare_statement('
-// 		CREATE TABLE foo (
-// 			id INTEGER PRIMARY KEY,
-// 			a DATE,
-// 			b TIME,
-// 			c TIME WITH TIME ZONE,
-// 			d TIMESTAMP,
-// 			e TIMESTAMP WITH TIME ZONE
-// 			)')!
-// 	stmt.execute(no_args)!
-// 	stmt.close()!
-// 	tx.commit()!
+	mut tx := conn.start_transaction(isolation_level_read_commited)!
+	tx.execute('
+		CREATE TABLE foo (
+			id INTEGER PRIMARY KEY,
+			a DATE,
+			b TIME,
+			c TIME WITH TIME ZONE,
+			d TIMESTAMP,
+			e TIMESTAMP WITH TIME ZONE
+			)',
+		no_args)!
+	tx.commit()!
 
-// 	tx = conn.start_transaction(isolation_level_read_commited)!
-// 	stmt = tx.prepare_statement('INSERT INTO foo (id, a, d) VALUES (?, ?, ?)')!
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	mut stmt := tx.prepare_statement('INSERT INTO foo (id, a, d) VALUES (?, ?, ?)')!
 
-// 	mut date := Time{
-// 		sql_type:  sql_type_date
-// 		timestamp: time.parse_iso8601('2025-02-12')!
-// 	}
+	mut date := DateTime{
+		Time:     time.parse_iso8601('2025-02-12')!
+		sql_type: sql_type_date
+	}
 
-// 	mut timestamp := Time{
-// 		sql_type:  sql_type_timestamp
-// 		timestamp: time.now()
-// 	}
+	mut timestamp := DateTime{
+		Time:     time.now()
+		sql_type: sql_type_timestamp
+	}
 
-// 	mut args := [Value(i32(1)), date, timestamp]
-// 	stmt.execute(args)!
-// 	stmt.close()!
+	mut args := [Value(i32(1)), date, timestamp]
+	stmt.execute(args)!
+	stmt.close()!
 
-// 	stmt = tx.prepare_statement('SELECT * FROM foo')!
-// 	result := stmt.execute(no_args)!
+	result := tx.execute('SELECT * FROM foo', no_args)!
+	columns := result.columns()
+	rows := result.rows()
+	assert rows.len == 1
 
-// 	columns := result.columns()
-// 	rows := result.rows()
-// 	assert rows.len == 1
+	mut row := rows[0].values()
+	println(row)
 
-// 	mut row := rows[0].values()
-// 	println(row)
-
-// tx = conn.start_transaction(isolation_level_read_commited)!
-// tx.execute('DROP TABLE foo', no_args)!
-// tx.commit()!
-// conn.close()!
-// }
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	tx.execute('DROP TABLE foo', no_args)!
+	tx.commit()!
+	conn.close()!
+}
