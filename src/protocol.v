@@ -492,55 +492,55 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 			string {
 				if param.len < max_char_length {
 					blr, value := bytes_to_blr(param.bytes())
-					_ := b.write(blr) or { 0 } // does not return any error
-					_ := v.write(value) or { 0 } // does not return any error
+					b.write(blr) or {} // does not return any error
+					v.write(value) or {} // does not return any error
 				} else {
-					// TODO
-					// p.create_blob(param, tx_handle)
-					// b.write_u8(9)
-					// b.write_u8(0)
+					value := p.make_blob(param.bytes(), tx_handle)!
+					v.write(value) or {} // does not return any error
+					b.write_u8(9)
+					b.write_u8(0)
 				}
 			}
 			[]u8 {
 				if param.len < max_char_length {
 					blr, value := bytes_to_blr(*param) // https://github.com/vlang/v/issues/24054#issuecomment-2758173475
-					_ := b.write(blr) or { 0 } // does not return any error
-					_ := v.write(value) or { 0 } // does not return any error
+					b.write(blr) or {} // does not return any error
+					v.write(value) or {} // does not return any error
 				} else {
-					// TODO
-					// p.create_blob(param, tx_handle)
-					// b.write_u8(9)
-					// b.write_u8(0)
+					value := p.make_blob(*param, tx_handle)! // https://github.com/vlang/v/issues/24054#issuecomment-2758173475
+					v.write(value) or {} // does not return any error
+					b.write_u8(9)
+					b.write_u8(0)
 				}
 			}
 			i32 {
 				blr, value := i32_to_blr(param)
-				_ := b.write(blr) or { 0 } // does not return any error
-				_ := v.write(value) or { 0 } // does not return any error
+				b.write(blr) or {} // does not return any error
+				v.write(value) or {} // does not return any error
 			}
 			i64 {
 				blr, value := i64_to_blr(param)
-				_ := b.write(blr) or { 0 } // does not return any error
-				_ := v.write(value) or { 0 } // does not return any error
+				b.write(blr) or {} // does not return any error
+				v.write(value) or {} // does not return any error
 			}
 			f32 {
 				blr, value := f32_to_blr(param)
-				_ := b.write(blr) or { 0 } // does not return any error
-				_ := v.write(value) or { 0 } // does not return any error
+				b.write(blr) or {} // does not return any error
+				v.write(value) or {} // does not return any error
 			}
 			f64 {
 				blr, value := f64_to_blr(param)
-				_ := b.write(blr) or { 0 } // does not return any error
-				_ := v.write(value) or { 0 } // does not return any error
+				b.write(blr) or {} // does not return any error
+				v.write(value) or {} // does not return any error
 			}
 			time.Time {
 				// TODO
 			}
 			bool {
 				if param {
-					_ := v.write(marshal_i32_big_endian(1)) or { 0 } // does not return any error
+					v.write(marshal_i32_big_endian(1)) or {} // does not return any error
 				} else {
-					_ := v.write(marshal_i32_big_endian(0)) or { 0 } // does not return any error
+					v.write(marshal_i32_big_endian(0)) or {} // does not return any error
 				}
 			}
 			Null {
@@ -549,7 +549,7 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 				b.write_byte(0)
 			}
 			else {
-				return error(format_error_message('WireProtocol.params_to_blr only accepts the following argument types: string, []u8, i32, i64, f32, f64, bool, firebird.Null'))
+				return error(format_error_message('WireProtocol.params_to_blr only accepts the following parameter types: string, []u8, i32, i64, f32, f64, bool, firebird.Null'))
 			}
 		}
 		b.write_u8(blr_short)
@@ -818,6 +818,50 @@ fn (mut p WireProtocol) parse_fetch_response(xsqlda XSQLDA) ![][]Value {
 		}
 	}
 	return rows
+}
+
+fn (mut p WireProtocol) create_blob(tx_handle i32) ! {
+	p.pack_i32(op_create_blob2)
+	p.pack_i32(0)
+	p.pack_i32(tx_handle)
+	p.pack_i32(0)
+	p.pack_i32(0)
+	p.send_packets()!
+}
+
+fn (mut p WireProtocol) put_blob_segment(blob_handle i32, segment_data []u8) ! {
+	len := i32(segment_data.len) // always < blob_segment_size
+	n_padding_bytes := 4 - len % 4
+	padding := []u8{len: int(n_padding_bytes)}
+	p.pack_i32(op_put_segment)
+	p.pack_i32(blob_handle)
+	p.pack_i32(len)
+	p.pack_i32(len)
+	p.append_bytes(arrays.append(segment_data, padding))
+	p.send_packets()!
+}
+
+fn (mut p WireProtocol) make_blob(blob_data []u8, tx_handle i32) ![]u8 {
+	suspended_buf := p.suspend_buffer()
+	defer {
+		p.resume_buffer(suspended_buf)
+	}
+	p.create_blob(tx_handle)!
+	blob_handle, blob_id, _ := p.generic_response()!
+
+	for i, len := 0, blob_data.len; i < len; {
+		mut end := i + blob_segment_size
+		if end > len {
+			end = len
+		}
+		p.put_blob_segment(blob_handle, blob_data[i..end])!
+		p.generic_response()!
+		i = end
+	}
+
+	p.close_blob(blob_handle)!
+	p.generic_response()!
+	return blob_id
 }
 
 fn (mut p WireProtocol) open_blob(blob_id []u8, tx_handle i32) ! {
