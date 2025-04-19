@@ -7,21 +7,55 @@ import time
 // `DateTime` embeds `time.Time`.
 // Because the time module in vlib does not contain functions to handle timezones, timezone data obtained
 // from a firebird database is given to users separate from timestamps.
-// sql_type must be one of the following:
-// sql_type_time
-// sql_type_date
-// sql_type_timestamp
-// sql_type_timestamp_tz
-// sql_type_time_tz
 // A firebird timestamp may be either name-based or offset-based.
 // A name-based timezone has a string that represents the time zone.
 // An offset-based timezone has a number that represents the amount of minutes of displacement.
 pub struct DateTime {
 	time.Time
+	sql_type int
 pub:
-	sql_type   int
 	offset     i16
 	named_zone string
+}
+
+pub fn new_date(t time.Time) DateTime {
+	return DateTime{
+		Time:     t
+		sql_type: sql_type_date
+	}
+}
+
+pub fn new_time(t time.Time) DateTime {
+	return DateTime{
+		Time:     t
+		sql_type: sql_type_time
+	}
+}
+
+pub fn new_time_tz(t time.Time, offset i16, named_zone string) DateTime {
+	stripped := time.Time{} // remove date from t
+	return DateTime{
+		Time:       stripped
+		sql_type:   sql_type_time_tz
+		offset:     offset
+		named_zone: named_zone
+	}
+}
+
+pub fn new_timestamp(t time.Time) DateTime {
+	return DateTime{
+		Time:     t
+		sql_type: sql_type_timestamp
+	}
+}
+
+pub fn new_timestamp_tz(t time.Time, offset i16, named_zone string) DateTime {
+	return DateTime{
+		Time:       t
+		sql_type:   sql_type_timestamp_tz
+		offset:     offset
+		named_zone: named_zone
+	}
 }
 
 // returns year, month, day
