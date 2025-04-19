@@ -33,9 +33,8 @@ pub fn new_time(t time.Time) DateTime {
 }
 
 pub fn new_time_tz(t time.Time, offset i16, named_zone string) DateTime {
-	stripped := time.Time{} // remove date from t
 	return DateTime{
-		Time:       stripped
+		Time:       t
 		sql_type:   sql_type_time_tz
 		offset:     offset
 		named_zone: named_zone
