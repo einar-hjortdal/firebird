@@ -4,6 +4,36 @@ import arrays
 import encoding.binary
 import time
 
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZoneUtil.cpp#L302
+const one_day = 24 * 60 - 1
+
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZoneUtil.cpp#L1144
+fn is_offset(time_zone u16) bool {
+	return time_zone <= one_day * 2
+}
+
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZoneUtil.cpp#L1164
+fn decode_offset(time_zone u16) i16 {
+	return i16(time_zone) - one_day
+}
+
+// used to validate user-provided offset
+fn validate_offset(o i16) ! {
+	if o == 0 || !is_offset(u16(o)) {
+		return error(format_error_message('invalid offset'))
+	}
+}
+
+fn validate_named_zone(n string) !u16 {
+	// this is inefficient: reverse-lookup of map[int]string with string comparison
+	for k, v in timezones {
+		if v == n {
+			return u16(k)
+		}
+	}
+	return error(format_error_message('invalid named_zone'))
+}
+
 // `DateTime` embeds `time.Time`.
 // To initialize a new DateTime struct, utilize one of its factory functions.
 // Because the time module in vlib does not contain functions to handle timezones, timezone data obtained
@@ -13,7 +43,8 @@ import time
 // An offset-based timezone has a number that represents the amount of minutes of displacement.
 pub struct DateTime {
 	time.Time
-	sql_type int
+	sql_type       int
+	named_zone_key u16
 pub:
 	offset     i16
 	named_zone string
@@ -33,23 +64,24 @@ pub fn new_time(t time.Time) DateTime {
 	}
 }
 
-fn new_time_tz(t time.Time, offset i16, named_zone string) DateTime {
+fn new_time_tz(t time.Time, offset i16, named_zone string, named_zone_key u16) DateTime {
 	return DateTime{
-		Time:       t
-		sql_type:   sql_type_time_tz
-		offset:     offset
-		named_zone: named_zone
+		Time:           t
+		sql_type:       sql_type_time_tz
+		offset:         offset
+		named_zone:     named_zone
+		named_zone_key: named_zone_key
 	}
 }
 
-// TODO validate and return error
 pub fn new_time_tz_offset(t time.Time, offset i16) !DateTime {
-	return new_time_tz(t, offset, '')
+	validate_offset(offset)!
+	return new_time_tz(t, offset, '', 0)
 }
 
-// TODO validate and return error
 pub fn new_time_tz_named_zone(t time.Time, named_zone string) !DateTime {
-	return new_time_tz(t, 0, named_zone)
+	named_zone_key := validate_named_zone(named_zone)!
+	return new_time_tz(t, 0, named_zone, named_zone_key)
 }
 
 pub fn new_timestamp(t time.Time) DateTime {
@@ -59,36 +91,24 @@ pub fn new_timestamp(t time.Time) DateTime {
 	}
 }
 
-fn new_timestamp_tz(t time.Time, offset i16, named_zone string) DateTime {
+fn new_timestamp_tz(t time.Time, offset i16, named_zone string, named_zone_key u16) DateTime {
 	return DateTime{
-		Time:       t
-		sql_type:   sql_type_timestamp_tz
-		offset:     offset
-		named_zone: named_zone
+		Time:           t
+		sql_type:       sql_type_timestamp_tz
+		offset:         offset
+		named_zone:     named_zone
+		named_zone_key: named_zone_key
 	}
 }
 
-// TODO validate and return error
 pub fn new_timestamp_tz_offset(t time.Time, offset i16) !DateTime {
-	return new_timestamp_tz(t, offset, '')
+	validate_offset(offset)!
+	return new_timestamp_tz(t, offset, '', 0)
 }
 
-// TODO validate and return error
 pub fn new_timestamp_tz_named_zone(t time.Time, named_zone string) !DateTime {
-	return new_timestamp_tz(t, 0, named_zone)
-}
-
-// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZoneUtil.cpp#L302
-const one_day = 24 * 60 - 1
-
-// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZoneUtil.cpp#L1144
-fn is_offset(time_zone u16) bool {
-	return time_zone <= one_day * 2
-}
-
-// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZoneUtil.cpp#L1164
-fn decode_offset(time_zone u16) i16 {
-	return i16(time_zone) - one_day
+	named_zone_key := validate_named_zone(named_zone)!
+	return new_timestamp_tz(t, 0, named_zone, named_zone_key)
 }
 
 // returns year, month, day
@@ -130,31 +150,41 @@ fn get_time(raw_value []u8) (int, int, int, int) {
 	return h, m, s, f
 }
 
-fn get_default_timezone(timezone string) string {
-	if timezone == '' {
-		return timezones[max_u16]
+// TODO when parsing named_zones, named_zone_key is also needed
+fn get_default_named_zone(named_zone string) !(u16, string) {
+	if named_zone == '' {
+		return max_u16, timezones[max_u16]
 	}
-	return timezone
+	for k, v in timezones {
+		if v == named_zone {
+			return u16(k), named_zone
+		}
+	}
+	return error(format_error_message('invalid named_zone'))
 }
 
-fn parse_date(raw_value []u8, timezone string) !DateTime {
+fn parse_date(raw_value []u8, named_zone string) !DateTime {
 	year, month, day := get_date(raw_value[..4])
 	timestamp := time.parse_iso8601('${year}-${month}-${day}')!
+	k, v := get_default_named_zone(named_zone)!
 	return DateTime{
-		Time:       timestamp
-		sql_type:   sql_type_date
-		named_zone: get_default_timezone(timezone)
+		Time:           timestamp
+		sql_type:       sql_type_date
+		named_zone_key: k
+		named_zone:     v
 	}
 }
 
-fn parse_time(raw_value []u8, timezone string) !DateTime {
+fn parse_time(raw_value []u8, named_zone string) !DateTime {
 	hours, minutes, seconds, fractions := get_time(raw_value[..4])
 	now := time.now()
 	timestamp := time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}')!
+	k, v := get_default_named_zone(named_zone)!
 	return DateTime{
-		Time:       timestamp
-		sql_type:   sql_type_time
-		named_zone: get_default_timezone(timezone)
+		Time:           timestamp
+		sql_type:       sql_type_time
+		named_zone_key: k
+		named_zone:     v
 	}
 }
 
@@ -181,14 +211,16 @@ fn parse_time_tz(raw_value []u8) !DateTime {
 	}
 }
 
-fn parse_timestamp(raw_value []u8, timezone string) !DateTime {
+fn parse_timestamp(raw_value []u8, named_zone string) !DateTime {
 	year, month, day := get_date(raw_value[..4])
 	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
 	timestamp := time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}')!
+	k, v := get_default_named_zone(named_zone)!
 	return DateTime{
-		Time:       timestamp
-		sql_type:   sql_type_timestamp
-		named_zone: timezone
+		Time:           timestamp
+		sql_type:       sql_type_timestamp
+		named_zone_key: k
+		named_zone:     v
 	}
 }
 
@@ -223,17 +255,10 @@ fn (t DateTime) to_blr_time() []u8 {
 }
 
 fn (t DateTime) get_timezone() ![]u8 {
-	if t.named_zone != '' {
-		first_u8_pair := marshal_i16_big_endian(i16(max_u16))
-		// this is inefficient: reverse-lookup of map[int]string with string comparison
-		// TODO move to factory function, trust that DateTime is valid
-		for k, v in timezones {
-			if v == t.named_zone {
-				second_u8_pair := marshal_i16_big_endian(i16(k))
-				return arrays.append(first_u8_pair, second_u8_pair)
-			}
-		}
-		return error(format_error_message('invalid named_zone'))
+	if t.named_zone_key != 0 {
+		first_u8_pair := marshal_u16_big_endian(max_u16)
+		second_u8_pair := marshal_u16_big_endian(t.named_zone_key)
+		return arrays.append(first_u8_pair, second_u8_pair)
 	}
 	first_u8_pair := marshal_i16_big_endian(0)
 	second_u8_pair := marshal_i16_big_endian(t.offset)

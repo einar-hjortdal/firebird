@@ -14,6 +14,7 @@ mut:
 }
 
 // `s` is the dsn in the format [firebird://]<user>:<password>@<host><database>
+// the `timezone` option is supported but it only accepts named zones, not offsets.
 // see connection_text.v for an example.
 pub fn new_connection(s string) !&Connection {
 	dsn := parse_dsn(s)!

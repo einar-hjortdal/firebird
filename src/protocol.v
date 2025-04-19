@@ -49,19 +49,19 @@ mut:
 	password    string
 	auth_data   []u8
 
-	timezone string
-	charset  string
+	named_zone string
+	charset    string
 	// charset_byte_len int
 }
 
-fn new_wire_protocol(addr string, timezone string) !&WireProtocol {
+fn new_wire_protocol(addr string, named_zone string) !&WireProtocol {
 	conn := net.dial_tcp(addr)!
 	return &WireProtocol{
-		buf:      []u8{} // TODO performance enhancement: make it { len: buffer_length }
-		conn:     new_wire_channel(conn)
-		addr:     addr
-		timezone: timezone
-		charset:  charset_utf8
+		buf:        []u8{} // TODO performance enhancement: make it { len: buffer_length }
+		conn:       new_wire_channel(conn)
+		addr:       addr
+		named_zone: named_zone
+		charset:    charset_utf8
 		// charset_byte_len: 4
 	}
 }
@@ -418,12 +418,12 @@ fn (mut p WireProtocol) attach(database string, user string, password string, ro
 	dpb.write_u8(1)
 	dpb.write_u8(1)
 
-	if p.timezone != '' {
-		timezone_bytes := p.timezone.bytes()
+	if p.named_zone != '' {
+		named_zone_bytes := p.named_zone.bytes()
 
 		dpb.write_u8(isc_dpb_session_time_zone)
-		dpb.write_u8(u8(timezone_bytes.len))
-		dpb.write(timezone_bytes) or { panic(err) } // does not return any error
+		dpb.write_u8(u8(named_zone_bytes.len))
+		dpb.write(named_zone_bytes) or { panic(err) } // does not return any error
 	}
 
 	if p.auth_data.len != 0 {
@@ -645,7 +645,7 @@ fn (mut p WireProtocol) sql_response(xsqlda XSQLDA) ![]Value {
 			len = i32(x.io_length())
 		}
 		raw_value := p.receive_aligned_packets(len)!
-		res[i] = x.get_value(raw_value, p.timezone, p.charset)!
+		res[i] = x.get_value(raw_value, p.named_zone, p.charset)!
 	}
 
 	return res
@@ -802,7 +802,7 @@ fn (mut p WireProtocol) parse_fetch_response(xsqlda XSQLDA) ![][]Value {
 				}
 
 				raw_value := p.receive_aligned_packets(len)!
-				row[i] = x.get_value(raw_value, p.timezone, p.charset)!
+				row[i] = x.get_value(raw_value, p.named_zone, p.charset)!
 			}
 
 			rows = arrays.concat(rows, row)

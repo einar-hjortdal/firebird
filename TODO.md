@@ -31,12 +31,14 @@ I do not use the following features and will not support them. If you would like
 any of them, please open a pull request.
 
 - embedded
-- numeric
-- decimal
-- extended time with timezone
-- extended timestamp with timezone
-- decfloat
-- int128
+- offset-based session timezone
+-types: 
+  - numeric
+  - decimal
+  - extended time with timezone
+  - extended timestamp with timezone
+  - decfloat
+  - int128
 - batches
 - services
 - events

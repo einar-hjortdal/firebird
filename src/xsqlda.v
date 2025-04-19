@@ -189,7 +189,7 @@ fn (x XSQLVar) parse_int64(raw_value []u8) i64 {
 	return i
 }
 
-fn (x XSQLVar) get_value(raw_value []u8, timezone string, charset string) !Value {
+fn (x XSQLVar) get_value(raw_value []u8, named_zone string, charset string) !Value {
 	match x.sql_type {
 		sql_type_text, sql_type_varying {
 			return x.parse_string(raw_value, charset)!
@@ -204,13 +204,13 @@ fn (x XSQLVar) get_value(raw_value []u8, timezone string, charset string) !Value
 			return x.parse_int64(raw_value)
 		}
 		sql_type_date {
-			return parse_date(raw_value, timezone)!
+			return parse_date(raw_value, named_zone)!
 		}
 		sql_type_time {
-			return parse_time(raw_value, timezone)!
+			return parse_time(raw_value, named_zone)!
 		}
 		sql_type_timestamp {
-			return parse_timestamp(raw_value, timezone)!
+			return parse_timestamp(raw_value, named_zone)!
 		}
 		sql_type_time_tz {
 			return parse_time_tz(raw_value)!
