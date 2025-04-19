@@ -5,6 +5,7 @@ import encoding.binary
 import time
 
 // `DateTime` embeds `time.Time`.
+// To initialize a new DateTime struct, utilize one of its factory functions.
 // Because the time module in vlib does not contain functions to handle timezones, timezone data obtained
 // from a firebird database is given to users separate from timestamps.
 // A firebird timestamp may be either name-based or offset-based.
@@ -32,13 +33,23 @@ pub fn new_time(t time.Time) DateTime {
 	}
 }
 
-pub fn new_time_tz(t time.Time, offset i16, named_zone string) DateTime {
+fn new_time_tz(t time.Time, offset i16, named_zone string) DateTime {
 	return DateTime{
 		Time:       t
 		sql_type:   sql_type_time_tz
 		offset:     offset
 		named_zone: named_zone
 	}
+}
+
+// TODO validate and return error
+pub fn new_time_tz_offset(t time.Time, offset i16) !DateTime {
+	return new_time_tz(t, offset, '')
+}
+
+// TODO validate and return error
+pub fn new_time_tz_named_zone(t time.Time, named_zone string) !DateTime {
+	return new_time_tz(t, 0, named_zone)
 }
 
 pub fn new_timestamp(t time.Time) DateTime {
@@ -48,13 +59,23 @@ pub fn new_timestamp(t time.Time) DateTime {
 	}
 }
 
-pub fn new_timestamp_tz(t time.Time, offset i16, named_zone string) DateTime {
+fn new_timestamp_tz(t time.Time, offset i16, named_zone string) DateTime {
 	return DateTime{
 		Time:       t
 		sql_type:   sql_type_timestamp_tz
 		offset:     offset
 		named_zone: named_zone
 	}
+}
+
+// TODO validate and return error
+pub fn new_timestamp_tz_offset(t time.Time, offset i16) !DateTime {
+	return new_timestamp_tz(t, offset, '')
+}
+
+// TODO validate and return error
+pub fn new_timestamp_tz_named_zone(t time.Time, named_zone string) !DateTime {
+	return new_timestamp_tz(t, 0, named_zone)
 }
 
 // returns year, month, day
@@ -192,6 +213,7 @@ fn (t DateTime) get_timezone() ![]u8 {
 	if t.named_zone != '' {
 		first_u8_pair := marshal_i16_big_endian(i16(max_u16))
 		// this is inefficient: reverse-lookup of map[int]string with string comparison
+		// TODO move to factory function
 		for k, v in timezones {
 			if v == t.named_zone {
 				second_u8_pair := marshal_i16_big_endian(i16(k))
