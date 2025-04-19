@@ -78,6 +78,19 @@ pub fn new_timestamp_tz_named_zone(t time.Time, named_zone string) !DateTime {
 	return new_timestamp_tz(t, 0, named_zone)
 }
 
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZoneUtil.cpp#L302
+const one_day = 24 * 60 - 1
+
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZoneUtil.cpp#L1144
+fn is_offset(time_zone u16) bool {
+	return time_zone <= one_day * 2
+}
+
+// https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/TimeZoneUtil.cpp#L1164
+fn decode_offset(time_zone u16) i16 {
+	return i16(time_zone) - one_day
+}
+
 // returns year, month, day
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/common/classes/NoThrowTimeStamp.cpp#L178
 fn get_date(raw_value []u8) (int, int, int) {
@@ -213,7 +226,7 @@ fn (t DateTime) get_timezone() ![]u8 {
 	if t.named_zone != '' {
 		first_u8_pair := marshal_i16_big_endian(i16(max_u16))
 		// this is inefficient: reverse-lookup of map[int]string with string comparison
-		// TODO move to factory function
+		// TODO move to factory function, trust that DateTime is valid
 		for k, v in timezones {
 			if v == t.named_zone {
 				second_u8_pair := marshal_i16_big_endian(i16(k))
