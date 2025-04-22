@@ -74,22 +74,22 @@ pub fn (mut stmt Statement) close() ! {
 	}
 }
 
-// Executes the statement with the given args.
-pub fn (mut stmt Statement) execute(args []Value) !Result {
+// Executes the statement with the given params.
+pub fn (mut stmt Statement) execute(params []Value) !Result {
 	if stmt.is_closed {
 		return error(format_error_message('failed to execute statement: statement is closed'))
 	}
 
 	if stmt.stmt_type == isc_info_sql_stmt_exec_procedure {
 		println('statement is isc_info_sql_stmt_exec_procedure')
-		// stmt.tx.conn.p.execute_stored_procedure(stmt.stmt_handle, stmt.tx.tx_handle, args,
+		// stmt.tx.conn.p.execute_stored_procedure(stmt.stmt_handle, stmt.tx.tx_handle, params,
 		// 	stmt.output_blr_params)!
 		// data := stmt.tx.conn.p.sql_response(stmt.xsqlda)!
 		return error(format_error_message('stored procedures are not supported ${low_priority_todo}'))
 	}
 
 	if stmt.stmt_type == isc_info_sql_stmt_select {
-		stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
+		stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, params)!
 		stmt.tx.conn.p.generic_response()!
 		stmt.tx.conn.p.fetch(stmt.stmt_handle, stmt.output_blr_params)!
 		mut rows_data := stmt.tx.conn.p.parse_fetch_response(stmt.xsqlda)!
@@ -131,7 +131,7 @@ pub fn (mut stmt Statement) execute(args []Value) !Result {
 		println('Statement.execute stmt.stmt_type: ${stmt.stmt_type}') // verify which other isc_info_sql_stmt_ happens and when
 	}
 
-	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, args)!
+	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, params)!
 	stmt.tx.conn.p.generic_response()!
 	return new_basic_result(stmt)
 }
