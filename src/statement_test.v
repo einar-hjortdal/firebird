@@ -497,7 +497,7 @@ fn test_statement_time_params() {
 	}
 
 	mut args := [Value(i32(1)), date, timestamp]
-	stmt.execute(args)! // io.NotExpected: invalid copy of buffer
+	stmt.execute(args)! // io.NotExpected: invalid copy of buffer (do manual `drop table foo;` now)
 	stmt.close()!
 
 	result := tx.execute('SELECT * FROM foo', no_args)!

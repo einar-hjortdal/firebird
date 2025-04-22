@@ -4,7 +4,7 @@ pub struct Null {}
 
 // Value could be:
 // - firebird.Null
-// - firebird.Time
+// - firebird.DateTime
 // - i32
 // - i64
 // - f32
