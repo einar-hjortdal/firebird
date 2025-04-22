@@ -39,6 +39,7 @@ any of them, please open a pull request.
   - extended timestamp with timezone
   - decfloat
   - int128
+- stored procedures
 - batches
 - services
 - events

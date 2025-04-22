@@ -118,10 +118,8 @@ fn (mut p WireProtocol) resume_buffer(buf []u8) {
 fn (mut p WireProtocol) receive_packets(n int) ![]u8 {
 	mut buf := []u8{len: n}
 	mut read := 0
-	mut total_read := 0
-	for total_read < n {
-		read = p.conn.read(mut buf[total_read..n])!
-		total_read += read
+	for read < n {
+		read += p.conn.read(mut buf[read..n])!
 	}
 	return buf
 }
