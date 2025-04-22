@@ -1,7 +1,5 @@
 module firebird
 
-pub const no_args = []Value{}
-
 @[heap]
 pub struct Statement {
 	query             string
@@ -75,7 +73,7 @@ pub fn (mut stmt Statement) close() ! {
 }
 
 // Executes the statement with the given params.
-pub fn (mut stmt Statement) execute(params []Value) !Result {
+pub fn (mut stmt Statement) execute(params ...Value) !Result {
 	if stmt.is_closed {
 		return error(format_error_message('failed to execute statement: statement is closed'))
 	}

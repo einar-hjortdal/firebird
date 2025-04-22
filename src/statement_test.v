@@ -27,12 +27,12 @@ fn test_open_no_db() {
 		assert true // protocol error: no database is provided
 		return
 	}
-	conn.close() or { panic(err) }
+	conn.close()!
 }
 
 fn test_open_() {
-	mut conn := new_connection(url) or { panic(err) }
-	conn.close() or { panic(err) }
+	mut conn := new_connection(url)!
+	conn.close()!
 }
 
 fn test_new_statement() {
@@ -46,13 +46,13 @@ fn test_new_statement() {
 	conn.close()!
 }
 
-fn test_execute_statement_ddl_no_args() {
+fn test_execute_statement_ddl_() {
 	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
 	mut stmt := tx.prepare('CREATE TABLE foo (a INTEGER)')!
-	stmt.execute(no_args)!
-	stmt.execute(no_args) or {
+	stmt.execute()!
+	stmt.execute() or {
 		// [firebird] unsuccessful metadata update
 		// CREATE TABLE FOO failed
 		// Table FOO already exists
@@ -61,8 +61,8 @@ fn test_execute_statement_ddl_no_args() {
 	stmt.close()!
 
 	stmt = tx.prepare('DROP TABLE foo')!
-	stmt.execute(no_args)!
-	stmt.execute(no_args) or {
+	stmt.execute()!
+	stmt.execute() or {
 		// [firebird] unsuccessful metadata update
 		// DROP TABLE FOO failed
 		// SQL error code = -607
@@ -80,7 +80,7 @@ fn test_at_time_zone() {
 	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
-	mut result := tx.execute('SELECT current_timestamp FROM RDB\$DATABASE', no_args)!
+	mut result := tx.execute('SELECT current_timestamp FROM RDB\$DATABASE')!
 	assert result.columns.len == 1
 
 	mut column := result.columns[0]
@@ -98,8 +98,7 @@ fn test_at_time_zone() {
 	result = tx.execute("
 	SELECT current_timestamp AT TIME ZONE 'America/Sao_Paulo'
 	FROM RDB\$DATABASE
-	",
-		no_args)!
+	")!
 	assert result.rows.len == 1
 
 	assert result.rows[0].values.len == 1
@@ -107,8 +106,7 @@ fn test_at_time_zone() {
 	t = result.rows[0].values[0]
 	assert t is DateTime && t.named_zone == 'America/Sao_Paulo'
 
-	result = tx.execute("SELECT TIME '12:00 GMT' AT TIME ZONE '-05:00' FROM RDB\$DATABASE",
-		no_args)!
+	result = tx.execute("SELECT TIME '12:00 GMT' AT TIME ZONE '-05:00' FROM RDB\$DATABASE")!
 	assert result.rows.len == 1
 
 	assert result.rows[0].values.len == 1
@@ -128,32 +126,27 @@ fn test_time_zone() {
 		id INTEGER PRIMARY KEY,
 		time_with_timezone_col TIME WITH TIME ZONE,
 		timestamp_with_timezone_col TIMESTAMP WITH TIME ZONE
-		)',
-		no_args)!
+		)')!
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
 	tx.execute("
 		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
 		VALUES (1, '16:03:00 +02:00', '2025-04-15 16:03:00 +14:00')
-		",
-		no_args)!
+		")!
 
 	tx.execute("
 		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
 		VALUES (2, '00:00:00 -05:30', '2000-01-01 00:00:00 -10:30')
-		",
-		no_args)!
+		")!
 
 	tx.execute("
 		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
 		VALUES (3, '23:59:59 Europe/Brussels', '1999-12-31 23:59:59 Europe/Brussels')
-		",
-		no_args)!
+		")!
 
 	result := tx.execute('
-		SELECT id, time_with_timezone_col, timestamp_with_timezone_col FROM foo',
-		no_args)!
+		SELECT id, time_with_timezone_col, timestamp_with_timezone_col FROM foo')!
 
 	columns := result.columns
 	assert columns.len == 3
@@ -209,7 +202,7 @@ fn test_time_zone() {
 	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	tx.execute('DROP TABLE foo', no_args)!
+	tx.execute('DROP TABLE foo')!
 	tx.commit()!
 	conn.close()!
 }
@@ -217,7 +210,7 @@ fn test_time_zone() {
 // fn test_timestamp_tz_ex() {
 // }
 
-fn test_execute_dml_no_args() {
+fn test_execute_dml_() {
 	mut conn := new_connection(url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
@@ -236,7 +229,7 @@ fn test_execute_dml_no_args() {
 			PRIMARY KEY (a),
 			CONSTRAINT CHECK_A CHECK (a <> 0)
 			)")!
-	stmt.execute(no_args)!
+	stmt.execute()!
 	stmt.close()!
 	tx.commit()!
 
@@ -244,15 +237,15 @@ fn test_execute_dml_no_args() {
 	stmt = tx.prepare("
 		INSERT INTO foo (a, b, c, h)
 			VALUES (1, 'a', 'b', 'This is a test')")!
-	stmt.execute(no_args)!
-	stmt.execute(no_args) or {
+	stmt.execute()!
+	stmt.execute() or {
 		// [firebird] violation of PRIMARY or UNIQUE KEY constraint "INTEG_83" on table "FOO"
 		// Problematic key value is ("B" = 'a')
 		assert err.msg().contains('violation of PRIMARY or UNIQUE KEY constraint')
 	}
 	stmt.close()!
 
-	result := tx.execute('SELECT a, b, c, h FROM foo', no_args)!
+	result := tx.execute('SELECT a, b, c, h FROM foo')!
 
 	rows := result.rows
 	assert rows.len == 1
@@ -275,7 +268,7 @@ fn test_execute_dml_no_args() {
 	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	tx.execute('DROP TABLE foo', no_args)!
+	tx.execute('DROP TABLE foo')!
 	tx.commit()!
 	conn.close()!
 }
@@ -296,17 +289,17 @@ fn test_null() {
 			g DOUBLE PRECISION,
 			h REAL
 			)')!
-	stmt.execute(no_args)!
+	stmt.execute()!
 	stmt.close()!
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
 	stmt = tx.prepare('INSERT INTO foo (id) VALUES (1)')!
-	stmt.execute(no_args)!
+	stmt.execute()!
 	stmt.close()!
 
 	stmt = tx.prepare('SELECT a, b, c, d, e, f, g, h FROM foo')!
-	result := stmt.execute(no_args)!
+	result := stmt.execute()!
 
 	rows := result.rows
 	assert rows.len == 1
@@ -322,7 +315,7 @@ fn test_null() {
 	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	tx.execute('DROP TABLE foo', no_args)!
+	tx.execute('DROP TABLE foo')!
 	tx.commit()!
 	conn.close()!
 }
@@ -340,44 +333,43 @@ fn test_statement_params() {
 			d BLOB SUB_TYPE TEXT,
 			e DOUBLE PRECISION,
 			f REAL
-			)',
-		no_args)!
+			)')!
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
 
-	mut args := [Value(i32(1))]
-	tx.execute('INSERT INTO foo (id) VALUES (?)', args)!
+	mut params := [Value(i32(1))]
+	tx.execute('INSERT INTO foo (id) VALUES (?)', ...params)!
 
 	mut stmt := tx.prepare('INSERT INTO foo (id, a) VALUES (?, ?)')!
-	args = [Value(i32(2)), i32(10)]
-	stmt.execute(args)!
+	params = [Value(i32(2)), i32(10)]
+	stmt.execute(...params)!
 
-	args = [Value(i32(3)), i32(20)]
-	stmt.execute(args)!
+	params = [Value(i32(3)), i32(20)]
+	stmt.execute(...params)!
 	stmt.close()!
 
-	args = [Value(i32(4)), i32(100), 'this is a varchar field', 'this is a blob field']
-	tx.execute('INSERT INTO foo (id, a, b, d) VALUES (?, ?, ?, ?)', args)!
+	params = [Value(i32(4)), i32(100), 'this is a varchar field', 'this is a blob field']
+	tx.execute('INSERT INTO foo (id, a, b, d) VALUES (?, ?, ?, ?)', ...params)!
 
-	args = [Value(i32(5)), i32(1000), f64(6.02214), f32(3.14)]
-	tx.execute('INSERT INTO foo (id, a, e, f) VALUES (?, ?, ?, ?)', args)!
+	params = [Value(i32(5)), i32(1000), f64(6.02214), f32(3.14)]
+	tx.execute('INSERT INTO foo (id, a, e, f) VALUES (?, ?, ?, ?)', ...params)!
 
 	// stmt = tx.prepare('INSERT INTO foo (id, a, b, d,f) VALUES (?, ?, ?, ?, ?)')!
-	// args = [
+	// params = [
 	// 	Value(i32(6)),
 	// 	i32(1000),
 	// 	'this is a varchar field',
 	// 	'this is a blob field',
 	// 	f64(3.14),
 	// ]
-	// stmt.execute(args)! // invalid copy of buffer, happens at BufferedReader.read in WireProtocol.generic_response
+	// stmt.execute(...params)! // invalid copy of buffer, happens at BufferedReader.read in WireProtocol.generic_response
 	// // What causes it?
 
 	// stmt = tx.prepare('INSERT INTO foo (id, a, b, c, f, g, h)
 	// 	VALUES (? ,? ,? ,? ,? ,? ,?)')!
 
-	// args = [
+	// params = [
 	// 	Value(i32(7)), // INTEGER
 	// 	i32(69), // INTEGER
 	// 	'this is a test', // VARCHAR
@@ -386,10 +378,10 @@ fn test_statement_params() {
 	// 	f64(3.14), // DOUBLE PRECISION
 	// 	f64(6.02214076), // REAL
 	// ]
-	// stmt.execute(args)!
+	// stmt.execute(...params)!
 	// stmt.close()!
 
-	result := tx.execute('SELECT * FROM foo', no_args)!
+	result := tx.execute('SELECT * FROM foo')!
 
 	assert result.rows.len == 5
 
@@ -462,7 +454,7 @@ fn test_statement_params() {
 	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	tx.execute('DROP TABLE foo', no_args)!
+	tx.execute('DROP TABLE foo')!
 	tx.commit()!
 	conn.close()!
 }
@@ -479,8 +471,7 @@ fn test_statement_time_params() {
 			c TIME WITH TIME ZONE,
 			d TIMESTAMP,
 			e TIMESTAMP WITH TIME ZONE
-			)',
-		no_args)!
+			)')!
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
@@ -496,11 +487,11 @@ fn test_statement_time_params() {
 		sql_type: sql_type_timestamp
 	}
 
-	mut args := [Value(i32(1)), date, timestamp]
-	stmt.execute(args)! // io.NotExpected: invalid copy of buffer (do manual `drop table foo;` now)
+	mut params := [Value(i32(1)), date, timestamp]
+	stmt.execute(...params)! // io.NotExpected: invalid copy of buffer (do manual `drop table foo;` now)
 	stmt.close()!
 
-	result := tx.execute('SELECT * FROM foo', no_args)!
+	result := tx.execute('SELECT * FROM foo')!
 	columns := result.columns
 	rows := result.rows
 	assert rows.len == 1
@@ -508,7 +499,7 @@ fn test_statement_time_params() {
 	println(rows[0].values)
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	tx.execute('DROP TABLE foo', no_args)!
+	tx.execute('DROP TABLE foo')!
 	tx.commit()!
 	conn.close()!
 }
