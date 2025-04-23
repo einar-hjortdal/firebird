@@ -3,7 +3,7 @@ module firebird
 import math.big
 
 @[heap]
-struct Connection {
+pub struct Connection {
 	dsn                  DataSourceName
 	client_public_key    big.Integer
 	client_secret_key    big.Integer
