@@ -338,22 +338,18 @@ fn test_statement_params() {
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
 
-	mut params := [Value(i32(1))]
-	tx.execute('INSERT INTO foo (id) VALUES (?)', ...params)!
+	tx.execute('INSERT INTO foo (id) VALUES (?)', i32(1))!
 
 	mut stmt := tx.prepare('INSERT INTO foo (id, a) VALUES (?, ?)')!
-	params = [Value(i32(2)), i32(10)]
-	stmt.execute(...params)!
-
-	params = [Value(i32(3)), i32(20)]
-	stmt.execute(...params)!
+	stmt.execute(i32(2), i32(10))!
+	stmt.execute(i32(3), i32(20))!
 	stmt.close()!
 
-	params = [Value(i32(4)), i32(100), 'this is a varchar field', 'this is a blob field']
-	tx.execute('INSERT INTO foo (id, a, b, d) VALUES (?, ?, ?, ?)', ...params)!
+	tx.execute('INSERT INTO foo (id, a, b, d) VALUES (?, ?, ?, ?)', i32(4), i32(100),
+		'this is a varchar field', 'this is a blob field')!
 
-	params = [Value(i32(5)), i32(1000), f64(6.02214), f32(3.14)]
-	tx.execute('INSERT INTO foo (id, a, e, f) VALUES (?, ?, ?, ?)', ...params)!
+	tx.execute('INSERT INTO foo (id, a, e, f) VALUES (?, ?, ?, ?)', i32(5), i32(1000),
+		f64(6.02214), f32(3.14))!
 
 	// stmt = tx.prepare('INSERT INTO foo (id, a, b, d,f) VALUES (?, ?, ?, ?, ?)')!
 	// params = [
@@ -475,7 +471,6 @@ fn test_statement_time_params() {
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare('INSERT INTO foo (id, a, d) VALUES (?, ?, ?)')!
 
 	mut date := DateTime{
 		Time:     time.parse_iso8601('2025-02-12')!
@@ -487,16 +482,15 @@ fn test_statement_time_params() {
 		sql_type: sql_type_timestamp
 	}
 
-	mut params := [Value(i32(1)), date, timestamp]
-	stmt.execute(...params)! // io.NotExpected: invalid copy of buffer (do manual `drop table foo;` now)
-	stmt.close()!
-
+	tx.execute('INSERT INTO foo (id, a, d) VALUES (?, ?, ?)', i32(1), date, timestamp)! // io.NotExpected: invalid copy of buffer (do manual `drop table foo;` now)
 	result := tx.execute('SELECT * FROM foo')!
 	columns := result.columns
 	rows := result.rows
 	assert rows.len == 1
 
 	println(rows[0].values)
+
+	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
 	tx.execute('DROP TABLE foo')!
