@@ -2,18 +2,6 @@ module firebird
 
 pub struct Null {}
 
-// Value could be:
-// - firebird.Null
-// - firebird.DateTime
-// - i32
-// - i64
-// - f32
-// - f64
-// - bool
-// - []u8
-// - string
-pub interface Value {}
-
 pub struct Column {
 pub:
 	field_name     string
