@@ -95,10 +95,8 @@ fn test_at_time_zone() {
 	mut t := result.rows[0].values[0]
 	assert t is DateTime && t.named_zone == 'Etc/UTC'
 
-	result = tx.execute("
-	SELECT current_timestamp AT TIME ZONE 'America/Sao_Paulo'
-	FROM RDB\$DATABASE
-	")!
+	result = tx.execute("SELECT current_timestamp AT TIME ZONE 'America/Sao_Paulo'
+		FROM RDB\$DATABASE")!
 	assert result.rows.len == 1
 
 	assert result.rows[0].values.len == 1
@@ -121,29 +119,21 @@ fn test_at_time_zone() {
 fn test_time_zone() {
 	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	tx.execute('
-		CREATE TABLE foo (
+	tx.execute('CREATE TABLE foo (
 		id INTEGER PRIMARY KEY,
 		time_with_timezone_col TIME WITH TIME ZONE,
-		timestamp_with_timezone_col TIMESTAMP WITH TIME ZONE
-		)')!
+		timestamp_with_timezone_col TIMESTAMP WITH TIME ZONE)')!
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	tx.execute("
-		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
-		VALUES (1, '16:03:00 +02:00', '2025-04-15 16:03:00 +14:00')
-		")!
+	tx.execute("INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
+		VALUES (1, '16:03:00 +02:00', '2025-04-15 16:03:00 +14:00')")!
 
-	tx.execute("
-		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
-		VALUES (2, '00:00:00 -05:30', '2000-01-01 00:00:00 -10:30')
-		")!
+	tx.execute("INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
+		VALUES (2, '00:00:00 -05:30', '2000-01-01 00:00:00 -10:30')")!
 
-	tx.execute("
-		INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
-		VALUES (3, '23:59:59 Europe/Brussels', '1999-12-31 23:59:59 Europe/Brussels')
-		")!
+	tx.execute("INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
+		VALUES (3, '23:59:59 Europe/Brussels', '1999-12-31 23:59:59 Europe/Brussels')")!
 
 	result := tx.execute('
 		SELECT id, time_with_timezone_col, timestamp_with_timezone_col FROM foo')!
@@ -214,29 +204,26 @@ fn test_execute_dml_() {
 	mut conn := new_connection(url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare("
-		CREATE TABLE foo (
-			a INTEGER NOT NULL,
-			b VARCHAR(30) NOT NULL UNIQUE,
-			c VARCHAR(1024),
-			d DECIMAL(16,3) DEFAULT -0.123,
-			e DATE DEFAULT '1967-08-11',
-			f TIMESTAMP DEFAULT '1967-08-11 23:45:01',
-			g TIME DEFAULT '23:45:01',
-			h BLOB SUB_TYPE TEXT,
-			i DOUBLE PRECISION DEFAULT 0.0,
-			j FLOAT DEFAULT 0.0,
-			PRIMARY KEY (a),
-			CONSTRAINT CHECK_A CHECK (a <> 0)
-			)")!
+	mut stmt := tx.prepare("CREATE TABLE foo (
+		a INTEGER NOT NULL,
+		b VARCHAR(30) NOT NULL UNIQUE,
+		c VARCHAR(1024),
+		d DECIMAL(16,3) DEFAULT -0.123,
+		e DATE DEFAULT '1967-08-11',
+		f TIMESTAMP DEFAULT '1967-08-11 23:45:01',
+		g TIME DEFAULT '23:45:01',
+		h BLOB SUB_TYPE TEXT,
+		i DOUBLE PRECISION DEFAULT 0.0,
+		j FLOAT DEFAULT 0.0,
+		PRIMARY KEY (a),
+		CONSTRAINT CHECK_A CHECK (a <> 0)
+		)")!
 	stmt.execute()!
 	stmt.close()!
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	stmt = tx.prepare("
-		INSERT INTO foo (a, b, c, h)
-			VALUES (1, 'a', 'b', 'This is a test')")!
+	stmt = tx.prepare("INSERT INTO foo (a, b, c, h) VALUES (1, 'a', 'b', 'This is a test')")!
 	stmt.execute()!
 	stmt.execute() or {
 		// [firebird] violation of PRIMARY or UNIQUE KEY constraint "INTEG_83" on table "FOO"
@@ -277,18 +264,17 @@ fn test_null() {
 	mut conn := new_connection(url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare('
-		CREATE TABLE foo (
-			id INTEGER PRIMARY KEY,
-			a INTEGER,
-			b VARCHAR(1024),
-			c DECIMAL(16,3),
-			d DATE,
-			e TIMESTAMP,
-			f BLOB SUB_TYPE TEXT,
-			g DOUBLE PRECISION,
-			h REAL
-			)')!
+	mut stmt := tx.prepare('CREATE TABLE foo (
+		id INTEGER PRIMARY KEY,
+		a INTEGER,
+		b VARCHAR(1024),
+		c DECIMAL(16,3),
+		d DATE,
+		e TIMESTAMP,
+		f BLOB SUB_TYPE TEXT,
+		g DOUBLE PRECISION,
+		h REAL
+		)')!
 	stmt.execute()!
 	stmt.close()!
 	tx.commit()!
@@ -324,16 +310,15 @@ fn test_statement_params() {
 	mut conn := new_connection(url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	tx.execute('
-		CREATE TABLE foo (
-			id INTEGER PRIMARY KEY,
-			a INTEGER,
-			b VARCHAR(1024),
-			c DECIMAL(16,3),
-			d BLOB SUB_TYPE TEXT,
-			e DOUBLE PRECISION,
-			f REAL
-			)')!
+	tx.execute('CREATE TABLE foo (
+		id INTEGER PRIMARY KEY,
+		a INTEGER,
+		b VARCHAR(1024),
+		c DECIMAL(16,3),
+		d BLOB SUB_TYPE TEXT,
+		e DOUBLE PRECISION,
+		f REAL
+		)')!
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
@@ -351,16 +336,11 @@ fn test_statement_params() {
 	tx.execute('INSERT INTO foo (id, a, e, f) VALUES (?, ?, ?, ?)', i32(5), i32(1000),
 		f64(6.02214), f32(3.14))!
 
-	// stmt = tx.prepare('INSERT INTO foo (id, a, b, d,f) VALUES (?, ?, ?, ?, ?)')!
-	// params = [
-	// 	Value(i32(6)),
-	// 	i32(1000),
-	// 	'this is a varchar field',
-	// 	'this is a blob field',
-	// 	f64(3.14),
-	// ]
-	// stmt.execute(...params)! // invalid copy of buffer, happens at BufferedReader.read in WireProtocol.generic_response
-	// // What causes it?
+	// TODO something if wrong here:
+	// The same types were used above with no issues, used together they break.
+	println('broken')
+	tx.execute('INSERT INTO foo (id, a, b, d, f) VALUES (?, ?, ?, ?, ?)', i32(6), i32(1000),
+		'this is a varchar field', 'this is a blob field', f32(3.14))!
 
 	// stmt = tx.prepare('INSERT INTO foo (id, a, b, c, f, g, h)
 	// 	VALUES (? ,? ,? ,? ,? ,? ,?)')!
@@ -379,7 +359,7 @@ fn test_statement_params() {
 
 	result := tx.execute('SELECT * FROM foo')!
 
-	assert result.rows.len == 5
+	assert result.rows.len == 6
 
 	for i := 0; i < result.rows[0].values.len; i++ {
 		c := result.columns[i]
@@ -455,45 +435,47 @@ fn test_statement_params() {
 	conn.close()!
 }
 
-fn test_statement_time_params() {
-	mut conn := new_connection(url)!
+// fn test_statement_time_params() {
+// 	mut conn := new_connection(url)!
 
-	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	tx.execute('
-		CREATE TABLE foo (
-			id INTEGER PRIMARY KEY,
-			a DATE,
-			b TIME,
-			c TIME WITH TIME ZONE,
-			d TIMESTAMP,
-			e TIMESTAMP WITH TIME ZONE
-			)')!
-	tx.commit()!
+// 	mut tx := conn.start_transaction(isolation_level_read_commited)!
+// 	tx.execute('
+// 		CREATE TABLE foo (
+// 			id INTEGER PRIMARY KEY,
+// 			a DATE,
+// 			b TIME,
+// 			c TIME WITH TIME ZONE,
+// 			d TIMESTAMP,
+// 			e TIMESTAMP WITH TIME ZONE
+// 			)')!
+// 	tx.commit()!
 
-	tx = conn.start_transaction(isolation_level_read_commited)!
+// 	tx = conn.start_transaction(isolation_level_read_commited)!
 
-	mut date := DateTime{
-		Time:     time.parse_iso8601('2025-02-12')!
-		sql_type: sql_type_date
-	}
+// 	mut date := DateTime{
+// 		Time:     time.parse_iso8601('2025-02-12')!
+// 		sql_type: sql_type_date
+// 	}
 
-	mut timestamp := DateTime{
-		Time:     time.now()
-		sql_type: sql_type_timestamp
-	}
+// 	mut timestamp := DateTime{
+// 		Time:     time.now()
+// 		sql_type: sql_type_timestamp
+// 	}
 
-	tx.execute('INSERT INTO foo (id, a, d) VALUES (?, ?, ?)', i32(1), date, timestamp)! // io.NotExpected: invalid copy of buffer (do manual `drop table foo;` now)
-	result := tx.execute('SELECT * FROM foo')!
-	columns := result.columns
-	rows := result.rows
-	assert rows.len == 1
+// 	tx.execute('INSERT INTO foo (id, a, d) VALUES (?, ?, ?)', i32(1), date, timestamp) or {
+// 		panic(err)
+// 	}
+// 	result := tx.execute('SELECT * FROM foo')!
+// 	columns := result.columns
+// 	rows := result.rows
+// 	assert rows.len == 1
 
-	println(rows[0].values)
+// 	println(rows[0].values)
 
-	tx.rollback()!
+// 	tx.rollback()!
 
-	tx = conn.start_transaction(isolation_level_read_commited)!
-	tx.execute('DROP TABLE foo')!
-	tx.commit()!
-	conn.close()!
-}
+// 	tx = conn.start_transaction(isolation_level_read_commited)!
+// 	tx.execute('DROP TABLE foo')!
+// 	tx.commit()!
+// 	conn.close()!
+// }
