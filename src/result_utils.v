@@ -4,7 +4,8 @@ fn bad_type_message(t string) string {
 	return 'Value is neither ${t} nor Null'
 }
 
-// returns a DateTime from a Value, together with true if Value is Null.
+// Returns a DateTime from a Value, together with true if Value is Null.
+// Returns an error if the Value is not a DateTime.
 pub fn get_date_time(value Value) !(DateTime, bool) {
 	match value {
 		DateTime {
@@ -19,7 +20,8 @@ pub fn get_date_time(value Value) !(DateTime, bool) {
 	}
 }
 
-// returns a i32 from a Value, together with true if Value is Null.
+// Returns a i32 from a Value, together with true if Value is Null.
+// Returns an error if the Value is not a i32.
 pub fn get_i32(value Value) !(i32, bool) {
 	match value {
 		i32 {
@@ -34,7 +36,8 @@ pub fn get_i32(value Value) !(i32, bool) {
 	}
 }
 
-// returns a i64 from a Value, together with true if Value is Null.
+// Returns a i64 from a Value, together with true if Value is Null.
+// Returns an error if the Value is not a i64.
 pub fn get_i64(value Value) !(i64, bool) {
 	match value {
 		i64 {
@@ -49,7 +52,8 @@ pub fn get_i64(value Value) !(i64, bool) {
 	}
 }
 
-// returns a f32 from a Value, together with true if Value is Null.
+// Returns a f32 from a Value, together with true if Value is Null.
+// Returns an error if the Value is not a f32.
 pub fn get_f32(value Value) !(f32, bool) {
 	match value {
 		f32 {
@@ -64,7 +68,8 @@ pub fn get_f32(value Value) !(f32, bool) {
 	}
 }
 
-// returns a f64 from a Value, together with true if Value is Null.
+// Returns a f64 from a Value, together with true if Value is Null.
+// Returns an error if the Value is not a f64.
 pub fn get_f64(value Value) !(f64, bool) {
 	match value {
 		f64 {
@@ -79,7 +84,8 @@ pub fn get_f64(value Value) !(f64, bool) {
 	}
 }
 
-// returns a bool from a Value, together with true if Value is Null.
+// Returns a bool from a Value, together with true if Value is Null.
+// Returns an error if the Value is not a bool.
 pub fn get_bool(value Value) !(bool, bool) {
 	match value {
 		bool {
@@ -94,7 +100,8 @@ pub fn get_bool(value Value) !(bool, bool) {
 	}
 }
 
-// returns a []u8 from a Value, together with true if Value is Null.
+// Returns a []u8 from a Value, together with true if Value is Null.
+// Returns an error if the Value is not a []u8.
 pub fn get_array_u8(value Value) !([]u8, bool) {
 	match value {
 		[]u8 {
@@ -109,7 +116,8 @@ pub fn get_array_u8(value Value) !([]u8, bool) {
 	}
 }
 
-// returns a string from a Value, together with true if Value is Null.
+// Returns a string from a Value, together with true if Value is Null.
+// Returns an error if the Value is not a string.
 pub fn get_string(value Value) !(string, bool) {
 	match value {
 		string {
@@ -122,6 +130,62 @@ pub fn get_string(value Value) !(string, bool) {
 			return error(format_error_message(bad_type_message('string')))
 		}
 	}
+}
+
+// Returns DateTime from a Value. If the Value is Null, it returns the default zero value.
+// Returns an error if the Value is not a DateTime.
+pub fn get_date_time_or_zero(value Value) !DateTime {
+	v, _ := get_date_time(value)!
+	return v
+}
+
+// Returns i32 from a Value. If the Value is Null, it returns the default zero value.
+// Returns an error if the Value is not a i32.
+pub fn get_i32_or_zero(value Value) !i32 {
+	v, _ := get_i32(value)!
+	return v
+}
+
+// Returns i64 from a Value. If the Value is Null, it returns the default zero value.
+// Returns an error if the Value is not a i64.
+pub fn get_i64_or_zero(value Value) !i64 {
+	v, _ := get_i64(value)!
+	return v
+}
+
+// Returns f32 from a Value. If the Value is Null, it returns the default zero value.
+// Returns an error if the Value is not a f32.
+pub fn get_f32_or_zero(value Value) !f32 {
+	v, _ := get_f32(value)!
+	return v
+}
+
+// Returns f64 from a Value. If the Value is Null, it returns the default zero value.
+// Returns an error if the Value is not a f64.
+pub fn get_f64_or_zero(value Value) !f64 {
+	v, _ := get_f64(value)!
+	return v
+}
+
+// Returns bool from a Value. If the Value is Null, it returns the default zero value.
+// Returns an error if the Value is not a bool.
+pub fn get_bool_or_zero(value Value) !bool {
+	v, _ := get_bool(value)!
+	return v
+}
+
+// Returns []u8 from a Value. If the Value is Null, it returns the default zero value.
+// Returns an error if the Value is not a []u8.
+pub fn get_array_u8_or_zero(value Value) ![]u8 {
+	v, _ := get_array_u8(value)!
+	return v
+}
+
+// Returns string from a Value. If the Value is Null, it returns the default zero value.
+// Returns an error if the Value is not a string.
+pub fn get_string_or_zero(value Value) !string {
+	v, _ := get_string(value)!
+	return v
 }
 
 pub struct NullDateTime {
