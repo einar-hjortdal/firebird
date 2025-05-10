@@ -273,8 +273,8 @@ fn (t DateTime) to_blr_time_tz() ![]u8 {
 
 // Firebird uses a modified Julian date
 fn (t DateTime) to_blr_date() []u8 {
-	julian_month := t.month + 9 % 12
-	intermediate_year := t.year + (t.month / 12) - 1
+	julian_month := (t.month + 9) % 12
+	intermediate_year := t.year + ((t.month + 9) / 12) - 1
 	century := intermediate_year / 100
 	julian_year := intermediate_year - 100 * century
 	modified_julian_date := (146_097 * century) / 4 + (1461 * julian_year) / 4 +

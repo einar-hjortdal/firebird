@@ -79,11 +79,10 @@ pub fn (mut stmt Statement) execute(params ...Value) !Result {
 	}
 
 	if stmt.stmt_type == isc_info_sql_stmt_exec_procedure {
-		println('statement is isc_info_sql_stmt_exec_procedure')
 		// stmt.tx.conn.p.execute_stored_procedure(stmt.stmt_handle, stmt.tx.tx_handle, params,
 		// 	stmt.output_blr_params)!
 		// data := stmt.tx.conn.p.sql_response(stmt.xsqlda)!
-		return error(format_error_message('stored procedures are not supported ${low_priority_todo}'))
+		return error(format_error_message('Stored procedures are not supported ${low_priority_todo}'))
 	}
 
 	if stmt.stmt_type == isc_info_sql_stmt_select {

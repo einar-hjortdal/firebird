@@ -315,7 +315,7 @@ fn initialize_values_data(params []Value) strings.Builder {
 			null_indicator.set_bit(u32(i), true)
 		}
 	}
-	mut n := params.len + 7 / 8
+	mut n := (params.len + 7) / 8
 	if n % 4 != 0 { // padding
 		n += 4 - n % 4
 	}

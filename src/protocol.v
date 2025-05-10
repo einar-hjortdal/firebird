@@ -708,31 +708,6 @@ fn (mut p WireProtocol) execute(stmt_handle i32, tx_handle i32, params []Value) 
 	p.send_packets()!
 }
 
-// op_execute2 is used for stored procedures
-// TODO merge executes to reduce repetitions?
-fn (mut p WireProtocol) execute_stored_procedure(stmt_handle i32, tx_handle i32, params []Value, output_blr_params []u8) ! {
-	p.pack_i32(op_execute2)
-	p.pack_i32(stmt_handle)
-	p.pack_i32(tx_handle)
-	if params.len == 0 {
-		p.pack_i32(0)
-		p.pack_i32(0)
-		p.pack_i32(0)
-	} else {
-		b, v := p.params_to_blr(tx_handle, params, p.protocol_version)!
-		p.pack_bytes(b)
-		p.pack_i32(0)
-		p.pack_i32(1)
-		p.append_bytes(v)
-	}
-	p.append_bytes(output_blr_params)
-	p.pack_i32(0)
-	p.append_bytes(marshal_i32_big_endian(0)) // timeout https://github.com/FirebirdSQL/firebird/blob/08cb3f94e96fc80ed4ec786d31def367e8e58d7c/src/remote/protocol.cpp#L668
-	// TODO value from https://github.com/FirebirdSQL/jaybird/blob/c152a12d8dec10a3f7bf4013b4b39ad5dfed85b6/src/main/org/firebirdsql/gds/ng/wire/version18/V18Statement.java#L107
-	p.append_bytes(marshal_i32_big_endian(0)) // fetch_scroll https://github.com/FirebirdSQL/firebird/blob/08cb3f94e96fc80ed4ec786d31def367e8e58d7c/src/remote/protocol.cpp#L670
-	p.send_packets()!
-}
-
 fn (mut p WireProtocol) cancel(kind i32) ! {
 	p.pack_i32(op_cancel)
 	p.pack_i32(kind)

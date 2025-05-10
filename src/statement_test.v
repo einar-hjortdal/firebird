@@ -336,9 +336,6 @@ fn test_statement_params() {
 	tx.execute('INSERT INTO foo (id, a, e, f) VALUES (?, ?, ?, ?)', i32(5), i32(1000),
 		f64(6.02214), f32(3.14))!
 
-	// TODO something if wrong here:
-	// The same types were used above with no issues, used together they break.
-	println('broken')
 	tx.execute('INSERT INTO foo (id, a, b, d, f) VALUES (?, ?, ?, ?, ?)', i32(6), i32(1000),
 		'this is a varchar field', 'this is a blob field', f32(3.14))!
 
