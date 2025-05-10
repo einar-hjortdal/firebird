@@ -249,9 +249,9 @@ fn parse_timestamp_tz(raw_value []u8) !DateTime {
 fn (t DateTime) to_blr_time() []u8 {
 	hours := t.hour * 3600
 	minutes := t.minute * 60
-	seconds := t.second * 10_000
+	seconds := t.second
 	fractions := t.nanosecond / 100_000
-	return marshal_i32_big_endian(i32(hours + minutes + seconds + fractions))
+	return marshal_i32_big_endian(i32((hours + minutes + seconds) * 10_000 + fractions))
 }
 
 fn (t DateTime) get_timezone() ![]u8 {
