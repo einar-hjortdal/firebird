@@ -536,11 +536,9 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 				v.write_u8(value)
 			}
 			bool {
-				if param {
-					v.write(marshal_i32_big_endian(1)) or { panic(err) } // does not return any error
-				} else {
-					v.write(marshal_i32_big_endian(0)) or { panic(err) } // does not return any error
-				}
+				blr, value := bool_to_blr(param)
+				b.write(blr) or { panic(err) } // does not return any error
+				v.write(value) or { panic(err) } // does not return any error
 			}
 			Null {
 				b.write_u8(blr_text)
