@@ -458,10 +458,21 @@ fn test_statement_time_params() {
 
 	// DateTime params
 	// TODO still broken
-	// date := new_date(time.parse_iso8601('2025-02-12')!)
-	// tx.execute('INSERT INTO foo (id, a) VALUES (?, ?)', i32(6), date)! // fails (eof)
-	// timestamp := new_date(time.parse_iso8601('2025-02-12T12:34:56Z')!)
-	// tx.execute('INSERT INTO foo (id, d) VALUES (?, ?)', i32(10), timestamp)! // fails (eof)
+	// d := new_date(time.parse_iso8601('2025-02-12')!)
+	// tx.execute('INSERT INTO foo (id, a) VALUES (?, ?)', i32(6), date)!
+
+	// t := new_time(time.parse_iso8601('2025-02-12T12:34:56')!)
+	// tx.execute('INSERT INTO foo (id, b) VALUES (?, ?)', i32(7), t)!
+
+	// t_tz := new_time_tz(time.parse_iso8601('2025-02-12T12:34:56')!, 120, '', 0)
+	// tx.execute('INSERT INTO foo (id, b) VALUES (?, ?)', i32(8), t_tz)!
+
+	// ts := new_timestamp(time.parse_iso8601('2025-02-12T12:34:56Z')!)
+	// tx.execute('INSERT INTO foo (id, d) VALUES (?, ?)', i32(9), ts)!
+
+	// ts_tz := new_timestamp_tz(time.parse_iso8601('2025-02-12T12:34:56Z')!, 0, 'Europe/Brussels',
+	// 	0)
+	// tx.execute('INSERT INTO foo (id, d) VALUES (?, ?)', i32(10), ts_tz)!
 
 	result := tx.execute('SELECT * FROM foo')!
 	columns := result.columns
