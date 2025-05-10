@@ -432,47 +432,89 @@ fn test_statement_params() {
 	conn.close()!
 }
 
-// fn test_statement_time_params() {
-// 	mut conn := new_connection(url)!
+fn test_statement_time_params() {
+	mut conn := new_connection(url)!
 
-// 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-// 	tx.execute('
-// 		CREATE TABLE foo (
-// 			id INTEGER PRIMARY KEY,
-// 			a DATE,
-// 			b TIME,
-// 			c TIME WITH TIME ZONE,
-// 			d TIMESTAMP,
-// 			e TIMESTAMP WITH TIME ZONE
-// 			)')!
-// 	tx.commit()!
+	mut tx := conn.start_transaction(isolation_level_read_commited)!
+	tx.execute('
+		CREATE TABLE foo (
+			id INTEGER PRIMARY KEY,
+			a DATE,
+			b TIME,
+			c TIME WITH TIME ZONE,
+			d TIMESTAMP,
+			e TIMESTAMP WITH TIME ZONE
+			)')!
+	tx.commit()!
 
-// 	tx = conn.start_transaction(isolation_level_read_commited)!
+	tx = conn.start_transaction(isolation_level_read_commited)!
 
-// 	mut date := DateTime{
-// 		Time:     time.parse_iso8601('2025-02-12')!
-// 		sql_type: sql_type_date
-// 	}
+	// string params
+	tx.execute('INSERT INTO foo (id, a) VALUES (?, ?)', i32(1), '2025-02-12')!
+	tx.execute('INSERT INTO foo (id, b) VALUES (?, ?)', i32(2), '12:34:56')!
+	tx.execute('INSERT INTO foo (id, c) VALUES (?, ?)', i32(3), '12:34:56 +02:00')!
+	tx.execute('INSERT INTO foo (id, d) VALUES (?, ?)', i32(4), '2025-02-12 12:34:56')!
+	tx.execute('INSERT INTO foo (id, e) VALUES (?, ?)', i32(5), '2025-02-12 12:34:56 Europe/Brussels')!
 
-// 	mut timestamp := DateTime{
-// 		Time:     time.now()
-// 		sql_type: sql_type_timestamp
-// 	}
+	// DateTime params
+	// TODO still broken
+	// date := new_date(time.parse_iso8601('2025-02-12')!)
+	// tx.execute('INSERT INTO foo (id, a) VALUES (?, ?)', i32(6), date)! // fails (eof)
+	// timestamp := new_date(time.parse_iso8601('2025-02-12T12:34:56Z')!)
+	// tx.execute('INSERT INTO foo (id, d) VALUES (?, ?)', i32(10), timestamp)! // fails (eof)
 
-// 	tx.execute('INSERT INTO foo (id, a, d) VALUES (?, ?, ?)', i32(1), date, timestamp) or {
-// 		panic(err)
-// 	}
-// 	result := tx.execute('SELECT * FROM foo')!
-// 	columns := result.columns
-// 	rows := result.rows
-// 	assert rows.len == 1
+	result := tx.execute('SELECT * FROM foo')!
+	columns := result.columns
+	rows := result.rows
+	// assert rows.len == 5
 
-// 	println(rows[0].values)
+	mut id, _ := rows[0].values[0].get_i32()!
+	mut dt, _ := rows[0].values[1].get_date_time()!
+	assert id == 1
+	assert dt.Time.year == 2025
+	assert dt.Time.month == 2
+	assert dt.Time.day == 12
 
-// 	tx.rollback()!
+	id, _ = rows[1].values[0].get_i32()!
+	dt, _ = rows[1].values[2].get_date_time()!
+	assert id == 2
+	assert dt.Time.hour == 12
+	assert dt.Time.minute == 34
+	assert dt.Time.second == 56
 
-// 	tx = conn.start_transaction(isolation_level_read_commited)!
-// 	tx.execute('DROP TABLE foo')!
-// 	tx.commit()!
-// 	conn.close()!
-// }
+	id, _ = rows[2].values[0].get_i32()!
+	dt, _ = rows[2].values[3].get_date_time()!
+	assert id == 3
+	assert dt.Time.hour == 12 - 2
+	assert dt.Time.minute == 34
+	assert dt.Time.second == 56
+	assert dt.offset == 120
+
+	id, _ = rows[3].values[0].get_i32()!
+	dt, _ = rows[3].values[4].get_date_time()!
+	assert id == 4
+	assert dt.Time.year == 2025
+	assert dt.Time.month == 2
+	assert dt.Time.day == 12
+	assert dt.Time.hour == 12
+	assert dt.Time.minute == 34
+	assert dt.Time.second == 56
+
+	id, _ = rows[4].values[0].get_i32()!
+	dt, _ = rows[4].values[5].get_date_time()!
+	assert id == 5
+	assert dt.Time.year == 2025
+	assert dt.Time.month == 2
+	assert dt.Time.day == 12
+	// Hour is not checked because named_zone behavior may change?
+	assert dt.Time.minute == 34
+	assert dt.Time.second == 56
+	assert dt.named_zone == 'Europe/Brussels'
+
+	tx.rollback()!
+
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	tx.execute('DROP TABLE foo')!
+	tx.commit()!
+	conn.close()!
+}
