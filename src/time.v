@@ -294,31 +294,31 @@ fn (t DateTime) to_blr_timestamp_tz() ![]u8 {
 	return arrays.append(timestamp_segment, timezone_segment)
 }
 
-fn (t DateTime) to_blr() !([]u8, u8) {
+fn (t DateTime) to_blr() !([]u8, []u8) {
 	match t.sql_type {
 		sql_type_date {
 			blr := t.to_blr_date()
-			value := u8(blr_sql_date)
+			value := [u8(blr_sql_date)]
 			return blr, value
 		}
 		sql_type_time {
 			blr := t.to_blr_time()
-			value := u8(blr_sql_time)
+			value := [u8(blr_sql_time)]
 			return blr, value
 		}
 		sql_type_time_tz {
 			blr := t.to_blr_time_tz()!
-			value := u8(blr_sql_time_tz)
+			value := [u8(blr_sql_time_tz)]
 			return blr, value
 		}
 		sql_type_timestamp {
 			blr := t.to_blr_timestamp()
-			value := u8(blr_timestamp)
+			value := [u8(blr_timestamp)]
 			return blr, value
 		}
 		sql_type_timestamp_tz {
 			blr := t.to_blr_timestamp_tz()!
-			value := u8(blr_timestamp_tz)
+			value := [u8(blr_timestamp_tz)]
 			return blr, value
 		}
 		else {

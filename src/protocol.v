@@ -533,7 +533,7 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 			DateTime {
 				blr, value := param.to_blr()!
 				b.write(blr) or { panic(err) } // does not return any error
-				v.write_u8(value)
+				v.write(value) or { panic(err) } // does not return any error
 			}
 			bool {
 				blr, value := bool_to_blr(param)
