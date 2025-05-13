@@ -17,6 +17,10 @@ fn decode_offset(time_zone u16) i16 {
 	return i16(time_zone) - one_day
 }
 
+fn encode_offset(offset i16) i16 {
+	return offset + one_day
+}
+
 // used to validate user-provided offset
 fn validate_offset(o i16) ! {
 	if o == 0 || !is_offset(u16(o)) {
@@ -261,7 +265,7 @@ fn (t DateTime) get_timezone() ![]u8 {
 		return arrays.append(first_u8_pair, second_u8_pair)
 	}
 	first_u8_pair := marshal_i16_big_endian(0)
-	second_u8_pair := marshal_i16_big_endian(t.offset)
+	second_u8_pair := marshal_i16_big_endian(encode_offset(t.offset))
 	return arrays.append(first_u8_pair, second_u8_pair)
 }
 
