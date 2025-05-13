@@ -21,6 +21,8 @@ const database = '/var/lib/firebird/data/firebird.fdb'
 const url = '${protocol}${user}:${password}@${host}${database}'
 
 // TODO cleanup functions: ensure manual intervention is never needed.
+// TODO use get_type utility functions to simplify assertions
+// TODO split DateTime params tests from date string params
 
 fn test_open_no_db() {
 	mut conn := new_connection('${protocol}${user}@${host}') or {
