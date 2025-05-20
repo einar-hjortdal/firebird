@@ -200,6 +200,70 @@ pub fn (value Value) get_string_or_zero() !string {
 	return v
 }
 
+// pub fn (value Value) date_time() ?DateTime {
+// 	v, n := value.get_date_time()! // need to handle error too.
+// 	if n {
+// 		return none
+// 	}
+// 	return v
+// }
+
+// pub fn (value Value) i32() ?i32 {
+// 	v, n := value.get_i32()! // need to handle error too.
+// 	if n {
+// 		return none
+// 	}
+// 	return v
+// }
+
+// pub fn (value Value) i64() ?i64 {
+// 	v, n := value.get_i64()! // need to handle error too.
+// 	if n {
+// 		return none
+// 	}
+// 	return v
+// }
+
+// pub fn (value Value) f32() ?f32 {
+// 	v, n := value.get_f32()! // need to handle error too.
+// 	if n {
+// 		return none
+// 	}
+// 	return v
+// }
+
+// pub fn (value Value) f64() ?f64 {
+// 	v, n := value.get_f64()! // need to handle error too.
+// 	if n {
+// 		return none
+// 	}
+// 	return v
+// }
+
+// pub fn (value Value) bool() ?bool {
+// 	v, n := value.get_bool()! // need to handle error too.
+// 	if n {
+// 		return none
+// 	}
+// 	return v
+// }
+
+// pub fn (value Value) array_u8() ?[]u8 {
+// 	v, n := value.get_array_u8()! // need to handle error too.
+// 	if n {
+// 		return none
+// 	}
+// 	return v
+// }
+
+// pub fn (value Value) string() ?string {
+// 	v, n := value.get_string()! // need to handle error too.
+// 	if n {
+// 		return none
+// 	}
+// 	return v
+// }
+
 pub struct NullDateTime {
 pub:
 	value   DateTime
