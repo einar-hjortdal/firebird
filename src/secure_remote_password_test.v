@@ -62,7 +62,7 @@ fn get_server_session(user string, password string, salt []u8, client_public_key
 	u := get_scramble(client_public_key, server_public_key)
 	v := get_verifier(user, password, salt)
 	vu := v.big_mod_pow(u, prime) or { panic(err) }
-	avu := (client_public_key * vu) % prime
+	avu := (client_public_key * vu).mod_checked(prime) or { panic(err) }
 	session_secret := avu.big_mod_pow(server_secret_key, prime) or { panic(err) }
 	return big_int_to_sha1(session_secret)
 }
@@ -71,8 +71,8 @@ fn get_server_seed(v big.Integer) (big.Integer, big.Integer) {
 	prime, g, k := get_prime()
 	server_secret_key := rand.int_big(big_integer_max) or { panic(err) }
 	gb := g.big_mod_pow(server_secret_key, prime) or { panic(err) } // gb = pow(g, b, N)
-	kv := (k * v) % prime // kv = (k * v) % N
-	server_public_key := (kv + gb) % prime // B = (kv + gb) % N
+	kv := (k * v).mod_checked(prime) or { panic(err) } // kv = (k * v) % N
+	server_public_key := (kv + gb).mod_checked(prime) or { panic(err) } // B = (kv + gb) % N
 	return server_public_key, server_secret_key
 }
 

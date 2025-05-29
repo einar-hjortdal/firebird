@@ -31,7 +31,7 @@ fn test_open_no_db() {
 	conn.close()!
 }
 
-fn test_open_() {
+fn test_open() {
 	mut conn := new_connection(url)!
 	conn.close()!
 }
@@ -47,7 +47,7 @@ fn test_new_statement() {
 	conn.close()!
 }
 
-fn test_execute_statement_ddl_() {
+fn test_execute_statement_ddl() {
 	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
@@ -201,7 +201,7 @@ fn test_time_zone() {
 // fn test_timestamp_tz_ex() {
 // }
 
-fn test_execute_dml_() {
+fn test_execute_dml() {
 	mut conn := new_connection(url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!

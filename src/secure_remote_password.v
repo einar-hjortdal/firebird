@@ -87,10 +87,10 @@ fn get_session_key(user string, password string, salt []u8, client_public_key bi
 	u := get_scramble(client_public_key, server_public_key)
 	x := get_user_hash(salt, user, password)
 	gx := generator.big_mod_pow(x, prime) or { panic(err) } // gx = pow(g, x, N)
-	kgx := (k * gx) % prime // kgx = (k * gx) % N
-	diff := (server_public_key - kgx) % prime // diff = (B - kgx) % N
+	kgx := (k * gx).mod_checked(prime) or { panic(err) } // kgx = (k * gx) % N
+	diff := (server_public_key - kgx).mod_checked(prime) or { panic(err) } // diff = (B - kgx) % N
 	ux := (u * x) % prime // ux = (u * x) % N
-	aux := (client_secret_key + ux) % prime // aux = (a + ux) % N
+	aux := (client_secret_key + ux).mod_checked(prime) or { panic(err) } // aux = (a + ux) % N
 	session_secret := diff.big_mod_pow(aux, prime) or { panic(err) } // (B - kg^x) ^ (a+ ux)
 	return big_int_to_sha1(session_secret)
 }
