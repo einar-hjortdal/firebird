@@ -586,10 +586,11 @@ fn (mut p WireProtocol) parse_xsqlda(buf []u8, stmt_handle i32) !(i32, XSQLDA) {
 				mut vars := strings.new_builder(2 + info_sql_select_describe_vars.len)
 				vars.write_u8(isc_info_sql_sqlda_start)
 				vars.write_u8(2)
+				vars.write(marshal_i16_small_endian(i16(next_index))) or { panic(err) }
 				vars.write(info_sql_select_describe_vars) or { panic(err) } // does not return any error
 				p.information_request(stmt_handle, vars)!
 				_, _, var_data := p.generic_response()!
-				var_len := parse_little_endian_i16(var_data[2..4])
+				var_len := parse_little_endian_i16(var_data[2..4]) // this is bad: 2304
 				next_index = xsqlda.parse_select_items(var_data[4 + var_len..])!
 			}
 		} else {
