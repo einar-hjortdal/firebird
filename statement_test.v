@@ -618,3 +618,41 @@ fn test_luuid() {
 	// got_a needs to be normalized to uppercase because firebird always normalizes to uppercase.
 	assert got_id.trim_space() == got_a.to_upper()
 }
+
+fn test_boolean() {
+	mut conn := new_connection('${protocol}${user}@${host}') or {
+		assert true // protocol error: no database is provided
+		return
+	}
+	mut tx := conn.start_transaction(isolation_level_read_commited)!
+	tx.execute('CREATE TABLE foo (
+		id INTEGER PRIMARY KEY NOT NULL,
+		a BOOLEAN DEFAULT true
+		)')!
+	tx.commit()!
+
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	tx.execute('INSERT INTO foo (id) VALUES (?)', 1)!
+	mut r := tx.execute('SELECT id, a FROM foo WHERE id = ?', 1)!
+	assert r.rows.len == 1
+	mut v, mut v_is_null := r.rows[0].values[1].get_bool()!
+	assert v == true
+
+	r = tx.execute('UPDATE foo SET a = ? WHERE id = ?', false, 1)!
+	v, v_is_null = r.rows[0].values[1].get_bool()!
+	assert v == false
+
+	r = tx.execute('UPDATE foo SET a = ? WHERE id = ?', true, 1)!
+	v, v_is_null = r.rows[0].values[1].get_bool()!
+	assert v == true
+
+	r = tx.execute('UPDATE foo SET a = ? WHERE id = ?', Null{}, 1)!
+	v, v_is_null = r.rows[0].values[1].get_bool()!
+	assert v_is_null == true
+
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	tx.execute('DROP TABLE foo')!
+	tx.commit()!
+
+	conn.close()!
+}
