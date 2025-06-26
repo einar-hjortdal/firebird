@@ -620,10 +620,7 @@ fn test_luuid() {
 }
 
 fn test_char_boolean() {
-	mut conn := new_connection('${protocol}${user}@${host}') or {
-		assert true // protocol error: no database is provided
-		return
-	}
+	mut conn := new_connection(url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 	tx.execute('CREATE TABLE foo (
 		id CHAR(3) PRIMARY KEY NOT NULL,
@@ -635,23 +632,27 @@ fn test_char_boolean() {
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
 	tx.execute('INSERT INTO foo (id) VALUES (?)', id)!
-	mut r := tx.execute('SELECT id, includes_tax FROM foo WHERE id = ?', 1)!
+	mut r := tx.execute('SELECT id, includes_tax FROM foo WHERE id = ?', id)!
 	assert r.rows.len == 1
 	mut v, mut v_is_null := r.rows[0].values[1].get_bool()!
 	assert v == true
 
-	r = tx.execute('UPDATE foo SET includes_tax = ? WHERE id = ?', false, id)!
+	tx.execute('UPDATE foo SET includes_tax = ? WHERE id = ?', false, id)!
+	r = tx.execute('SELECT id, includes_tax FROM foo WHERE id = ?', id)!
 	v, v_is_null = r.rows[0].values[1].get_bool()!
 	assert v == false
 
-	r = tx.execute('UPDATE foo SET a = ? WHERE id = ?', true, id)!
+	tx.execute('UPDATE foo SET includes_tax = ? WHERE id = ?', true, id)!
+	r = tx.execute('SELECT id, includes_tax FROM foo WHERE id = ?', id)!
 	v, v_is_null = r.rows[0].values[1].get_bool()!
 	assert v == true
 
-	r = tx.execute('UPDATE foo SET a = ? WHERE id = ?', Null{}, id)!
+	tx.execute('UPDATE foo SET includes_tax = ? WHERE id = ?', Null{}, id)!
+	r = tx.execute('SELECT id, includes_tax FROM foo WHERE id = ?', id)!
 	v, v_is_null = r.rows[0].values[1].get_bool()!
 	assert v == false
 	assert v_is_null == true
+	tx.rollback()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
 	tx.execute('DROP TABLE foo')!
