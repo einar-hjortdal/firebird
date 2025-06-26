@@ -366,12 +366,13 @@ fn f64_to_blr(dp f64) ([]u8, []u8) {
 	return blr, value
 }
 
+// byte padded to a length of 4: 1 for true, 0 for false.
 fn bool_to_blr(b bool) ([]u8, []u8) {
 	blr := [u8(blr_bool)]
 	if b {
-		value := marshal_i32_small_endian(1)
+		value := marshal_i32_small_endian(1) // [1, 0, 0, 0]
 		return blr, value
 	}
-	value := marshal_i32_small_endian(0)
+	value := marshal_i32_small_endian(0) // [0, 0, 0, 0]
 	return blr, value
 }
