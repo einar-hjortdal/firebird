@@ -27,7 +27,6 @@ fn new_columns(xsqlda XSQLDA) []Column {
 }
 
 pub struct Row {
-pub:
 	values []Value
 }
 
@@ -46,9 +45,12 @@ fn new_rows(data [][]Value) []Row {
 	return res
 }
 
+pub fn (r Row) values() []Value {
+	return r.values
+}
+
 // Result contains all rows
 pub struct Result {
-pub:
 	// rows affected?
 	columns []Column
 	rows    []Row
@@ -74,4 +76,12 @@ fn new_result(stmt &Statement, xsqlda XSQLDA, rows_data [][]Value) Result {
 
 fn new_basic_result(stmt &Statement) Result {
 	return new_result(stmt, XSQLDA{}, [][]Value{})
+}
+
+pub fn (r Result) rows() []Row {
+	return r.rows
+}
+
+pub fn (r Result) columns() []Column {
+	return r.columns
 }
