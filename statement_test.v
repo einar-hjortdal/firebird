@@ -1,5 +1,6 @@
 module firebird
 
+import rand
 import time
 import einar_hjortdal.luuid
 
@@ -570,6 +571,30 @@ fn test_statement_time_params() {
 	tx.execute('DROP TABLE foo')!
 	tx.commit()!
 	conn.close()!
+}
+
+fn test_large_returns() {
+	mut conn := new_connection(url)!
+
+	mut tx := conn.start_transaction(isolation_level_read_commited)!
+	tx.execute('CREATE TABLE locale (
+		id BINARY(16) NOT NULL PRIMARY KEY,
+		code VARCHAR(63) NOT NULL UNIQUE
+		)')!
+	tx.commit()!
+
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	mut stmt := tx.prepare('INSERT INTO locale (id, code) VALUES (?, ?)')!
+	for i := 0; i < 500; i++ {
+		id := rand.bytes(16)!
+		code := rand.ascii(63)
+		stmt.execute(id, code)!
+	}
+	tx.commit()!
+
+	tx = conn.start_transaction(isolation_level_read_commited)!
+	data := tx.execute('SELECT id, code FROM locale')!
+	tx.rollback()!
 }
 
 fn test_luuid() {
