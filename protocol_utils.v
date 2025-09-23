@@ -282,7 +282,7 @@ fn choose_wire_crypt(buf []u8) !(string, []u8) {
 
 	for nonce in plugin_nonces {
 		if nonce[..9] == zero_terminated_chacha20_64 {
-			// return chacha20_64_plugin_name, nonce[9..]
+			return chacha20_64_plugin_name, nonce[9..]
 		}
 	}
 
