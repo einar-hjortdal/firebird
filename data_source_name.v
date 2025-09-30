@@ -52,14 +52,21 @@ fn get_options_from_raw_query(rq string) !map[string]string {
 }
 
 fn parse_dsn(s string) !DataSourceName {
-	u := parse_url(s)!
-	options := get_options_from_raw_query(u.raw_query)!
+	url := parse_url(s)!
+	options := get_options_from_raw_query(url.raw_query)!
+
+	mut username := ''
+	mut password := ''
+	if user := url.user {
+		username = user.username
+		password = user.password
+	}
 
 	return DataSourceName{
-		address:  get_address(u.host)
-		database: u.path
-		user:     u.user.username
-		password: u.user.password
+		address:  get_address(url.host)
+		database: url.path
+		user:     username
+		password: password
 		options:  options
 	}
 }
