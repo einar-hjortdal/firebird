@@ -4,28 +4,33 @@
 
 ### Highest
 
-- ~~connect to Firebird~~
-- ~~support Secure Remote Password auth plugin~~
-- ~~support arc4 crypt plugin~~
-- ~~perform queries~~
-- ~~parse responses~~
+- [x] connect to Firebird
+- [x] support Secure Remote Password auth plugin
+- [x] support arc4 crypt plugin
+- [x] perform queries
+- [x] parse responses
 
 ### High
 
-- ~~queries with parameters~~
-- ~~date~~
-- ~~time~~
-- tests
-- never panic
+- [x] queries with parameters
+- [x] date
+- [x] time
+- [ ] tests
+- [ ] never panic
 
 ### Medium
 
-- ~~support chacha crypt plugin~~
-- support chacha64 crypt plugin <!-- https://github.com/vlang/v/issues/23904 -->
-- logging
-- optimize performance
+- [x] support chacha crypt plugin
+- [x] support chacha64 crypt plugin
+- [ ] logging
+- [ ] optimize performance
 
 ### Low
+
+- [ ] add missing isc_error constants
+- [ ] parse isc_error message parameters
+
+### Not planned
 
 I do not use the following features and will not support them. If you would like this project to support 
 any of them, please open a pull request.
