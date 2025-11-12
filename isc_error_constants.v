@@ -1050,6 +1050,7 @@ const error_messages = {
 	336003111: 'Wrong number of parameters (expected @1, got @2)'
 	336003112: 'Invalid DROP SQL SECURITY clause'
 	336003113: 'UPDATE OR INSERT value for field @1, part of the implicit or explicit MATCHING clause, cannot be DEFAULT'
+	336068626: 'Could not find UNIQUE or PRIMARY KEY constraint in table @0 with specified columns'
 	336068645: 'BLOB Filter @1 not found'
 	336068649: 'Function @1 not found'
 	336068656: 'Index not found'
