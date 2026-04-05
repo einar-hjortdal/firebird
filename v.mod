@@ -3,5 +3,7 @@ Module {
 	description: 'firebird client for the V language'
 	version: '3.3.0'
 	license: 'NCSA'
-	dependencies: []
+	dependencies: [
+		'einar-hjortdal.luuid',
+	]
 }
