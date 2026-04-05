@@ -480,6 +480,10 @@ fn (mut p WireProtocol) crypt_callback() ! {
 // https://www.firebirdsql.org/file/documentation/html/en/firebirddocs/wireprotocol/firebird-wire-protocol.html#wireprotocol-statements-execute
 // https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/ng/wire/DefaultBlrCalculator.java
 fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_version i32) !([]u8, []u8) {
+	if protocol_version == 0 {
+		// suppress compiler notice
+		// handle protocol_version(s)
+	}
 	mut b := initialize_blr_data(params) // Parameters in BLR format
 	mut v := initialize_values_data(params) // Parameter values
 
@@ -500,11 +504,11 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 			}
 			[]u8 {
 				if param.len < max_char_length {
-					blr, value := bytes_to_blr(*param) // https://github.com/vlang/v/issues/24054#issuecomment-2758173475
+					blr, value := bytes_to_blr(param)
 					b.write(blr) or { panic(err) } // does not return any error
 					v.write(value) or { panic(err) } // does not return any error
 				} else {
-					value := p.make_blob(*param, tx_handle)! // https://github.com/vlang/v/issues/24054#issuecomment-2758173475
+					value := p.make_blob(param, tx_handle)!
 					v.write(value) or { panic(err) } // does not return any error
 					b.write_u8(9)
 					b.write_u8(0)
@@ -899,3 +903,4 @@ fn (mut p WireProtocol) free_statement(stmt_handle i32, mode i32) ! {
 }
 
 // TODO op_cancel
+

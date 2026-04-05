@@ -15,10 +15,10 @@ import einar_hjortdal.luuid
 
 const protocol = 'firebird://'
 const user = 'fbusr'
-const password = 'fbpwd'
+const test_password = 'fbpwd'
 const host = '127.0.0.1:3050'
 const database = '/var/lib/firebird/data/firebird.fdb'
-const url = '${protocol}${user}:${password}@${host}${database}'
+const test_url = '${protocol}${user}:${test_password}@${host}${database}'
 
 // TODO cleanup functions: ensure manual intervention is never needed.
 // TODO use get_type utility functions to simplify assertions
@@ -33,12 +33,12 @@ fn test_open_no_db() {
 }
 
 fn test_open() {
-	mut conn := new_connection(url)!
+	mut conn := new_connection(test_url)!
 	conn.close()!
 }
 
 fn test_new_statement() {
-	mut conn := new_connection(url)!
+	mut conn := new_connection(test_url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
 	mut stmt := tx.prepare('CREATE TABLE foo (a INTEGER)')!
@@ -49,7 +49,7 @@ fn test_new_statement() {
 }
 
 fn test_execute_statement_ddl() {
-	mut conn := new_connection(url)!
+	mut conn := new_connection(test_url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
 	mut stmt := tx.prepare('CREATE TABLE foo (a INTEGER)')!
@@ -79,7 +79,7 @@ fn test_execute_statement_ddl() {
 }
 
 fn test_at_time_zone() {
-	mut conn := new_connection(url)!
+	mut conn := new_connection(test_url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 
 	mut result := tx.execute('SELECT current_timestamp FROM RDB\$DATABASE')!
@@ -119,7 +119,7 @@ fn test_at_time_zone() {
 }
 
 fn test_time_zone() {
-	mut conn := new_connection(url)!
+	mut conn := new_connection(test_url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 	tx.execute('CREATE TABLE foo (
 		id INTEGER PRIMARY KEY,
@@ -203,7 +203,7 @@ fn test_time_zone() {
 // }
 
 fn test_execute_dml() {
-	mut conn := new_connection(url)!
+	mut conn := new_connection(test_url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 	mut stmt := tx.prepare("CREATE TABLE foo (
@@ -263,7 +263,7 @@ fn test_execute_dml() {
 }
 
 fn test_null() {
-	mut conn := new_connection(url)!
+	mut conn := new_connection(test_url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 	mut stmt := tx.prepare('CREATE TABLE foo (
@@ -309,7 +309,7 @@ fn test_null() {
 }
 
 fn test_statement_params() {
-	mut conn := new_connection(url)!
+	mut conn := new_connection(test_url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 	tx.execute('CREATE TABLE foo (
@@ -435,7 +435,7 @@ fn test_statement_params() {
 }
 
 fn test_statement_time_params() {
-	mut conn := new_connection(url)!
+	mut conn := new_connection(test_url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 	tx.execute('CREATE TABLE foo (
@@ -574,17 +574,17 @@ fn test_statement_time_params() {
 }
 
 fn test_large_returns() {
-	mut conn := new_connection(url)!
+	mut conn := new_connection(test_url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	tx.execute('CREATE TABLE locale (
+	tx.execute('CREATE TABLE foo (
 		id BINARY(16) NOT NULL PRIMARY KEY,
 		code VARCHAR(63) NOT NULL UNIQUE
 		)')!
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	mut stmt := tx.prepare('INSERT INTO locale (id, code) VALUES (?, ?)')!
+	mut stmt := tx.prepare('INSERT INTO foo (id, code) VALUES (?, ?)')!
 	for i := 0; i < 500; i++ {
 		id := rand.bytes(16)!
 		code := rand.ascii(63)
@@ -593,7 +593,7 @@ fn test_large_returns() {
 	tx.commit()!
 
 	tx = conn.start_transaction(isolation_level_read_commited)!
-	data := tx.execute('SELECT id, code FROM locale')!
+	data := tx.execute('SELECT id, code FROM foo')!
 	tx.rollback()!
 }
 
@@ -602,7 +602,7 @@ fn test_luuid() {
 	id := gen.v1()
 	id_bin := luuid.to_bytes(id)!
 
-	mut conn := new_connection(url)!
+	mut conn := new_connection(test_url)!
 
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 	tx.execute('CREATE TABLE foo (
@@ -645,7 +645,7 @@ fn test_luuid() {
 }
 
 fn test_char_boolean() {
-	mut conn := new_connection(url)!
+	mut conn := new_connection(test_url)!
 	mut tx := conn.start_transaction(isolation_level_read_commited)!
 	tx.execute('CREATE TABLE foo (
 		id CHAR(3) PRIMARY KEY NOT NULL,

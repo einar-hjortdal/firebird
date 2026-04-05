@@ -101,7 +101,7 @@ pub fn (mut stmt Statement) execute(params ...Value) !Result {
 				if value_type == sql_type_blob {
 					match value {
 						[]u8 {
-							blob := stmt.tx.conn.p.get_blob_segments(*value, stmt.tx.tx_handle)!
+							blob := stmt.tx.conn.p.get_blob_segments(value, stmt.tx.tx_handle)!
 							if value_subtype == 1 {
 								rows_data[i][k] = blob.bytestr()
 							} else {

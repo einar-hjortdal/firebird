@@ -37,7 +37,7 @@ pub fn (value Value) get_date_time() !(DateTime, bool) {
 pub fn (value Value) get_i32() !(i32, bool) {
 	match value {
 		i32 {
-			return *value, false
+			return value, false
 		}
 		Null {
 			return 0, true
@@ -53,7 +53,7 @@ pub fn (value Value) get_i32() !(i32, bool) {
 pub fn (value Value) get_i64() !(i64, bool) {
 	match value {
 		i64 {
-			return *value, false
+			return value, false
 		}
 		Null {
 			return 0, true
@@ -69,7 +69,7 @@ pub fn (value Value) get_i64() !(i64, bool) {
 pub fn (value Value) get_f32() !(f32, bool) {
 	match value {
 		f32 {
-			return *value, false
+			return value, false
 		}
 		Null {
 			return 0, true
@@ -85,7 +85,7 @@ pub fn (value Value) get_f32() !(f32, bool) {
 pub fn (value Value) get_f64() !(f64, bool) {
 	match value {
 		f64 {
-			return *value, false
+			return value, false
 		}
 		Null {
 			return 0, true
@@ -101,7 +101,7 @@ pub fn (value Value) get_f64() !(f64, bool) {
 pub fn (value Value) get_bool() !(bool, bool) {
 	match value {
 		bool {
-			return *value, false
+			return value, false
 		}
 		Null {
 			return false, true
@@ -117,7 +117,7 @@ pub fn (value Value) get_bool() !(bool, bool) {
 pub fn (value Value) get_array_u8() !([]u8, bool) {
 	match value {
 		[]u8 {
-			return *value, false
+			return value, false
 		}
 		Null {
 			return []u8{}, true
@@ -133,7 +133,7 @@ pub fn (value Value) get_array_u8() !([]u8, bool) {
 pub fn (value Value) get_string() !(string, bool) {
 	match value {
 		string {
-			return *value, false
+			return value, false
 		}
 		Null {
 			return '', true

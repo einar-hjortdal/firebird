@@ -48,3 +48,4 @@ pub fn (mut t Transaction) execute(query string, params ...Value) !Result {
 	stmt.close()!
 	return result
 }
+
