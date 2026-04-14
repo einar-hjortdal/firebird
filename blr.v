@@ -46,7 +46,7 @@ fn get_sql_scale(sql_scale u8) u8 {
 	if sql_scale > 0 {
 		return sql_scale
 	}
-	return sql_scale + 256
+	return u8(sql_scale + 256)
 }
 
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/client/BlrFromMessage.cpp
