@@ -42,13 +42,6 @@ const blr_message = 4
 const blr_end = 255
 const blr_eoc = 76
 
-fn get_sql_scale(sql_scale u8) u8 {
-	if sql_scale > 0 {
-		return sql_scale
-	}
-	return u8(sql_scale + 256) // TODO this wraps to 0, I think. Verify
-}
-
 // https://github.com/FirebirdSQL/firebird/blob/v5.0-release/src/remote/client/BlrFromMessage.cpp
 fn build_blr(xsqlda XSQLDA) ![]u8 {
 	len := xsqlda.vars.len * 2
@@ -65,7 +58,6 @@ fn build_blr(xsqlda XSQLDA) ![]u8 {
 
 	for i := 0; i < xsqlda.vars.len; i++ {
 		v := xsqlda.vars[i]
-		sql_scale := get_sql_scale(u8(v.sql_scale))
 		match v.sql_type {
 			sql_type_varying {
 				blr.write_u8(blr_varying) // TODO switch to blr_varying2
@@ -85,7 +77,7 @@ fn build_blr(xsqlda XSQLDA) ![]u8 {
 			}
 			sql_type_int128 {
 				blr.write_u8(blr_int128)
-				blr.write_u8(sql_scale)
+				blr.write_u8(u8(v.sql_scale))
 			}
 			sql_type_double {
 				blr.write_u8(blr_double)
@@ -127,19 +119,19 @@ fn build_blr(xsqlda XSQLDA) ![]u8 {
 			}
 			sql_type_long {
 				blr.write_u8(blr_long)
-				blr.write_u8(u8(sql_scale))
+				blr.write_u8(u8(v.sql_scale))
 			}
 			sql_type_short {
 				blr.write_u8(blr_short)
-				blr.write_u8(u8(sql_scale))
+				blr.write_u8(u8(v.sql_scale))
 			}
 			sql_type_int64 {
 				blr.write_u8(blr_int64)
-				blr.write_u8(sql_scale)
+				blr.write_u8(u8(v.sql_scale))
 			}
 			sql_type_quad {
 				blr.write_u8(blr_quad)
-				blr.write_u8(sql_scale)
+				blr.write_u8(u8(v.sql_scale))
 			}
 			sql_type_boolean {
 				blr.write_u8(blr_bool)
