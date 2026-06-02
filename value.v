@@ -200,72 +200,19 @@ pub fn (value Value) get_string_or_zero() !string {
 	return v
 }
 
-// pub fn (value Value) date_time() ?DateTime {
-// 	v, n := value.get_date_time()! // need to handle error too.
-// 	if n {
-// 		return none
-// 	}
-// 	return v
-// }
+pub interface Nullable[T] {
+	value() T
+	is_null() bool
+}
 
-// pub fn (value Value) i32() ?i32 {
-// 	v, n := value.get_i32()! // need to handle error too.
-// 	if n {
-// 		return none
-// 	}
-// 	return v
-// }
-
-// pub fn (value Value) i64() ?i64 {
-// 	v, n := value.get_i64()! // need to handle error too.
-// 	if n {
-// 		return none
-// 	}
-// 	return v
-// }
-
-// pub fn (value Value) f32() ?f32 {
-// 	v, n := value.get_f32()! // need to handle error too.
-// 	if n {
-// 		return none
-// 	}
-// 	return v
-// }
-
-// pub fn (value Value) f64() ?f64 {
-// 	v, n := value.get_f64()! // need to handle error too.
-// 	if n {
-// 		return none
-// 	}
-// 	return v
-// }
-
-// pub fn (value Value) bool() ?bool {
-// 	v, n := value.get_bool()! // need to handle error too.
-// 	if n {
-// 		return none
-// 	}
-// 	return v
-// }
-
-// pub fn (value Value) array_u8() ?[]u8 {
-// 	v, n := value.get_array_u8()! // need to handle error too.
-// 	if n {
-// 		return none
-// 	}
-// 	return v
-// }
-
-// pub fn (value Value) string() ?string {
-// 	v, n := value.get_string()! // need to handle error too.
-// 	if n {
-// 		return none
-// 	}
-// 	return v
-// }
+pub fn (n Nullable[T]) none_value() ?T {
+	if n.is_null() {
+		return none
+	}
+	return n.value()
+}
 
 pub struct NullDateTime {
-pub:
 	value   DateTime
 	is_null bool
 }
@@ -278,8 +225,15 @@ pub fn (value Value) get_null_date_time() !NullDateTime {
 	}
 }
 
+pub fn (p NullDateTime) value() DateTime {
+	return p.value
+}
+
+pub fn (p NullDateTime) is_null() bool {
+	return p.is_null
+}
+
 pub struct NullI32 {
-pub:
 	value   i32
 	is_null bool
 }
@@ -292,8 +246,15 @@ pub fn (value Value) get_null_i32() !NullI32 {
 	}
 }
 
+pub fn (p NullI32) value() i32 {
+	return p.value
+}
+
+pub fn (p NullI32) is_null() bool {
+	return p.is_null
+}
+
 pub struct NullI64 {
-pub:
 	value   i64
 	is_null bool
 }
@@ -306,8 +267,15 @@ pub fn (value Value) get_null_i64() !NullI64 {
 	}
 }
 
+pub fn (p NullI64) value() i64 {
+	return p.value
+}
+
+pub fn (p NullI64) is_null() bool {
+	return p.is_null
+}
+
 pub struct NullF32 {
-pub:
 	value   f32
 	is_null bool
 }
@@ -320,8 +288,15 @@ pub fn (value Value) get_null_f32() !NullF32 {
 	}
 }
 
+pub fn (p NullF32) value() f32 {
+	return p.value
+}
+
+pub fn (p NullF32) is_null() bool {
+	return p.is_null
+}
+
 pub struct NullF64 {
-pub:
 	value   f64
 	is_null bool
 }
@@ -334,8 +309,15 @@ pub fn (value Value) get_null_f64() !NullF64 {
 	}
 }
 
+pub fn (p NullF64) value() f64 {
+	return p.value
+}
+
+pub fn (p NullF64) is_null() bool {
+	return p.is_null
+}
+
 pub struct NullBool {
-pub:
 	value   bool
 	is_null bool
 }
@@ -348,8 +330,15 @@ pub fn (value Value) get_null_bool() !NullBool {
 	}
 }
 
+pub fn (p NullBool) value() bool {
+	return p.value
+}
+
+pub fn (p NullBool) is_null() bool {
+	return p.is_null
+}
+
 pub struct NullArrayU8 {
-pub:
 	value   []u8
 	is_null bool
 }
@@ -362,8 +351,15 @@ pub fn (value Value) get_null_array_u8() !NullArrayU8 {
 	}
 }
 
+pub fn (p NullArrayU8) value() []u8 {
+	return p.value
+}
+
+pub fn (p NullArrayU8) is_null() bool {
+	return p.is_null
+}
+
 pub struct NullString {
-pub:
 	value   string
 	is_null bool
 }
@@ -375,3 +371,12 @@ pub fn (value Value) get_null_string() !NullString {
 		is_null: is_null
 	}
 }
+
+pub fn (p NullString) value() string {
+	return p.value
+}
+
+pub fn (p NullString) is_null() bool {
+	return p.is_null
+}
+
