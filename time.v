@@ -182,7 +182,8 @@ fn parse_date(raw_value []u8, named_zone string) !DateTime {
 fn parse_time(raw_value []u8, named_zone string) !DateTime {
 	hours, minutes, seconds, fractions := get_time(raw_value[..4])
 	now := time.now()
-	timestamp := time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}')!
+	timestamp :=
+		time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}')!
 	k, v := get_default_named_zone(named_zone)!
 	return DateTime{
 		Time:           timestamp
@@ -195,7 +196,8 @@ fn parse_time(raw_value []u8, named_zone string) !DateTime {
 fn parse_time_tz(raw_value []u8) !DateTime {
 	hours, minutes, seconds, fractions := get_time(raw_value[..4])
 	now := time.now()
-	timestamp := time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}')!
+	timestamp :=
+		time.parse_iso8601('${now.year}-${now.month}-${now.day}T${hours}:${minutes}:${seconds}.${fractions}')!
 
 	// TODO what is this for? It is always 0 when is_offset and always max_u16 when named_zone
 	// timezone := binary.big_endian_u16(raw_value[4..6])
@@ -218,7 +220,8 @@ fn parse_time_tz(raw_value []u8) !DateTime {
 fn parse_timestamp(raw_value []u8, named_zone string) !DateTime {
 	year, month, day := get_date(raw_value[..4])
 	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
-	timestamp := time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}')!
+	timestamp :=
+		time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}')!
 	k, v := get_default_named_zone(named_zone)!
 	return DateTime{
 		Time:           timestamp
@@ -231,7 +234,8 @@ fn parse_timestamp(raw_value []u8, named_zone string) !DateTime {
 fn parse_timestamp_tz(raw_value []u8) !DateTime {
 	year, month, day := get_date(raw_value[..4])
 	hours, minutes, seconds, fractions := get_time(raw_value[4..8])
-	timestamp := time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}')!
+	timestamp :=
+		time.parse_iso8601('${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${fractions}')!
 
 	// timezone := binary.big_endian_u16(raw_value[8..10])
 	offset := binary.big_endian_u16(raw_value[10..12])

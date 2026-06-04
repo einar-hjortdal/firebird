@@ -188,6 +188,7 @@ fn (mut p WireProtocol) parse_status_vector() !([]int, int, string) {
 			}
 			else {}
 		}
+
 		b = p.receive_packets(4)!
 		n = parse_big_endian_i32(b)
 	}
@@ -324,10 +325,10 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 				}
 
 				ln = parse_little_endian_i16(data[..2]) // server salt length
-				server_public_key := big.integer_from_radix(data[ln + 4..].bytestr(),
-					16)!
-				auth_data, session_key = get_client_proof(user.to_upper(), password, data[2..ln + 2],
-					client_public_key, server_public_key, client_secret_key, p.plugin_name)
+				server_public_key := big.integer_from_radix(data[ln + 4..].bytestr(), 16)!
+				auth_data, session_key = get_client_proof(user.to_upper(), password,
+					data[2..ln + 2], client_public_key, server_public_key, client_secret_key,
+					p.plugin_name)
 			} else if p.plugin_name == 'Legacy_Auth' {
 				return error(format_error_message(legacy_auth_error))
 			} else {
@@ -553,6 +554,7 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 				return error(format_error_message('WireProtocol.params_to_blr only accepts the following parameter types: string, []u8, i32, i64, f32, f64, bool, firebird.Time, firebird.Null'))
 			}
 		}
+
 		b.write_u8(blr_short)
 		b.write_u8(0)
 	}
@@ -623,7 +625,7 @@ fn (mut p WireProtocol) sql_response(xsqlda XSQLDA) ![]Value {
 	}
 
 	// TODO this part is repeated in parse_fetch_response. Abstract to utility function
-	mut res := []Value{len: xsqlda.vars.len, init: Value(Null{})}
+	mut res := []Value{len: xsqlda.vars.len, init: Null{}}
 	big256 := big.integer_from_i64(256)
 	mut n := (i32(xsqlda.vars.len) + 7) / 8
 
@@ -728,73 +730,68 @@ fn (mut p WireProtocol) fetch(stmt_handle i32, blr []u8) ! {
 
 // TODO protocol 18 op_fetch_scroll?
 
-fn (mut p WireProtocol) parse_fetch_response(xsqlda XSQLDA) ![][]Value {
-	mut rows := [][]Value{}
-	for {
-		mut b := p.receive_packets(4)!
-		for parse_big_endian_i32(b) == op_dummy {
-			b = p.receive_packets(4)!
-		}
-
-		for parse_big_endian_i32(b) == op_response && p.lazy_response_count > 0 {
-			p.lazy_response_count--
-			p.parse_generic_response()!
-			b = p.receive_packets(4)!
-		}
-
-		if parse_big_endian_i32(b) != op_fetch_response {
-			if parse_big_endian_i32(b) == op_response {
-				p.parse_generic_response()!
-			}
-			return error(format_error_message('parse_fetch_response internal error'))
-		}
-
-		b = p.receive_packets(8)!
-		mut status := parse_big_endian_i32(b[..4])
-		mut count := parse_big_endian_i32(b[4..])
-
-		for count > 0 {
-			mut row := []Value{len: xsqlda.vars.len, init: Value(Null{})}
-			big256 := big.integer_from_i64(256)
-			mut n := (i32(xsqlda.vars.len) + 7) / 8 // Thanks https://github.com/mrotteveel https://github.com/FirebirdSQL/firebird-documentation/issues/216#issuecomment-2788453130
-
-			mut null_indicator := big.integer_from_i64(0)
-			b = p.receive_aligned_packets(n)!
-			for n = i32(b.len); n > 0; n-- {
-				null_indicator = null_indicator * big256 + big.integer_from_i64(b[n - 1])
-			}
-
-			for i := 0; i < xsqlda.vars.len; i++ {
-				if null_indicator.get_bit(u32(i)) {
-					continue
-				}
-				x := xsqlda.vars[i]
-				mut len := i32(0)
-				if x.io_length() < 0 {
-					b = p.receive_packets(4)!
-					len = parse_big_endian_i32(b)
-				} else {
-					len = i32(x.io_length())
-				}
-
-				raw_value := p.receive_aligned_packets(len)!
-				row[i] = x.get_value(raw_value, p.named_zone, p.charset)!
-			}
-
-			rows = arrays.concat(rows, row)
-
-			b = p.receive_packets(12)!
-			// op := parse_big_endian_i32(b[..4]) // 66 (op_fetch_response)
-			status = parse_big_endian_i32(b[4..8])
-			count = parse_big_endian_i32(b[8..])
-		}
-
-		// Status is 100 after the last row is fetched
-		if status == 100 {
-			break
-		}
+// returns fetched rows and fetch status
+fn (mut p WireProtocol) parse_fetch_response(xsqlda XSQLDA) !([][]Value, i32) {
+	mut rows := [][]Value{} // TODO preallocate
+	mut b := p.receive_packets(4)!
+	for parse_big_endian_i32(b) == op_dummy {
+		b = p.receive_packets(4)!
 	}
-	return rows
+
+	for parse_big_endian_i32(b) == op_response && p.lazy_response_count > 0 {
+		p.lazy_response_count--
+		p.parse_generic_response()!
+		b = p.receive_packets(4)!
+	}
+
+	if parse_big_endian_i32(b) != op_fetch_response {
+		if parse_big_endian_i32(b) == op_response {
+			p.parse_generic_response()!
+		}
+		return error(format_error_message('parse_fetch_response internal error'))
+	}
+
+	b = p.receive_packets(8)!
+	mut status := parse_big_endian_i32(b[..4])
+	mut count := parse_big_endian_i32(b[4..])
+
+	for count > 0 {
+		mut row := []Value{len: xsqlda.vars.len, init: Null{}}
+		big256 := big.integer_from_i64(256)
+		mut n := (i32(xsqlda.vars.len) + 7) / 8 // Thanks https://github.com/mrotteveel https://github.com/FirebirdSQL/firebird-documentation/issues/216#issuecomment-2788453130
+
+		mut null_indicator := big.integer_from_i64(0)
+		b = p.receive_aligned_packets(n)!
+		for n = i32(b.len); n > 0; n-- {
+			null_indicator = null_indicator * big256 + big.integer_from_i64(b[n - 1])
+		}
+
+		for i := 0; i < xsqlda.vars.len; i++ {
+			if null_indicator.get_bit(u32(i)) {
+				continue
+			}
+			x := xsqlda.vars[i]
+			mut len := i32(0)
+			if x.io_length() < 0 {
+				b = p.receive_packets(4)!
+				len = parse_big_endian_i32(b)
+			} else {
+				len = i32(x.io_length())
+			}
+
+			raw_value := p.receive_aligned_packets(len)!
+			row[i] = x.get_value(raw_value, p.named_zone, p.charset)!
+		}
+
+		rows = arrays.concat(rows, row)
+
+		b = p.receive_packets(12)!
+		// op := parse_big_endian_i32(b[..4]) // 66 (op_fetch_response)
+		status = parse_big_endian_i32(b[4..8])
+		count = parse_big_endian_i32(b[8..])
+	}
+
+	return rows, status
 }
 
 fn (mut p WireProtocol) create_blob(tx_handle i32) ! {
@@ -903,4 +900,3 @@ fn (mut p WireProtocol) free_statement(stmt_handle i32, mode i32) ! {
 }
 
 // TODO op_cancel
-

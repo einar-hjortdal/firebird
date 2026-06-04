@@ -1,5 +1,7 @@
 module firebird
 
+import arrays
+
 @[heap]
 pub struct Statement {
 	query             string
@@ -72,6 +74,31 @@ pub fn (mut stmt Statement) close() ! {
 	}
 }
 
+fn (mut stmt Statement) get_blobs(mut rows_data [][]Value) ! {
+	for i := 0; i < rows_data.len; i++ {
+		row := rows_data[i]
+		for k := 0; k < row.len; k++ {
+			value := row[k]
+			value_type := stmt.xsqlda.vars[k].sql_type
+			value_subtype := stmt.xsqlda.vars[k].sql_subtype
+
+			if value_type == sql_type_blob {
+				match value {
+					[]u8 {
+						blob := stmt.tx.conn.p.get_blob_segments(value, stmt.tx.tx_handle)!
+						if value_subtype == 1 {
+							rows_data[i][k] = blob.bytestr()
+						} else {
+							rows_data[i][k] = blob
+						}
+					}
+					else {}
+				}
+			}
+		}
+	}
+}
+
 // Executes the statement with the given params.
 pub fn (mut stmt Statement) execute(params ...Value) !Result {
 	if stmt.is_closed {
@@ -88,35 +115,17 @@ pub fn (mut stmt Statement) execute(params ...Value) !Result {
 	if stmt.stmt_type == isc_info_sql_stmt_select {
 		stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, params)!
 		stmt.tx.conn.p.generic_response()!
-		stmt.tx.conn.p.fetch(stmt.stmt_handle, stmt.output_blr_params)!
-		mut rows_data := stmt.tx.conn.p.parse_fetch_response(stmt.xsqlda)!
-		// handle blobs
-		for i := 0; i < rows_data.len; i++ {
-			row := rows_data[i]
-			for k := 0; k < row.len; k++ {
-				value := row[k]
-				value_type := stmt.xsqlda.vars[k].sql_type
-				value_subtype := stmt.xsqlda.vars[k].sql_subtype
-
-				if value_type == sql_type_blob {
-					match value {
-						[]u8 {
-							blob := stmt.tx.conn.p.get_blob_segments(value, stmt.tx.tx_handle)!
-							if value_subtype == 1 {
-								rows_data[i][k] = blob.bytestr()
-							} else {
-								rows_data[i][k] = blob
-							}
-						}
-						else {
-							continue
-						}
-					}
-				}
-			}
+		mut rows := [][]Value{}
+		mut status := fetch_ok
+		for status == fetch_ok {
+			stmt.tx.conn.p.fetch(stmt.stmt_handle, stmt.output_blr_params)!
+			mut rows_data := [][]Value{}
+			rows_data, status = stmt.tx.conn.p.parse_fetch_response(stmt.xsqlda)!
+			stmt.get_blobs(mut rows_data)!
+			rows = arrays.append(rows, rows_data)
 		}
 
-		return new_result(stmt, stmt.xsqlda, rows_data)
+		return new_result(stmt, stmt.xsqlda, rows)
 	}
 
 	// isc_info_sql_stmt_insert

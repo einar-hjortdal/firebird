@@ -50,7 +50,8 @@ fn get_scramble(client_public_key big.Integer, server_public_key big.Integer) bi
 fn get_client_seed() (big.Integer, big.Integer) {
 	prime, generator, _ := get_prime()
 	client_secret_key := rand.int_big(big_integer_max) or { panic(err) } // will never panic
-	client_public_key := generator.big_mod_pow(client_secret_key, prime) or { panic(err) } // will never panic
+	client_public_key :=
+		generator.big_mod_pow(client_secret_key, prime) or { panic(err) } // will never panic
 	return client_public_key, client_secret_key
 }
 
@@ -88,9 +89,11 @@ fn get_session_key(user string, password string, salt []u8, client_public_key bi
 	x := get_user_hash(salt, user, password)
 	gx := generator.big_mod_pow(x, prime) or { panic(err) } // gx = pow(g, x, N)
 	kgx := (k * gx).mod_euclid_checked(prime) or { panic(err) } // kgx = (k * gx) % N
-	diff := (server_public_key - kgx).mod_euclid_checked(prime) or { panic(err) } // diff = (B - kgx) % N
+	diff :=
+		(server_public_key - kgx).mod_euclid_checked(prime) or { panic(err) } // diff = (B - kgx) % N
 	ux := (u * x).mod_euclid_checked(prime) or { panic(err) } // ux = (u * x) % N
-	aux := (client_secret_key + ux).mod_euclid_checked(prime) or { panic(err) } // aux = (a + ux) % N
+	aux :=
+		(client_secret_key + ux).mod_euclid_checked(prime) or { panic(err) } // aux = (a + ux) % N
 	session_secret := diff.big_mod_pow(aux, prime) or { panic(err) } // (B - kg^x) ^ (a+ ux)
 	return big_int_to_sha1(session_secret)
 }

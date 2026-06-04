@@ -21,7 +21,8 @@ pub fn new_connection(s string) !&Connection {
 	mut p := new_wire_protocol(dsn.address, dsn.options['timezone'])!
 	client_public_key, client_secret_key := get_client_seed()
 	p.connect(dsn.database, dsn.user, dsn.options, client_public_key)!
-	p.parse_connect_response(dsn.user, dsn.password, dsn.options, client_public_key, client_secret_key)!
+	p.parse_connect_response(dsn.user, dsn.password, dsn.options, client_public_key,
+		client_secret_key)!
 	p.attach(dsn.database, dsn.user, dsn.password, dsn.options['role'])!
 	p.db_handle, _, _ = p.generic_response()!
 	return &Connection{

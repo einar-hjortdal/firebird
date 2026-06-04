@@ -336,3 +336,6 @@ const isc_arg_sql_state = 19
 
 const isc_time_seconds_precision = 10000
 const isc_time_seconds_precision_scale = -4
+
+const fetch_ok = 0
+const fetch_no_more_rows = 100

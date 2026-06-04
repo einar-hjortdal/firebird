@@ -379,4 +379,3 @@ pub fn (p NullString) value() string {
 pub fn (p NullString) is_null() bool {
 	return p.is_null
 }
-

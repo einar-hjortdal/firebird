@@ -209,7 +209,8 @@ fn user_identification(user string, auth_plugin_name string, wire_crypt bool, cl
 	user_name := arrays.append([u8(cnct_login), u8(user_name_bytes.len)], user_name_bytes)
 
 	plugin_name_bytes := auth_plugin_name.bytes()
-	plugin_name := arrays.append([u8(cnct_plugin_name), u8(plugin_name_bytes.len)], plugin_name_bytes)
+	plugin_name := arrays.append([u8(cnct_plugin_name), u8(plugin_name_bytes.len)],
+		plugin_name_bytes)
 
 	plugin_list_bytes := plugin_list.bytes()
 	plugins := arrays.append([u8(cnct_plugin_list), u8(plugin_list_bytes.len)], plugin_list_bytes)

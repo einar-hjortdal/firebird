@@ -28,7 +28,8 @@ fn new_wire_channel(conn &net.TcpConn) &WireChannel {
 		writer: conn
 	}
 	new_reader := io.new_buffered_reader(brc)
-	new_writer := io.new_buffered_writer(bwc) or { panic(err) } // Will never panic because cap is not 0 (uses default cap)
+	new_writer :=
+		io.new_buffered_writer(bwc) or { panic(err) } // Will never panic because cap is not 0 (uses default cap)
 	wire_channel := &WireChannel{
 		conn:          conn
 		reader:        new_reader
