@@ -49,11 +49,10 @@ pub fn (r Row) values() []Value {
 	return r.values
 }
 
-// Result contains all rows
 pub struct Result {
-	// rows affected?
-	columns []Column
-	rows    []Row
+	affected_rows i32
+	columns       []Column
+	rows          []Row
 mut:
 	stmt &Statement
 }
@@ -65,17 +64,22 @@ fn new_result(stmt &Statement, xsqlda XSQLDA, rows_data [][]Value) Result {
 		}
 	}
 
-	columns := new_columns(xsqlda)
-	rows := new_rows(rows_data)
 	return Result{
-		columns: columns
-		rows:    rows
+		columns: new_columns(xsqlda)
+		rows:    new_rows(rows_data)
 		stmt:    stmt
 	}
 }
 
-fn new_basic_result(stmt &Statement) Result {
-	return new_result(stmt, XSQLDA{}, [][]Value{})
+fn new_basic_result(stmt &Statement, affected_rows i32) Result {
+	return Result{
+		affected_rows: affected_rows
+		stmt:          stmt
+	}
+}
+
+pub fn (r Result) affected_rows() i32 {
+	return r.affected_rows
 }
 
 pub fn (r Result) rows() []Row {
@@ -85,3 +89,4 @@ pub fn (r Result) rows() []Row {
 pub fn (r Result) columns() []Column {
 	return r.columns
 }
+

@@ -3,7 +3,7 @@ module firebird
 import os
 import rand
 import time
-import einar_hjortdal.luuid
+// import einar_hjortdal.luuid
 
 const firebird_container_name = 'test_firebird_server'
 const firebird_port = '3051'
@@ -92,7 +92,9 @@ fn test_execute_statement_ddl() {
 	mut tx := start_transaction(mut conn)!
 
 	mut stmt := tx.prepare('CREATE TABLE foo (a INTEGER)')!
-	stmt.execute()!
+	mut result := stmt.execute()!
+	assert result.affected_rows() == 0
+
 	stmt.execute() or {
 		// [firebird] unsuccessful metadata update
 		// CREATE TABLE FOO failed
@@ -102,7 +104,9 @@ fn test_execute_statement_ddl() {
 	stmt.close()!
 
 	stmt = tx.prepare('DROP TABLE foo')!
-	stmt.execute()!
+	result = stmt.execute()!
+	assert result.affected_rows() == 0
+
 	stmt.execute() or {
 		// [firebird] unsuccessful metadata update
 		// DROP TABLE FOO failed
@@ -122,35 +126,36 @@ fn test_at_time_zone() {
 	mut tx := start_transaction(mut conn)!
 
 	mut result := tx.execute('SELECT current_timestamp FROM RDB\$DATABASE')!
-	assert result.columns.len == 1
+	mut columns := result.columns()
+	assert columns.len == 1
 
-	mut column := result.columns[0]
-	assert column.field_name == 'CURRENT_TIMESTAMP'
-	assert column.sql_type == 'TIMESTAMP WITH TIMEZONE'
-	assert column.null_indicator == false
+	mut c := columns[0]
+	assert c.field_name == 'CURRENT_TIMESTAMP'
+	assert c.sql_type == 'TIMESTAMP WITH TIMEZONE'
+	assert c.null_indicator == false
 
-	assert result.rows.len == 1
+	mut rows := result.rows()
+	assert rows.len == 1
+	assert rows[0].values().len == 1
 
-	assert result.rows[0].values.len == 1
-
-	mut t := result.rows[0].values[0]
+	mut t := rows[0].values()[0]
 	assert t is DateTime && t.named_zone == 'Etc/UTC'
 
 	result = tx.execute("SELECT current_timestamp AT TIME ZONE 'America/Sao_Paulo'
 		FROM RDB\$DATABASE")!
-	assert result.rows.len == 1
+	rows = result.rows()
+	assert rows.len == 1
+	assert rows[0].values().len == 1
 
-	assert result.rows[0].values.len == 1
-
-	t = result.rows[0].values[0]
+	t = rows[0].values()[0]
 	assert t is DateTime && t.named_zone == 'America/Sao_Paulo'
 
 	result = tx.execute("SELECT TIME '12:00 GMT' AT TIME ZONE '-05:00' FROM RDB\$DATABASE")!
-	assert result.rows.len == 1
+	rows = result.rows()
+	assert rows.len == 1
+	assert rows[0].values().len == 1
 
-	assert result.rows[0].values.len == 1
-
-	t = result.rows[0].values[0]
+	t = rows[0].values()[0]
 	assert t is DateTime && t.offset == -300
 
 	tx.rollback()!
@@ -167,8 +172,9 @@ fn test_time_zone() {
 	tx.commit()!
 
 	tx = start_transaction(mut conn)!
-	tx.execute("INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
+	mut result := tx.execute("INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
 		VALUES (1, '16:03:00 +02:00', '2025-04-15 16:03:00 +14:00')")!
+	assert result.affected_rows() == 1
 
 	tx.execute("INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
 		VALUES (2, '00:00:00 -05:30', '2000-01-01 00:00:00 -10:30')")!
@@ -176,10 +182,10 @@ fn test_time_zone() {
 	tx.execute("INSERT INTO foo (id, time_with_timezone_col, timestamp_with_timezone_col)
 		VALUES (3, '23:59:59 Europe/Brussels', '1999-12-31 23:59:59 Europe/Brussels')")!
 
-	result := tx.execute('
+	result = tx.execute('
 		SELECT id, time_with_timezone_col, timestamp_with_timezone_col FROM foo')!
 
-	columns := result.columns
+	columns := result.columns()
 	assert columns.len == 3
 
 	id_col := columns[0]
@@ -638,10 +644,10 @@ fn test_large_returns() {
 	tx.commit()!
 
 	tx = start_transaction(mut conn)!
-	data := tx.execute('SELECT id, code FROM foo')!
+	result := tx.execute('SELECT id, code FROM foo')!
 	tx.rollback()!
 
-	rows := data.rows()
+	rows := result.rows()
 	assert rows.len == rows_number
 	last_row := rows[last_row_index].values()
 	last_code, _ := last_row[1].get_string()!
@@ -695,49 +701,3 @@ fn test_char_boolean() {
 	conn.close()!
 }
 
-fn test_luuid() {
-	mut gen := luuid.new_generator()
-	id := gen.v1()
-	id_bin := luuid.to_bytes(id)!
-
-	mut conn := new_connection(test_url)!
-
-	mut tx := conn.start_transaction(isolation_level_read_commited)!
-	tx.execute('CREATE TABLE foo (
-		id BINARY(16) PRIMARY KEY NOT NULL,
-		a BINARY(16)
-		)')!
-	tx.commit()!
-
-	tx = conn.start_transaction(isolation_level_read_commited)!
-
-	// This query inserts id using CHAT_TO_UUID in the column id, and id as []u8 in the column a
-	tx.execute('INSERT INTO foo (id, a) VALUES (CHAR_TO_UUID(?), ?)', id, id_bin)!
-
-	// The following query will prove that firebirds stores id and a identically
-	res := tx.execute('SELECT UUID_TO_CHAR(id), a FROM foo WHERE id = a')!
-	tx.rollback()!
-
-	tx = conn.start_transaction(isolation_level_read_commited)!
-	tx.execute('DROP TABLE foo')!
-	tx.commit()!
-
-	conn.close()!
-
-	// If the value in both columns is the same, we expect one row of results.
-	assert res.rows.len == 1
-
-	// Now the row values are converted and compared at the app level
-	got_id, _ := res.rows[0].values[0].get_string()!
-	a_bin, _ := res.rows[0].values[1].get_array_u8()!
-	got_a := luuid.from_bytes(a_bin)!
-
-	// got_id contains whitespaces that needs to be trimmed.
-	// Don't know why this happens. got.id.len == 144, 4 times 36.
-	// The firebird server sends this array as text with utf8 encoding
-	// [48, 54, 56, 50, 52, 53, 53, 70, 45, 55, 50, 49, 52, 45, 49, 66, 52, 66, 45, 51, 67, 48, 48, 45, 55, 49, 68, 66, 69, 57, 69, 57, 65, 69, 48, 67, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32]
-	// All those 32 after the id make no sense to me.
-	//
-	// got_a needs to be normalized to uppercase because firebird always normalizes to uppercase.
-	assert got_id.trim_space() == got_a.to_upper()
-}

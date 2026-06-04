@@ -99,45 +99,57 @@ fn (mut stmt Statement) get_blobs(mut rows_data [][]Value) ! {
 	}
 }
 
+fn (mut stmt Statement) get_affected_rows() !i32 {
+	stmt.tx.conn.p.information_request(stmt.stmt_handle, [
+		u8(isc_info_sql_records),
+	])!
+	_, _, buf := stmt.tx.conn.p.generic_response()!
+
+	if buf.len < 32 {
+		return 0
+	}
+
+	if stmt.stmt_type == isc_info_sql_stmt_select {
+		return parse_little_endian_i32(buf[20..24])
+	}
+
+	return parse_little_endian_i32(buf[27..31]) + parse_little_endian_i32(buf[6..10]) +
+		parse_little_endian_i32(buf[13..17])
+}
+
 // Executes the statement with the given params.
+// This driver does distinguish between query and execute, executing a statement always returns a Result.
 pub fn (mut stmt Statement) execute(params ...Value) !Result {
 	if stmt.is_closed {
 		return error(format_error_message('failed to execute statement: statement is closed'))
 	}
 
-	if stmt.stmt_type == isc_info_sql_stmt_exec_procedure {
-		// stmt.tx.conn.p.execute_stored_procedure(stmt.stmt_handle, stmt.tx.tx_handle, params,
-		// 	stmt.output_blr_params)!
-		// data := stmt.tx.conn.p.sql_response(stmt.xsqlda)!
-		return error(format_error_message('Stored procedures are not supported ${low_priority_todo}'))
-	}
-
-	if stmt.stmt_type == isc_info_sql_stmt_select {
-		stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, params)!
-		stmt.tx.conn.p.generic_response()!
-		mut rows := [][]Value{}
-		mut status := fetch_ok
-		for status == fetch_ok {
-			stmt.tx.conn.p.fetch(stmt.stmt_handle, stmt.output_blr_params)!
-			mut rows_data := [][]Value{}
-			rows_data, status = stmt.tx.conn.p.parse_fetch_response(stmt.xsqlda)!
-			stmt.get_blobs(mut rows_data)!
-			rows = arrays.append(rows, rows_data)
+	match stmt.stmt_type {
+		isc_info_sql_stmt_select { // eager fetch all rows
+			stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, params)!
+			stmt.tx.conn.p.generic_response()!
+			mut rows := [][]Value{}
+			mut status := fetch_ok
+			for status == fetch_ok {
+				stmt.tx.conn.p.fetch(stmt.stmt_handle, stmt.output_blr_params)!
+				mut rows_data := [][]Value{}
+				rows_data, status = stmt.tx.conn.p.parse_fetch_response(stmt.xsqlda)!
+				stmt.get_blobs(mut rows_data)!
+				rows = arrays.append(rows, rows_data)
+			}
+			return new_result(stmt, stmt.xsqlda, rows)
 		}
-
-		return new_result(stmt, stmt.xsqlda, rows)
+		isc_info_sql_stmt_insert, isc_info_sql_stmt_update, isc_info_sql_stmt_delete,
+		isc_info_sql_stmt_ddl {
+			stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, params)!
+			stmt.tx.conn.p.generic_response()!
+			affected_rows := stmt.get_affected_rows()!
+			return new_basic_result(stmt, affected_rows)
+		}
+		else {
+			// isc_info_sql_stmt_exec_procedure ...
+			return error(format_error_message('Statement type ${stmt.stmt_type} not supported: ${low_priority_todo}'))
+		}
 	}
-
-	// isc_info_sql_stmt_insert
-	// isc_info_sql_stmt_update
-	// isc_info_sql_stmt_delete
-	// isc_info_sql_stmt_ddl
-	if stmt.stmt_type != isc_info_sql_stmt_insert && stmt.stmt_type != isc_info_sql_stmt_update
-		&& stmt.stmt_type != isc_info_sql_stmt_delete && stmt.stmt_type != isc_info_sql_stmt_ddl {
-		println('Statement.execute stmt.stmt_type: ${stmt.stmt_type}') // verify which other isc_info_sql_stmt_ happens and when
-	}
-
-	stmt.tx.conn.p.execute(stmt.stmt_handle, stmt.tx.tx_handle, params)!
-	stmt.tx.conn.p.generic_response()!
-	return new_basic_result(stmt)
 }
+
