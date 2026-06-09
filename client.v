@@ -166,9 +166,9 @@ fn (mut c Client) pop_idle() !&ClientConnection {
 		return no_idle
 	}
 
-	i := len - 1
-	conn := c.idle_connections[i]
-	c.idle_connections = c.idle_connections[..i] // TODO is this in-place? does it need to be?
+	last_i := len - 1
+	conn := c.idle_connections[last_i]
+	c.idle_connections.delete(last_i)
 	c.idle_connections_length--
 	c.check_min_idle_connections()
 	return conn
@@ -261,15 +261,18 @@ pub fn (mut ct ClientTransaction) prepare(query string) !&Statement {
 	return ct.tx.prepare(query)!
 }
 
-// rollback wraps Transaction.rollback. Internally frees the connection.
+// Internally frees the connection.
 pub fn (mut ct ClientTransaction) rollback() ! {
+	defer {
+		ct.client.put(mut ct.client_connection)
+	}
 	ct.tx.rollback()!
-	ct.client.put(mut ct.client_connection)
 }
 
-// commit wraps Transaction.commit. Internally frees the connection.
+// Internally frees the connection.
 pub fn (mut ct ClientTransaction) commit() ! {
+	defer {
+		ct.client.put(mut ct.client_connection)
+	}
 	ct.tx.commit()!
-	ct.client.put(mut ct.client_connection)
 }
-

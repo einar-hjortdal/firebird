@@ -152,4 +152,3 @@ pub fn (mut stmt Statement) execute(params ...Value) !Result {
 		}
 	}
 }
-

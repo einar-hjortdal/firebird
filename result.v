@@ -89,4 +89,3 @@ pub fn (r Result) rows() []Row {
 pub fn (r Result) columns() []Column {
 	return r.columns
 }
-
