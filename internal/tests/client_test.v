@@ -10,3 +10,11 @@ fn testsuite_begin() ! {
 fn testsuite_end() ! {
 	container_firebird_clean()
 }
+
+fn test_new_client() {
+	client := firebird.new_client(firebird.ClientConfig{
+		url: firebird_url
+	})!
+	client.close()
+}
+

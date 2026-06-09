@@ -45,6 +45,12 @@ fn (mut cc ClientConnection) set_idle_since() {
 	cc.mutex.unlock()
 }
 
+fn (mut cc ClientConnection) close() {
+	cc.mutex.lock()
+	cc.fbconn.close() or {}
+	cc.mutex.unlock()
+}
+
 // Client manages a pool of Connection
 // TODO add atomic to ensure a closed pool stays closed
 pub struct Client {
@@ -228,8 +234,20 @@ fn (mut c Client) remove(mut client_connection ClientConnection) {
 	c.mutex.unlock()
 }
 
-fn (mut c Client) close(mut client_connection ClientConnection) ! {
+fn (mut c Client) close_connection(mut client_connection ClientConnection) ! {
 	client_connection.fbconn.close()!
+}
+
+pub fn (mut c Client) close() {
+	c.mutex.lock()
+	for i := 0; i < c.connections.len; i++ {
+		c.connections[i].close()
+	}
+	c.connections.clear()
+	c.idle_connections.clear()
+	c.connections_length = 0
+	c.idle_connections_length = 0
+	c.mutex.unlock()
 }
 
 pub struct ClientTransaction {
@@ -276,3 +294,4 @@ pub fn (mut ct ClientTransaction) commit() ! {
 	}
 	ct.tx.commit()!
 }
+
