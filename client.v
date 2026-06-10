@@ -8,6 +8,8 @@ pub const default_min_pool_size = 2
 
 const no_idle_message = 'no idle connection available'
 const no_idle = NoIdle{}
+const client_closed_message = 'client was closed'
+const client_closed = ClientClosed{}
 
 struct NoIdle {}
 
@@ -19,14 +21,23 @@ fn (e NoIdle) code() int {
 	return 0
 }
 
+struct ClientClosed {}
+
+fn (e ClientClosed) msg() string {
+	return client_closed_message
+}
+
+fn (e ClientClosed) code() int {
+	return 0
+}
+
 pub struct ClientConfig {
 pub:
 	url           string // required, see new_connection
 	max_pool_size ?i32
 	min_pool_size ?i32
-	// TODO:
-	// max_idle_time time.Duration
-	// max_life_time time.Duration
+	// TODO: max_idle_time time.Duration
+	// TODO: max_life_time time.Duration
 }
 
 struct ChannelMessage {}
@@ -34,7 +45,7 @@ struct ChannelMessage {}
 struct ClientConnection {
 	created_at time.Time
 mut:
-	idle_since time.Time // should be an atomic but V atomics are experimental, use mutex instead
+	idle_since time.Time // TODO: should be an atomic but V atomics are experimental, using mutex
 	fbconn     &Connection
 	mutex      &sync.Mutex
 }
@@ -52,7 +63,6 @@ fn (mut cc ClientConnection) close() {
 }
 
 // Client manages a pool of Connection
-// TODO add atomic to ensure a closed pool stays closed
 pub struct Client {
 	url           string
 	max_pool_size i32
@@ -63,6 +73,7 @@ mut:
 	idle_connections        []&ClientConnection // available connections
 	connections_length      i32                 // number of connections in the pool
 	idle_connections_length i32                 // number of available connections in the pool
+	is_closed               bool                // TODO: should be an atomic but V atomics are experimental, using mutex
 	mutex                   &sync.Mutex
 }
 
@@ -181,6 +192,10 @@ fn (mut c Client) pop_idle() !&ClientConnection {
 }
 
 fn (mut c Client) get() !&ClientConnection {
+	if c.is_closed {
+		return client_closed
+	}
+
 	c.wait_turn()!
 	for {
 		c.mutex.lock()
@@ -247,6 +262,7 @@ pub fn (mut c Client) close() {
 	c.idle_connections.clear()
 	c.connections_length = 0
 	c.idle_connections_length = 0
+	c.is_closed = true
 	c.mutex.unlock()
 }
 
