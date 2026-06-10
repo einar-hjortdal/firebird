@@ -54,3 +54,9 @@ pub fn (mut c Connection) start_transaction(isolation_level int) !&Transaction {
 
 	return error(format_error_message('Isolation level not supported.'))
 }
+
+fn (mut c Connection) health_check() ! {
+	mut tx := c.start_transaction(isolation_level_read_commited)!
+	tx.execute('SELECT 1 from RDB\$DATABASE')!
+	tx.rollback()!
+}

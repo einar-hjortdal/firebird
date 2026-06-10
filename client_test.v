@@ -16,6 +16,7 @@ fn start_client() !&Client {
 		url: test_utils.firebird_url
 	})!
 	time.sleep(time.second * 3) // wait for connections to be opened and appended to c.connections
+	// TODO if the application attempts to perform database operations while the client is starting, an unnecessary number of connections may be opened. There should be a startup-lock or another mechanism to prevent that from happening.
 	return c
 }
 

@@ -6,15 +6,10 @@ import time
 pub const default_max_pool_size = 10
 pub const default_min_pool_size = 2
 
-const no_idle_message = 'no idle connection available'
-const no_idle = NoIdle{}
-const client_closed_message = 'client was closed'
-const client_closed = ClientClosed{}
-
 struct NoIdle {}
 
 fn (e NoIdle) msg() string {
-	return no_idle_message
+	return 'no idle connection available'
 }
 
 fn (e NoIdle) code() int {
@@ -24,7 +19,7 @@ fn (e NoIdle) code() int {
 struct ClientClosed {}
 
 fn (e ClientClosed) msg() string {
-	return client_closed_message
+	return 'client was closed'
 }
 
 fn (e ClientClosed) code() int {
@@ -176,7 +171,7 @@ fn (mut c Client) new_client_connection() !&ClientConnection {
 fn (mut c Client) pop_idle() !&ClientConnection {
 	len := c.idle_connections.len
 	if len == 0 {
-		return no_idle
+		return NoIdle{}
 	}
 
 	last_i := len - 1
@@ -188,13 +183,13 @@ fn (mut c Client) pop_idle() !&ClientConnection {
 
 fn (mut c Client) get() !&ClientConnection {
 	if c.is_closed {
-		return client_closed
+		return ClientClosed{}
 	}
 
 	c.wait_turn()!
 	for {
 		c.mutex.lock()
-		conn := c.pop_idle() or {
+		mut conn := c.pop_idle() or {
 			c.mutex.unlock()
 			match err {
 				NoIdle {
@@ -207,7 +202,10 @@ fn (mut c Client) get() !&ClientConnection {
 			}
 		}
 		c.mutex.unlock()
-		// TODO connection health check. close connection if bad, continue loop to find a healthy one
+		conn.fbconn.health_check() or {
+			c.close_connection(mut conn) or {}
+			continue
+		}
 		return conn
 	}
 
