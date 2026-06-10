@@ -2,18 +2,18 @@ module tests
 
 import time
 import firebird
+import test_utils
 
 fn testsuite_begin() ! {
-	container_firebird_start()!
-	container_is_ready()
+	test_utils.container_firebird_start()!
 }
 
 fn testsuite_end() ! {
-	container_firebird_clean()
+	test_utils.container_firebird_clean()
 }
 
 fn test_statement_time_params() {
-	mut conn := firebird.new_connection(firebird_url)!
+	mut conn := new_connection()!
 
 	mut tx := start_transaction(mut conn)!
 	tx.execute('CREATE TABLE foo (

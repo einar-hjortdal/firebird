@@ -1,34 +1,21 @@
 module tests
 
 import firebird
+import test_utils
 
 fn testsuite_begin() ! {
-	container_firebird_start()!
-	container_is_ready()
+	test_utils.container_firebird_start()!
 }
 
 fn testsuite_end() ! {
-	container_firebird_clean()
+	test_utils.container_firebird_clean()
 }
 
 // TODO use get_type utility functions to simplify assertions
 // TODO split DateTime params tests from date string params
 
-fn test_open_no_db() {
-	mut conn := firebird.new_connection('firebird://${firebird_user}:${firebird_password}@localhost') or {
-		assert true // protocol error: no database is provided
-		return
-	}
-	conn.close()!
-}
-
-fn test_open() {
-	mut conn := firebird.new_connection(firebird_url)!
-	conn.close()!
-}
-
 fn test_new_statement() {
-	mut conn := firebird.new_connection(firebird_url)!
+	mut conn := new_connection()!
 	mut tx := start_transaction(mut conn)!
 
 	mut stmt := tx.prepare('CREATE TABLE foo (a INTEGER)')!
@@ -39,7 +26,7 @@ fn test_new_statement() {
 }
 
 fn test_execute_statement_ddl() {
-	mut conn := firebird.new_connection(firebird_url)!
+	mut conn := new_connection()!
 	mut tx := start_transaction(mut conn)!
 
 	mut stmt := tx.prepare('CREATE TABLE foo (a INTEGER)')!
@@ -73,7 +60,7 @@ fn test_execute_statement_ddl() {
 }
 
 fn test_at_time_zone() {
-	mut conn := firebird.new_connection(firebird_url)!
+	mut conn := new_connection()!
 	mut tx := start_transaction(mut conn)!
 
 	mut result := tx.execute('SELECT current_timestamp FROM RDB\$DATABASE')!
@@ -114,7 +101,7 @@ fn test_at_time_zone() {
 }
 
 fn test_time_zone() {
-	mut conn := firebird.new_connection(firebird_url)!
+	mut conn := new_connection()!
 	mut tx := start_transaction(mut conn)!
 	tx.execute('CREATE TABLE foo (
 		id INTEGER PRIMARY KEY,
@@ -203,7 +190,7 @@ fn test_time_zone() {
 // }
 
 fn test_execute_dml() {
-	mut conn := firebird.new_connection(firebird_url)!
+	mut conn := new_connection()!
 
 	mut tx := start_transaction(mut conn)!
 	mut stmt := tx.prepare("CREATE TABLE foo (
@@ -263,7 +250,7 @@ fn test_execute_dml() {
 }
 
 fn test_null() {
-	mut conn := firebird.new_connection(firebird_url)!
+	mut conn := new_connection()!
 
 	mut tx := start_transaction(mut conn)!
 	mut stmt := tx.prepare('CREATE TABLE foo (
@@ -309,7 +296,7 @@ fn test_null() {
 }
 
 fn test_statement_params() {
-	mut conn := firebird.new_connection(firebird_url)!
+	mut conn := new_connection()!
 
 	mut tx := start_transaction(mut conn)!
 	tx.execute('CREATE TABLE foo (
@@ -441,7 +428,7 @@ fn test_statement_params() {
 }
 
 fn test_char_boolean() {
-	mut conn := firebird.new_connection(firebird_url)!
+	mut conn := new_connection()!
 	mut tx := start_transaction(mut conn)!
 	tx.execute('CREATE TABLE foo (
 		id CHAR(3) PRIMARY KEY NOT NULL,

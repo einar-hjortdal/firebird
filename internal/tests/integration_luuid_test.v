@@ -1,15 +1,14 @@
 module tests
 
-import firebird
+import test_utils
 import einar_hjortdal.luuid
 
 fn testsuite_begin() ! {
-	container_firebird_start()!
-	container_is_ready()
+	test_utils.container_firebird_start()
 }
 
 fn testsuite_end() ! {
-	container_firebird_clean()
+	test_utils.container_firebird_clean()
 }
 
 fn test_luuid() {
@@ -17,16 +16,16 @@ fn test_luuid() {
 	id := gen.v1()
 	id_bin := luuid.to_bytes(id)!
 
-	mut conn := firebird.new_connection(test_url)!
+	mut conn := new_connection()!
 
-	mut tx := conn.start_transaction(isolation_level_read_commited)!
+	mut tx := start_transaction(mut conn)!
 	tx.execute('CREATE TABLE foo (
 		id BINARY(16) PRIMARY KEY NOT NULL,
 		a BINARY(16)
 		)')!
 	tx.commit()!
 
-	tx = conn.start_transaction(isolation_level_read_commited)!
+	tx = start_transaction(mut conn)!
 
 	// This query inserts id using CHAT_TO_UUID in the column id, and id as []u8 in the column a
 	tx.execute('INSERT INTO foo (id, a) VALUES (CHAR_TO_UUID(?), ?)', id, id_bin)!
@@ -35,7 +34,7 @@ fn test_luuid() {
 	res := tx.execute('SELECT UUID_TO_CHAR(id), a FROM foo WHERE id = a')!
 	tx.rollback()!
 
-	tx = conn.start_transaction(isolation_level_read_commited)!
+	tx = start_transaction(mut conn)!
 	tx.execute('DROP TABLE foo')!
 	tx.commit()!
 

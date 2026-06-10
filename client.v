@@ -69,12 +69,11 @@ pub struct Client {
 	min_pool_size i32
 	queue         chan ChannelMessage
 mut:
-	connections             []&ClientConnection // active connections
-	idle_connections        []&ClientConnection // available connections
-	connections_length      i32                 // number of connections in the pool
-	idle_connections_length i32                 // number of available connections in the pool
-	is_closed               bool                // TODO: should be an atomic but V atomics are experimental, using mutex
-	mutex                   &sync.Mutex
+	connections        []&ClientConnection // active connections
+	idle_connections   []&ClientConnection // available connections
+	connections_length i32                 // number of connections in the pool
+	is_closed          bool                // TODO: should be an atomic but V atomics are experimental, using mutex
+	mutex              &sync.Mutex
 }
 
 fn (mut c Client) wait_turn() ! {
@@ -93,10 +92,11 @@ fn (mut c Client) free_turn() {
 }
 
 fn (mut c Client) add_idle_connection() ! {
+	fbconn := new_connection(c.url)!
 	connection := &ClientConnection{
 		created_at: time.now()
 		idle_since: time.now()
-		fbconn:     new_connection(c.url)!
+		fbconn:     fbconn
 		mutex:      sync.new_mutex()
 	}
 	c.mutex.lock()
@@ -109,20 +109,16 @@ fn (mut c Client) add_idle_connection_and_free_turn() ! {
 	c.add_idle_connection() or {
 		c.mutex.lock()
 		c.connections_length--
-		c.idle_connections_length--
 		c.mutex.unlock()
 	}
 	c.free_turn()
 }
 
-fn (mut c Client) check_min_idle_connections() {
-	if c.min_pool_size == 0 { return }
-
-	for c.connections_length < c.max_pool_size && c.idle_connections_length < c.min_pool_size {
+fn (mut c Client) check_min_connections() {
+	for c.connections_length < c.min_pool_size {
 		select {
 			c.queue <- ChannelMessage{} {
 				c.connections_length++
-				c.idle_connections_length++
 				go c.add_idle_connection_and_free_turn()
 			}
 			else {
@@ -159,7 +155,7 @@ pub fn new_client(c ClientConfig) !&Client {
 	}
 
 	client.mutex.lock()
-	client.check_min_idle_connections()
+	client.check_min_connections()
 	client.mutex.unlock()
 	return client
 }
@@ -186,8 +182,7 @@ fn (mut c Client) pop_idle() !&ClientConnection {
 	last_i := len - 1
 	conn := c.idle_connections[last_i]
 	c.idle_connections.delete(last_i)
-	c.idle_connections_length--
-	c.check_min_idle_connections()
+	c.check_min_connections()
 	return conn
 }
 
@@ -228,7 +223,6 @@ fn (mut c Client) put(mut client_connection ClientConnection) {
 	// TODO check health: if needed close connection and remove from pool instead
 	client_connection.set_idle_since()
 	c.idle_connections << client_connection
-	c.idle_connections_length++
 	c.mutex.unlock()
 	c.free_turn()
 }
@@ -242,7 +236,7 @@ fn (mut c Client) remove(mut client_connection ClientConnection) {
 			c.connections[i] = c.connections[c.connections.len - 1] // https://github.com/vlang/v/issues/27400
 			c.connections.delete(c.connections.len - 1)
 			c.connections_length--
-			c.check_min_idle_connections()
+			c.check_min_connections()
 			break
 		}
 	}
@@ -261,7 +255,6 @@ pub fn (mut c Client) close() {
 	c.connections.clear()
 	c.idle_connections.clear()
 	c.connections_length = 0
-	c.idle_connections_length = 0
 	c.is_closed = true
 	c.mutex.unlock()
 }
@@ -270,12 +263,12 @@ pub struct ClientTransaction {
 mut:
 	client            &Client
 	client_connection &ClientConnection
-	tx                &Transaction
+	transaction       &Transaction
 }
 
-pub fn (mut c Client) start_transaction(isolation_level int, is_autocommit bool) !&ClientTransaction {
+pub fn (mut c Client) start_transaction(isolation_level int) !&ClientTransaction {
 	mut client_connection := c.get()!
-	tx := new_transaction(mut client_connection.fbconn, isolation_level, is_autocommit) or {
+	transaction := client_connection.fbconn.start_transaction(isolation_level) or {
 		c.put(mut client_connection)
 		return err
 	}
@@ -283,16 +276,16 @@ pub fn (mut c Client) start_transaction(isolation_level int, is_autocommit bool)
 	return &ClientTransaction{
 		client:            c
 		client_connection: client_connection
-		tx:                tx
+		transaction:       transaction
 	}
 }
 
 pub fn (mut ct ClientTransaction) execute(query string, params ...Value) !Result {
-	return ct.tx.execute(query, ...params)
+	return ct.transaction.execute(query, ...params)
 }
 
 pub fn (mut ct ClientTransaction) prepare(query string) !&Statement {
-	return ct.tx.prepare(query)!
+	return ct.transaction.prepare(query)!
 }
 
 // Internally frees the connection.
@@ -300,7 +293,7 @@ pub fn (mut ct ClientTransaction) rollback() ! {
 	defer {
 		ct.client.put(mut ct.client_connection)
 	}
-	ct.tx.rollback()!
+	ct.transaction.rollback()!
 }
 
 // Internally frees the connection.
@@ -308,6 +301,6 @@ pub fn (mut ct ClientTransaction) commit() ! {
 	defer {
 		ct.client.put(mut ct.client_connection)
 	}
-	ct.tx.commit()!
+	ct.transaction.commit()!
 }
 
