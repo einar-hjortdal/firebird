@@ -68,11 +68,10 @@ pub struct Client {
 	conn_max_idle_time time.Duration
 	conn_max_life_time time.Duration
 mut:
-	connections        []&ClientConnection // active connections
-	idle_connections   []&ClientConnection // available connections
-	connections_length i32                 // number of connections in the pool
-	is_closed          bool
-	mutex              &sync.Mutex
+	connections      []&ClientConnection // active connections
+	idle_connections []&ClientConnection // available connections
+	is_closed        bool
+	mutex            &sync.Mutex
 }
 
 fn (mut c Client) wait_turn() ! {
@@ -91,11 +90,10 @@ fn (mut c Client) free_turn() {
 }
 
 fn (mut c Client) add_idle_connection() ! {
-	fbconn := new_connection(c.url)!
 	connection := &ClientConnection{
 		created_at: time.now()
 		idle_since: time.now()
-		fbconn:     fbconn
+		fbconn:     new_connection(c.url)!
 		mutex:      sync.new_mutex()
 	}
 	c.mutex.lock()
@@ -104,20 +102,17 @@ fn (mut c Client) add_idle_connection() ! {
 	c.mutex.unlock()
 }
 
-fn (mut c Client) add_idle_connection_and_free_turn() ! {
-	c.add_idle_connection() or {
-		c.mutex.lock()
-		c.connections_length--
-		c.mutex.unlock()
-	}
+fn (mut c Client) add_idle_connection_and_free_turn() {
+	c.add_idle_connection() or {}
 	c.free_turn()
 }
 
 fn (mut c Client) check_min_connections() {
-	for c.connections_length < c.min_pool_size {
+	mut n_conns := c.connections.len
+	for n_conns < c.min_pool_size {
 		select {
 			c.queue <- ChannelMessage{} {
-				c.connections_length++
+				n_conns++
 				go c.add_idle_connection_and_free_turn()
 			}
 			else {
@@ -173,7 +168,6 @@ fn (mut c Client) new_client_connection() !&ClientConnection {
 	}
 	c.mutex.lock()
 	c.connections << connection
-	c.connections_length++
 	c.mutex.unlock()
 	return connection
 }
@@ -187,7 +181,6 @@ fn (mut c Client) pop_idle() !&ClientConnection {
 	last_i := len - 1
 	conn := c.idle_connections[last_i]
 	c.idle_connections.delete(last_i)
-	c.check_min_connections()
 	return conn
 }
 
@@ -244,8 +237,6 @@ fn (mut c Client) remove(mut client_connection ClientConnection) {
 		if conn == client_connection {
 			c.connections[i] = c.connections[c.connections.len - 1] // https://github.com/vlang/v/issues/27400
 			c.connections.delete(c.connections.len - 1)
-			c.connections_length--
-			c.check_min_connections()
 			break
 		}
 	}
@@ -287,7 +278,6 @@ pub fn (mut c Client) close() {
 	}
 	c.connections.clear()
 	c.idle_connections.clear()
-	c.connections_length = 0
 	c.is_closed = true
 	c.mutex.unlock()
 }

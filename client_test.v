@@ -27,12 +27,10 @@ fn start_transaction(mut c Client) !&ClientTransaction {
 fn test_rollback() {
 	mut c := start_client()!
 	mut tx := start_transaction(mut c)!
-	assert c.connections_length == default_min_pool_size
 	assert c.connections.len == default_min_pool_size
 	assert c.idle_connections.len == default_min_pool_size - 1
 
 	tx.rollback()!
-	assert c.connections_length == default_min_pool_size
 	assert c.connections.len == default_min_pool_size
 	assert c.idle_connections.len == default_min_pool_size
 
@@ -76,8 +74,8 @@ fn test_get_detects_closed_underlying_connection() {
 		assert existing != conn_1
 	}
 
-	assert c.connections_length >= c.min_pool_size
-	assert c.connections.len == c.connections_length
+	assert c.connections.len == c.min_pool_size
+	assert c.idle_connections.len == 0
 	c.mutex.unlock()
 
 	c.put(mut conn_2)
