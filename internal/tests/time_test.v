@@ -150,4 +150,3 @@ fn test_statement_time_params() {
 	tx.commit()!
 	conn.close()!
 }
-

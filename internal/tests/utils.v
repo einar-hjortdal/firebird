@@ -12,4 +12,3 @@ fn start_transaction(mut conn firebird.Connection) !&firebird.Transaction {
 }
 
 type Null = firebird.Null // https://github.com/vlang/v/issues/27402
-

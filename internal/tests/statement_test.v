@@ -469,4 +469,3 @@ fn test_char_boolean() {
 
 	conn.close()!
 }
-

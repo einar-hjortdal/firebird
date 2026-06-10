@@ -23,4 +23,3 @@ fn test_open() {
 	mut conn := new_connection()!
 	conn.close()!
 }
-

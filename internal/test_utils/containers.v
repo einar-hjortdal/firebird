@@ -45,4 +45,3 @@ fn container_firebird_start() ! {
 	}
 	container_is_ready()
 }
-

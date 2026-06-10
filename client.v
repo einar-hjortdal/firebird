@@ -5,6 +5,8 @@ import time
 
 pub const default_max_pool_size = 10
 pub const default_min_pool_size = 2
+pub const default_max_idle_time = time.hour * 1
+pub const default_max_life_time = 0
 
 struct NoIdle {}
 
@@ -28,11 +30,11 @@ fn (e ClientClosed) code() int {
 
 pub struct ClientConfig {
 pub:
-	url           string // required, see new_connection
-	max_pool_size ?i32
-	min_pool_size ?i32
-	// TODO: max_idle_time time.Duration
-	// TODO: max_life_time time.Duration
+	url                string
+	max_pool_size      ?i32
+	min_pool_size      ?i32
+	conn_max_idle_time ?time.Duration
+	conn_max_life_time ?time.Duration
 }
 
 struct ChannelMessage {}
@@ -40,7 +42,7 @@ struct ChannelMessage {}
 struct ClientConnection {
 	created_at time.Time
 mut:
-	idle_since time.Time // TODO: should be an atomic but V atomics are experimental, using mutex
+	idle_since time.Time
 	fbconn     &Connection
 	mutex      &sync.Mutex
 }
@@ -59,15 +61,17 @@ fn (mut cc ClientConnection) close() {
 
 // Client manages a pool of Connection
 pub struct Client {
-	url           string
-	max_pool_size i32
-	min_pool_size i32
-	queue         chan ChannelMessage
+	url                string
+	max_pool_size      i32
+	min_pool_size      i32
+	queue              chan ChannelMessage
+	conn_max_idle_time time.Duration
+	conn_max_life_time time.Duration
 mut:
 	connections        []&ClientConnection // active connections
 	idle_connections   []&ClientConnection // available connections
 	connections_length i32                 // number of connections in the pool
-	is_closed          bool                // TODO: should be an atomic but V atomics are experimental, using mutex
+	is_closed          bool
 	mutex              &sync.Mutex
 }
 
@@ -129,6 +133,12 @@ fn pool_size_or_default(o ?i32, default i32) !i32 {
 	return v
 }
 
+fn life_time_or_default(d ?time.Duration, default time.Duration) !time.Duration {
+	lt := d or { return default }
+	if lt < 0 { return error(format_error_message('life_time cannot be smaller than 0')) }
+	return lt
+}
+
 // Client manages a pool of connections to the Firebird server.
 // By default it keeps default_min_pool_size active connections to the server and, when needed, adds more up to ClientConfig.max_pool_size, which is default_max_pool_size by default. Then, new database operations will wait for an existing operation to finish.
 pub fn new_client(c ClientConfig) !&Client {
@@ -137,16 +147,16 @@ pub fn new_client(c ClientConfig) !&Client {
 		return error(format_error_message('max pool size cannot be smaller than ${default_min_pool_size}'))
 	}
 
-	min_pool_size := pool_size_or_default(c.min_pool_size, default_min_pool_size)!
-
 	mut client := &Client{
-		url:              c.url
-		max_pool_size:    max_pool_size
-		min_pool_size:    min_pool_size
-		queue:            chan ChannelMessage{cap: max_pool_size}
-		connections:      []&ClientConnection{cap: max_pool_size}
-		idle_connections: []&ClientConnection{cap: max_pool_size}
-		mutex:            sync.new_mutex()
+		url:                c.url
+		max_pool_size:      max_pool_size
+		min_pool_size:      pool_size_or_default(c.min_pool_size, default_min_pool_size)!
+		queue:              chan ChannelMessage{cap: max_pool_size}
+		connections:        []&ClientConnection{cap: max_pool_size}
+		idle_connections:   []&ClientConnection{cap: max_pool_size}
+		conn_max_idle_time: life_time_or_default(c.conn_max_idle_time, default_max_idle_time)!
+		conn_max_life_time: life_time_or_default(c.conn_max_life_time, default_max_life_time)!
+		mutex:              sync.new_mutex()
 	}
 
 	client.mutex.lock()
@@ -201,12 +211,14 @@ fn (mut c Client) get() !&ClientConnection {
 				}
 			}
 		}
+
 		c.mutex.unlock()
-		conn.fbconn.health_check() or {
-			c.close_connection(mut conn) or {}
-			continue
+		if c.is_healthy_connection(mut conn) {
+			return conn
 		}
-		return conn
+
+		c.close_connection(mut conn)
+		continue
 	}
 
 	conn := c.new_client_connection() or {
@@ -218,7 +230,6 @@ fn (mut c Client) get() !&ClientConnection {
 
 fn (mut c Client) put(mut client_connection ClientConnection) {
 	c.mutex.lock()
-	// TODO check health: if needed close connection and remove from pool instead
 	client_connection.set_idle_since()
 	c.idle_connections << client_connection
 	c.mutex.unlock()
@@ -241,8 +252,32 @@ fn (mut c Client) remove(mut client_connection ClientConnection) {
 	c.mutex.unlock()
 }
 
-fn (mut c Client) close_connection(mut client_connection ClientConnection) ! {
-	client_connection.fbconn.close()!
+fn (mut c Client) close_connection(mut client_connection ClientConnection) {
+	c.remove(mut client_connection)
+	client_connection.close()
+}
+
+fn (mut c Client) connection_is_too_old(mut client_connection ClientConnection, now time.Time) bool {
+	return c.conn_max_life_time > 0 && now - client_connection.created_at > c.conn_max_life_time
+}
+
+fn (mut c Client) connection_waited_too_long(mut client_connection ClientConnection, now time.Time) bool {
+	return c.conn_max_idle_time > 0 && now - client_connection.idle_since > c.conn_max_idle_time
+}
+
+fn (mut c Client) is_healthy_connection(mut client_connection ClientConnection) bool {
+	now := time.now()
+	if c.connection_is_too_old(mut client_connection, now) {
+		return false
+	}
+
+	if c.connection_waited_too_long(mut client_connection, now) {
+		return false
+	}
+
+	client_connection.fbconn.health_check() or { return false }
+
+	return true
 }
 
 pub fn (mut c Client) close() {
