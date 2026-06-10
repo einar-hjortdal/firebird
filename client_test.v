@@ -39,3 +39,49 @@ fn test_rollback() {
 	c.close()
 	assert c.is_closed
 }
+
+fn test_connection_too_old_and_idle_too_long() {
+	mut c := new_client(ClientConfig{
+		url:                test_utils.firebird_url
+		conn_max_life_time: time.millisecond * 50
+		conn_max_idle_time: time.millisecond * 50
+	})!
+
+	mut conn := c.new_client_connection()!
+	time.sleep(50 * time.millisecond)
+	now := time.now()
+
+	assert c.connection_is_too_old(mut conn, now)
+	assert c.connection_waited_too_long(mut conn, now)
+
+	c.close()
+}
+
+fn test_get_detects_closed_underlying_connection() {
+	mut c := start_client()!
+
+	mut conn_1 := c.get()!
+	mut conn_2 := c.get()! // there should be 2, keep one busy while we work on the other.
+	assert c.idle_connections.len == 0
+
+	conn_1.fbconn.close()! // make conn_1 unhealthy
+	c.put(mut conn_1)
+	assert c.idle_connections.len == 1
+
+	mut new_conn := c.get()! // should detect and remove the bad connection
+
+	c.mutex.lock()
+	for i := 0; i < c.connections.len; i++ {
+		existing := c.connections[i]
+		assert existing != conn_1
+	}
+
+	assert c.connections_length >= c.min_pool_size
+	assert c.connections.len == c.connections_length
+	c.mutex.unlock()
+
+	c.put(mut conn_2)
+	c.put(mut new_conn)
+	c.close()
+}
+
