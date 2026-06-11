@@ -82,4 +82,3 @@ fn test_get_detects_closed_underlying_connection() {
 	c.put(mut new_conn)
 	c.close()
 }
-

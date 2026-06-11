@@ -142,7 +142,7 @@ fn build_blr(xsqlda XSQLDA) ![]u8 {
 				blr.write_u8(u8(v.sql_len >> 8))
 			}
 			else {
-				return error(format_error_message('Unsupported data type ${v.sql_type}: ${low_priority_todo}'))
+				return new_error('Unsupported data type ${v.sql_type}: ${low_priority_todo}')
 			}
 		}
 

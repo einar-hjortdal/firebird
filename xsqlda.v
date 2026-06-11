@@ -157,7 +157,7 @@ fn (x XSQLVar) parse_string(raw_value []u8, charset string) !Value {
 			return raw_value.bytestr()
 		}
 		else {
-			return error(format_error_message('unsupported charset `${charset}`: ${low_priority_todo}'))
+			return new_error('unsupported charset `${charset}`: ${low_priority_todo}')
 		}
 	}
 }
@@ -231,7 +231,7 @@ fn (x XSQLVar) get_value(raw_value []u8, named_zone string, charset string) !Val
 			return raw_value
 		}
 		else {
-			return error(format_error_message('unsupported data type ${x.sql_type}: ${low_priority_todo}'))
+			return new_error('unsupported data type ${x.sql_type}: ${low_priority_todo}')
 		}
 	}
 }
@@ -327,7 +327,7 @@ fn (mut xsqlda XSQLDA) parse_select_items(buf []u8) !int {
 				// nothing
 			}
 			else {
-				return error(format_error_message('Unable to parse XSQLDA item'))
+				return new_error('Unable to parse XSQLDA item')
 			}
 		}
 	}

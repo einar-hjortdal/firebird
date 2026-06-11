@@ -24,7 +24,7 @@ fn encode_offset(offset i16) i16 {
 // used to validate user-provided offset
 fn validate_offset(o i16) ! {
 	if o == 0 || !is_offset(u16(o)) {
-		return error(format_error_message('invalid offset'))
+		return new_error('invalid offset')
 	}
 }
 
@@ -35,7 +35,7 @@ fn validate_named_zone(n string) !u16 {
 			return u16(k)
 		}
 	}
-	return error(format_error_message('invalid named_zone'))
+	return new_error('invalid named_zone')
 }
 
 // `DateTime` embeds `time.Time`.
@@ -164,7 +164,7 @@ fn get_default_named_zone(named_zone string) !(u16, string) {
 			return u16(k), named_zone
 		}
 	}
-	return error(format_error_message('invalid named_zone'))
+	return new_error('invalid named_zone')
 }
 
 fn parse_date(raw_value []u8, named_zone string) !DateTime {
@@ -330,7 +330,7 @@ fn (t DateTime) to_blr() !([]u8, []u8) {
 			return blr, value
 		}
 		else {
-			return error(format_error_message('invalid DateTime.sql_type'))
+			return new_error('invalid DateTime.sql_type')
 		}
 	}
 }

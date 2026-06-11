@@ -206,7 +206,7 @@ fn (mut p WireProtocol) parse_generic_response() !(i32, []u8, []u8) {
 
 	gds_code_list, sql_code, message := p.parse_status_vector()!
 	if gds_code_list.len > 0 || sql_code != 0 {
-		return error(format_error_message(message))
+		return new_error(message)
 	}
 	return object_handle, object_id, response_buffer
 }
@@ -235,7 +235,7 @@ fn (mut p WireProtocol) generic_response() !(i32, []u8, []u8) {
 
 	op_error_code := parse_big_endian_i32(b)
 	if op_error_code != op_response {
-		return error(format_error_message('op_response ${op_error_code}'))
+		return new_error('op_response ${op_error_code}')
 	}
 	return p.parse_generic_response()!
 }
@@ -261,7 +261,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 	}
 
 	if opcode == op_reject {
-		return error(format_error_message('Connection rejected'))
+		return new_error('Connection rejected')
 	}
 
 	if opcode == op_response {
@@ -330,9 +330,9 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 					data[2..ln + 2], client_public_key, server_public_key, client_secret_key,
 					p.plugin_name)
 			} else if p.plugin_name == 'Legacy_Auth' {
-				return error(format_error_message(legacy_auth_error))
+				return new_error(legacy_auth_error)
 			} else {
-				return error(format_error_message('Unauthorized'))
+				return new_error('Unauthorized')
 			}
 		}
 
@@ -348,7 +348,7 @@ fn (mut p WireProtocol) parse_connect_response(user string, password string, opt
 		}
 	} else {
 		if opcode != op_accept {
-			return error(format_error_message('Protocol error'))
+			return new_error('Protocol error')
 		}
 	}
 }
@@ -551,7 +551,7 @@ fn (mut p WireProtocol) params_to_blr(tx_handle i32, params []Value, protocol_ve
 				b.write_u8(0)
 			}
 			else {
-				return error(format_error_message('WireProtocol.params_to_blr only accepts the following parameter types: string, []u8, i32, i64, f32, f64, bool, firebird.Time, firebird.Null'))
+				return new_error('WireProtocol.params_to_blr only accepts the following parameter types: string, []u8, i32, i64, f32, f64, bool, firebird.Time, firebird.Null')
 			}
 		}
 
@@ -615,7 +615,7 @@ fn (mut p WireProtocol) sql_response(xsqlda XSQLDA) ![]Value {
 
 	response := parse_big_endian_i32(b)
 	if response != op_sql_response {
-		return error(format_error_message('received ${response}, not op_sql_response'))
+		return new_error('received ${response}, not op_sql_response')
 	}
 
 	b = p.receive_packets(4)!
@@ -748,7 +748,7 @@ fn (mut p WireProtocol) parse_fetch_response(xsqlda XSQLDA) !([][]Value, i32) {
 		if parse_big_endian_i32(b) == op_response {
 			p.parse_generic_response()!
 		}
-		return error(format_error_message('parse_fetch_response internal error'))
+		return new_error('parse_fetch_response internal error')
 	}
 
 	b = p.receive_packets(8)!

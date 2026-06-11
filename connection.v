@@ -52,7 +52,7 @@ pub fn (mut c Connection) start_transaction(isolation_level int) !&Transaction {
 		return new_transaction(mut c, isolation_level, false)!
 	}
 
-	return error(format_error_message('Isolation level not supported.'))
+	return new_error('Isolation level not supported.')
 }
 
 fn (mut c Connection) health_check() ! {

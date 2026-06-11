@@ -63,7 +63,7 @@ fn test_at_time_zone() {
 	mut conn := new_connection()!
 	mut tx := start_transaction(mut conn)!
 
-	mut result := tx.execute('SELECT current_timestamp FROM RDB\$DATABASE')!
+	mut result := tx.execute('SELECT CURRENT_TIMESTAMP FROM RDB\$DATABASE')!
 	mut columns := result.columns()
 	assert columns.len == 1
 
@@ -79,7 +79,7 @@ fn test_at_time_zone() {
 	mut t := rows[0].values()[0]
 	assert t is firebird.DateTime && t.named_zone == 'Etc/UTC'
 
-	result = tx.execute("SELECT current_timestamp AT TIME ZONE 'America/Sao_Paulo'
+	result = tx.execute("SELECT CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo'
 		FROM RDB\$DATABASE")!
 	rows = result.rows()
 	assert rows.len == 1

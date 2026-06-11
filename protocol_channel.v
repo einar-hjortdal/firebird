@@ -55,7 +55,7 @@ fn (mut c WireChannel) set_crypt_key(plugin string, session_key []u8, nonce []u8
 			c.crypto_writer = rc4.new_cipher(session_key)!
 		}
 		else {
-			return error(format_error_message('Unknown wire encryption plugin name: ${plugin}'))
+			return new_error('Unknown wire encryption plugin name: ${plugin}')
 		}
 	}
 }

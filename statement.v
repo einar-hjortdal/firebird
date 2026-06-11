@@ -25,7 +25,7 @@ fn parse_statement_type(buf []u8) !(i32, int) {
 			return stmt_type, next_index
 		}
 	}
-	return error(format_error_message('could not parse statement type, missing from buffer'))
+	return new_error('could not parse statement type, missing from buffer')
 }
 
 fn new_statement(mut tx Transaction, query string) !&Statement {
@@ -121,7 +121,7 @@ fn (mut stmt Statement) get_affected_rows() !i32 {
 // This driver does distinguish between query and execute, executing a statement always returns a Result.
 pub fn (mut stmt Statement) execute(params ...Value) !Result {
 	if stmt.is_closed {
-		return error(format_error_message('failed to execute statement: statement is closed'))
+		return new_error('failed to execute statement: statement is closed')
 	}
 
 	match stmt.stmt_type {
@@ -148,7 +148,7 @@ pub fn (mut stmt Statement) execute(params ...Value) !Result {
 		}
 		else {
 			// isc_info_sql_stmt_exec_procedure ...
-			return error(format_error_message('Statement type ${stmt.stmt_type} not supported: ${low_priority_todo}'))
+			return new_error('Statement type ${stmt.stmt_type} not supported: ${low_priority_todo}')
 		}
 	}
 }

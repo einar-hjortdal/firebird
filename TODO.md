@@ -7,6 +7,8 @@
 - [x] connect to Firebird
 - [x] support Secure Remote Password auth plugin
 - [x] support arc4 crypt plugin
+- [x] support chacha crypt plugin
+- [x] support chacha64 crypt plugin
 - [x] perform queries
 - [x] parse responses
 
@@ -15,13 +17,12 @@
 - [x] queries with parameters
 - [x] date
 - [x] time
+- [x] connection pool
 - [ ] tests
 - [ ] never panic
 
 ### Medium
 
-- [x] support chacha crypt plugin
-- [x] support chacha64 crypt plugin
 - [ ] logging
 - [ ] optimize performance
 

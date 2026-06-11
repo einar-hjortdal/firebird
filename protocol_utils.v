@@ -297,7 +297,7 @@ fn choose_wire_crypt(buf []u8) !(string, []u8) {
 		return rc4_plugin_name, []u8{}
 	}
 
-	return error(format_error_message('Unsupported crypt plugin'))
+	return new_error('Unsupported crypt plugin')
 }
 
 // https://github.com/FirebirdSQL/jaybird/blob/694801baab9083b7df83fe457ef71e8c89740d88/src/main/org/firebirdsql/gds/ng/wire/DefaultBlrCalculator.java

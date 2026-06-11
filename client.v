@@ -124,13 +124,13 @@ fn (mut c Client) check_min_connections() {
 
 fn pool_size_or_default(o ?i32, default i32) !i32 {
 	v := o or { return default }
-	if v < 0 { return error(format_error_message('pool size cannot be smaller than 0')) }
+	if v < 0 { return new_error('pool size cannot be smaller than 0') }
 	return v
 }
 
 fn life_time_or_default(d ?time.Duration, default time.Duration) !time.Duration {
 	lt := d or { return default }
-	if lt < 0 { return error(format_error_message('life_time cannot be smaller than 0')) }
+	if lt < 0 { return new_error('life_time cannot be smaller than 0') }
 	return lt
 }
 
@@ -139,7 +139,7 @@ fn life_time_or_default(d ?time.Duration, default time.Duration) !time.Duration 
 pub fn new_client(c ClientConfig) !&Client {
 	max_pool_size := pool_size_or_default(c.max_pool_size, default_max_pool_size)!
 	if max_pool_size < default_min_pool_size {
-		return error(format_error_message('max pool size cannot be smaller than ${default_min_pool_size}'))
+		return new_error('max pool size cannot be smaller than ${default_min_pool_size}')
 	}
 
 	mut client := &Client{
@@ -326,4 +326,3 @@ pub fn (mut ct ClientTransaction) commit() ! {
 	}
 	ct.transaction.commit()!
 }
-

@@ -10,6 +10,10 @@ fn format_error_message(message string) string {
 	return '[${lib}] ${message}'
 }
 
+fn new_error(message string) IError {
+	return error(format_error_message(message))
+}
+
 fn get_log_level() log.Level {
 	level_string := os.getenv('LOG_LEVEL')
 	if level_string == '' {

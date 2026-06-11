@@ -27,7 +27,7 @@ pub fn (value Value) get_date_time() !(DateTime, bool) {
 			return DateTime{}, true
 		}
 		else {
-			return error(format_error_message(bad_type_message('DateTime')))
+			return new_error(bad_type_message('DateTime'))
 		}
 	}
 }
@@ -43,7 +43,7 @@ pub fn (value Value) get_i32() !(i32, bool) {
 			return 0, true
 		}
 		else {
-			return error(format_error_message(bad_type_message('i32')))
+			return new_error(bad_type_message('i32'))
 		}
 	}
 }
@@ -59,7 +59,7 @@ pub fn (value Value) get_i64() !(i64, bool) {
 			return 0, true
 		}
 		else {
-			return error(format_error_message(bad_type_message('i64')))
+			return new_error(bad_type_message('i64'))
 		}
 	}
 }
@@ -75,7 +75,7 @@ pub fn (value Value) get_f32() !(f32, bool) {
 			return 0, true
 		}
 		else {
-			return error(format_error_message(bad_type_message('f32')))
+			return new_error(bad_type_message('f32'))
 		}
 	}
 }
@@ -91,7 +91,7 @@ pub fn (value Value) get_f64() !(f64, bool) {
 			return 0, true
 		}
 		else {
-			return error(format_error_message(bad_type_message('f64')))
+			return new_error(bad_type_message('f64'))
 		}
 	}
 }
@@ -107,7 +107,7 @@ pub fn (value Value) get_bool() !(bool, bool) {
 			return false, true
 		}
 		else {
-			return error(format_error_message(bad_type_message('bool')))
+			return new_error(bad_type_message('bool'))
 		}
 	}
 }
@@ -123,7 +123,7 @@ pub fn (value Value) get_array_u8() !([]u8, bool) {
 			return []u8{}, true
 		}
 		else {
-			return error(format_error_message(bad_type_message('[]u8')))
+			return new_error(bad_type_message('[]u8'))
 		}
 	}
 }
@@ -139,7 +139,7 @@ pub fn (value Value) get_string() !(string, bool) {
 			return '', true
 		}
 		else {
-			return error(format_error_message(bad_type_message('string')))
+			return new_error(bad_type_message('string'))
 		}
 	}
 }
