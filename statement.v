@@ -10,7 +10,7 @@ pub struct Statement {
 	stmt_type         i32 // isc_info_sql_stmt_type
 	stmt_handle       i32
 mut:
-	tx        &Transaction
+	tx        &ConnectionTransaction
 	is_closed bool
 }
 
@@ -28,7 +28,7 @@ fn parse_statement_type(buf []u8) !(i32, int) {
 	return new_error('could not parse statement type, missing from buffer')
 }
 
-fn new_statement(mut tx Transaction, query string) !&Statement {
+fn new_statement(mut tx ConnectionTransaction, query string) !&Statement {
 	tx.conn.p.allocate_statement()!
 	mut stmt_handle := i32(0)
 	if tx.conn.p.accept_type == ptype_lazy_send {

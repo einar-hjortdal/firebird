@@ -235,8 +235,7 @@ fn (mut c Client) remove(mut client_connection ClientConnection) {
 	for i := 0; i < c.connections.len; i++ {
 		conn := c.connections[i]
 		if conn == client_connection {
-			c.connections[i] = c.connections[c.connections.len - 1] // https://github.com/vlang/v/issues/27400
-			c.connections.delete(c.connections.len - 1)
+			c.connections.delete(i)
 			break
 		}
 	}
@@ -286,7 +285,7 @@ pub struct ClientTransaction {
 mut:
 	client            &Client
 	client_connection &ClientConnection
-	transaction       &Transaction
+	transaction       &ConnectionTransaction
 }
 
 pub fn (mut c Client) start_transaction(isolation_level int) !&ClientTransaction {
