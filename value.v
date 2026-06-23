@@ -200,18 +200,6 @@ pub fn (value Value) get_string_or_zero() !string {
 	return v
 }
 
-pub interface Nullable[T] {
-	value() T
-	is_null() bool
-}
-
-pub fn (n Nullable[T]) none_value() ?T {
-	if n.is_null() {
-		return none
-	}
-	return n.value()
-}
-
 pub struct NullDateTime {
 	value   DateTime
 	is_null bool
@@ -231,6 +219,13 @@ pub fn (p NullDateTime) value() DateTime {
 
 pub fn (p NullDateTime) is_null() bool {
 	return p.is_null
+}
+
+pub fn (p NullDateTime) none_value() ?DateTime {
+	if p.is_null {
+		return none
+	}
+	return p.value
 }
 
 pub struct NullI32 {
@@ -254,6 +249,13 @@ pub fn (p NullI32) is_null() bool {
 	return p.is_null
 }
 
+pub fn (p NullI32) none_value() ?i32 {
+	if p.is_null {
+		return none
+	}
+	return p.value
+}
+
 pub struct NullI64 {
 	value   i64
 	is_null bool
@@ -273,6 +275,13 @@ pub fn (p NullI64) value() i64 {
 
 pub fn (p NullI64) is_null() bool {
 	return p.is_null
+}
+
+pub fn (p NullI64) none_value() ?i64 {
+	if p.is_null {
+		return none
+	}
+	return p.value
 }
 
 pub struct NullF32 {
@@ -296,6 +305,13 @@ pub fn (p NullF32) is_null() bool {
 	return p.is_null
 }
 
+pub fn (p NullF32) none_value() ?f32 {
+	if p.is_null {
+		return none
+	}
+	return p.value
+}
+
 pub struct NullF64 {
 	value   f64
 	is_null bool
@@ -315,6 +331,13 @@ pub fn (p NullF64) value() f64 {
 
 pub fn (p NullF64) is_null() bool {
 	return p.is_null
+}
+
+pub fn (p NullF64) none_value() ?f64 {
+	if p.is_null {
+		return none
+	}
+	return p.value
 }
 
 pub struct NullBool {
@@ -338,6 +361,13 @@ pub fn (p NullBool) is_null() bool {
 	return p.is_null
 }
 
+pub fn (p NullBool) none_value() ?bool {
+	if p.is_null {
+		return none
+	}
+	return p.value
+}
+
 pub struct NullArrayU8 {
 	value   []u8
 	is_null bool
@@ -359,6 +389,13 @@ pub fn (p NullArrayU8) is_null() bool {
 	return p.is_null
 }
 
+pub fn (p NullDateTime) none_value() ?[]u8 {
+	if p.is_null {
+		return none
+	}
+	return p.value
+}
+
 pub struct NullString {
 	value   string
 	is_null bool
@@ -378,4 +415,11 @@ pub fn (p NullString) value() string {
 
 pub fn (p NullString) is_null() bool {
 	return p.is_null
+}
+
+pub fn (p NullString) none_value() ?string {
+	if p.is_null {
+		return none
+	}
+	return p.value
 }
