@@ -389,7 +389,7 @@ pub fn (p NullArrayU8) is_null() bool {
 	return p.is_null
 }
 
-pub fn (p NullDateTime) none_value() ?[]u8 {
+pub fn (p NullArrayU8) none_value() ?[]u8 {
 	if p.is_null {
 		return none
 	}
