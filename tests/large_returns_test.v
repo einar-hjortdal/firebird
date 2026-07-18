@@ -1,7 +1,7 @@
 module tests
 
 import rand
-import test_utils
+import internal.test_utils
 
 fn testsuite_begin() ! {
 	test_utils.container_firebird_start()!

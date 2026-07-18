@@ -1,6 +1,6 @@
 module tests
 
-import test_utils
+import internal.test_utils
 import einar_hjortdal.luuid
 
 fn testsuite_begin() ! {

@@ -20,13 +20,13 @@ fn start_client() !&Client {
 	return c
 }
 
-fn start_transaction(mut c Client) !&ClientTransaction {
+fn start_client_transaction(mut c Client) !&ClientTransaction {
 	return c.start_transaction(isolation_level_read_commited)
 }
 
 fn test_rollback() {
 	mut c := start_client()!
-	mut tx := start_transaction(mut c)!
+	mut tx := start_client_transaction(mut c)!
 	assert c.connections.len == default_min_pool_size
 	assert c.idle_connections.len == default_min_pool_size - 1
 
