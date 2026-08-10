@@ -1,6 +1,7 @@
 module firebird
 
 pub interface Transaction {
+mut:
 	commit() !
 	rollback() !
 	execute(query string, params ...Value) !Result

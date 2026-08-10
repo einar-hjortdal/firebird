@@ -2,7 +2,6 @@ module tests
 
 import internal.test_utils
 import firebird
-import time
 
 fn testsuite_begin() ! {
 	test_utils.container_firebird_start()!
@@ -13,12 +12,9 @@ fn testsuite_end() ! {
 }
 
 fn start_client() !&firebird.Client {
-	c := firebird.new_client(firebird.ClientConfig{
+	return firebird.new_client(firebird.ClientConfig{
 		url: test_utils.firebird_url
 	})!
-	time.sleep(time.second * 3) // wait for connections to be opened and appended to c.connections
-	// TODO if the application attempts to perform database operations while the client is starting, an unnecessary number of connections may be opened. There should be a startup-lock or another mechanism to prevent that from happening.
-	return c
 }
 
 fn start_client_transaction(mut c firebird.Client) !&firebird.ClientTransaction {
